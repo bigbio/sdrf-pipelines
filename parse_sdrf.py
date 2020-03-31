@@ -123,11 +123,13 @@ for index, row in sdrf.iterrows():
   file2label[raw] = re.search("NM=(.+?)$", row['comment[label]']).group(1)
 
 #output of search settings
-OpenMSSearchSettingsHeader = ["Filename", "Database", "FixedModifications", "VariableModifications", "Label", "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance", "DissociationMethod", "Enzyme"]
-
-print("\t".join(OpenMSSearchSettingsHeader))
-
+f=open("openms.tsv","w+")
+OpenMSSearchSettingsHeader = ["Filename", "FixedModifications", "VariableModifications", "Label", "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance", "DissociationMethod", "Enzyme"]
+f.write("\t".join(OpenMSSearchSettingsHeader) + "\n")
 for index, row in sdrf.iterrows():
   raw = row["comment[data file]"]
-  print(raw+"\t"+file2mods[raw][0]+"\t"+file2mods[raw][1] +"\t"+file2label[raw]+"\t"+file2pctol[raw]+"\t"+file2pctolunit[raw]+"\t"+file2fragtol[raw]+"\t"+file2fragtolunit[raw]+"\t"+file2diss[raw]+"\t"+file2enzyme[raw])
+  f.write(raw+"\t"+file2mods[raw][0]+"\t"+file2mods[raw][1] +"\t"+file2label[raw]+"\t"+file2pctol[raw]+"\t"+file2pctolunit[raw]+"\t"+file2fragtol[raw]+"\t"+file2fragtolunit[raw]+"\t"+file2diss[raw]+"\t"+file2enzyme[raw]+"\n")
+f.close()
+
+exit()
 
