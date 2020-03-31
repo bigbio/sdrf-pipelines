@@ -18,7 +18,7 @@ def OpenMSifyMods(sdrf_mods):
       pp = re.search("PP=(.+?);", m).group(1) # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
 
     if re.search("TA=(.+?);", m) == None: # TODO: missing in sdrf.
-      print("Warning no TA= specified. Setting to N-term or C-term if possible" + m)
+      print("Warning no TA= specified. Setting to N-term or C-term if possible: " + m)
       if "C-term" in pp:
         ta = "C-term"
       elif "N-term" in pp:
@@ -80,11 +80,44 @@ for index, row in sdrf.iterrows():
     variable_mods_string = OpenMSifyMods(var_mods)
 
   file2mods[raw] = (fixed_mods_string, variable_mods_string)
-  file2pctol[raw] = row['comment[precursor mass tolerance]']
-  file2pctolunit[raw] = "ppm" # TODO 
-  file2fragtol[raw] = row['comment[fragment mass tolerance]']
-  file2fragtolunit[raw] = "ppm"
-  file2diss[raw] = "HCD" # TODO: where to get this information from?
+
+  if 'comment[precursor mass tolerance]' in row:
+    pc_tol_str = row['comment[precursor mass tolerance]']
+    if "ppm" in pc_tol_str or "Da" in pc_tol_str:
+      pc_tmp = pc_tol_str.split(" ")
+      file2pctol[raw] = pc_tmp[0]
+      file2pctolunit[raw] = pc_tmp[1]
+    else:
+      print("Invalid precursor mass tolerance set. Assuming 10 ppm.")
+      file2pctol[raw] = "10"
+      file2pctolunit[raw] = "ppm"
+  else:
+    print("No precursor mass tolerance set. Assuming 10 ppm.")
+    file2pctol[raw] = "10"
+    file2pctolunit[raw] = "ppm"
+
+  if 'comment[fragment mass tolerance]' in row:
+    f_tol_str = row['comment[fragment mass tolerance]']
+    if "ppm" in f_tol_str or "Da" in f_tol_str:
+      f_tmp = f_tol_str.split(" ")
+      file2fragtol[raw] = f_tmp[0]
+      file2fragtolunit[raw] = f_tmp[1]
+    else:
+      print("Invalid fragment mass tolerance set. Assuming 10 ppm.")
+      file2fragtol[raw] = "10"
+      file2fragtolunit[raw] = "ppm"
+  else:
+    print("No fragment mass tolerance set. Assuming 10 ppm.")
+    file2fragtol[raw] = "20"
+    file2fragtolunit[raw] = "ppm"
+
+  if 'comment[dissociation method]' in row:
+    diss_method = row['comment[dissociation method]']
+    file2diss[raw] = diss_method
+  else:
+    print("No dissociation method provided. Assuming HCD.")
+    file2diss[raw] = 'HCD'
+
   file2enzyme[raw] = re.search("NE=(.+?)$", row['comment[cleavage agent details]']).group(1)
   file2fraction[raw] = row['comment[fraction identifier]']
   file2label[raw] = re.search("NM=(.+?)$", row['comment[label]']).group(1)
@@ -97,7 +130,4 @@ print("\t".join(OpenMSSearchSettingsHeader))
 for index, row in sdrf.iterrows():
   raw = row["comment[data file]"]
   print(raw+"\t"+file2mods[raw][0]+"\t"+file2mods[raw][1] +"\t"+file2label[raw]+"\t"+file2pctol[raw]+"\t"+file2pctolunit[raw]+"\t"+file2fragtol[raw]+"\t"+file2fragtolunit[raw]+"\t"+file2diss[raw]+"\t"+file2enzyme[raw])
-
-
-exit()
 
