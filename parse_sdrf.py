@@ -62,7 +62,8 @@ file2diss = dict()
 file2enzyme = dict()
 file2fraction = dict()
 file2label = dict()
-
+file2source = dict()
+source_name_list = list()
 for index, row in sdrf.iterrows():
 	## extract mods
   all_mods = list(row[mod_cols])
@@ -80,6 +81,11 @@ for index, row in sdrf.iterrows():
     variable_mods_string = OpenMSifyMods(var_mods)
 
   file2mods[raw] = (fixed_mods_string, variable_mods_string)
+
+  source_name = row['source name']
+  file2source[raw] = source_name
+  if not source_name in source_name_list:
+    source_name_list.append(source_name)
 
   if 'comment[precursor mass tolerance]' in row:
     pc_tol_str = row['comment[precursor mass tolerance]']
@@ -119,17 +125,37 @@ for index, row in sdrf.iterrows():
     file2diss[raw] = 'HCD'
 
   file2enzyme[raw] = re.search("NE=(.+?)$", row['comment[cleavage agent details]']).group(1)
-  file2fraction[raw] = row['comment[fraction identifier]']
-  file2label[raw] = re.search("NM=(.+?)$", row['comment[label]']).group(1)
+  file2fraction[raw] = str(row['comment[fraction identifier]'])
+  label = re.search("NM=(.+?)$", row['comment[label]']).group(1)
+  file2label[raw] = label
 
-#output of search settings
+##################### only label-free supported right now
+
+# output of search settings
 f=open("openms.tsv","w+")
 OpenMSSearchSettingsHeader = ["Filename", "FixedModifications", "VariableModifications", "Label", "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance", "DissociationMethod", "Enzyme"]
 f.write("\t".join(OpenMSSearchSettingsHeader) + "\n")
-for index, row in sdrf.iterrows():
+for index, row in sdrf.iterrows(): # does only work for label-free not for multiplexed. TODO
   raw = row["comment[data file]"]
   f.write(raw+"\t"+file2mods[raw][0]+"\t"+file2mods[raw][1] +"\t"+file2label[raw]+"\t"+file2pctol[raw]+"\t"+file2pctolunit[raw]+"\t"+file2fragtol[raw]+"\t"+file2fragtolunit[raw]+"\t"+file2diss[raw]+"\t"+file2enzyme[raw]+"\n")
 f.close()
+
+# output of experimental design
+f=open("experimental_design.tsv","w+")
+OpenMSExperimentalDesignHeader =  ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample", "MSstats_Condition", "MSstats_BioReplicate"]
+f.write("\t".join(OpenMSExperimentalDesignHeader) + "\n")
+for index, row in sdrf.iterrows(): # does only work for label-free not for multiplexed. TODO
+  raw = row["comment[data file]"]
+  fraction_group = str(source_name_list.index(row["source name"])) # extract fraction group
+  sample = fraction_group
+  condition = fraction_group
+  replicate = "1" # TODO see if we can extract this
+  label = file2label[raw]
+  if "label free sample" in label:
+    label = "1"
+  f.write(fraction_group+"\t"+file2fraction[raw]+"\t"+raw+"\t"+label+"\t"+sample+"\t"+condition+"\t"+replicate+"\n")
+f.close()
+
 
 exit()
 
