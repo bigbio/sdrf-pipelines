@@ -19,7 +19,7 @@ def OpenMSifyMods(sdrf_mods):
     if "AC=UNIMOD" not in m:
       raise("only UNIMOD modifications supported.")
 
-    name = re.search("NM=(.+?)(;|$)", m).group(1)
+    name = re.search("NT=(.+?)(;|$)", m).group(1)
     name = name.capitalize()
 
 		# workaround for missing PP in some sdrf TODO: fix in sdrf spec?
@@ -146,13 +146,13 @@ for index, row in sdrf.iterrows():
   else:
     file2technical_rep[raw] = "1"
 
-  enzyme = re.search("N[EM]=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1) # TODO: [EM] introduced because some sdrfs use NM or NE (bug)
+  enzyme = re.search("NT=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1)
   enzyme = enzyme.capitalize()
   if "Trypsin/p" in enzyme: # workaround
     enzyme = "Trypsin/P"
   file2enzyme[raw] = enzyme
   file2fraction[raw] = str(row['comment[fraction identifier]'])
-  label = re.search("NM=(.+?)(;|$)", row['comment[label]']).group(1)
+  label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
   file2label[raw] = label
 
   ## extract factors
