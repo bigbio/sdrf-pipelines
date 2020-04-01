@@ -19,6 +19,8 @@ def OpenMSifyMods(sdrf_mods):
       raise("only UNIMOD modifications supported.")
 
     name = re.search("NM=(.+?)(;|$)", m).group(1)
+    name = name.capitalize()
+
 		# workaround for missing PP in some sdrf TODO: fix in sdrf spec?
     if re.search("PP=(.+?)[;$]", m) == None:
       pp = "Anywhere"
@@ -59,8 +61,10 @@ def OpenMSifyMods(sdrf_mods):
 
 
 # map filename to tuple of [fixed, variable] mods
-mod_cols = [c for ind, c in enumerate(sdrf) if c.startswith('comment[modification parameters]')] # columns with modification parameters
-factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith('factor value[') and len(sdrf[c].unique()) > 1] # get factors and drop constant ones
+mod_cols = [c for ind, c in enumerate(sdrf) if c.startswith('comment[modification parameters')] # columns with modification parameters
+ 
+ # get factor columns (except constant ones)
+factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
 
 file2mods = dict()
 file2pctol = dict()
@@ -74,12 +78,13 @@ file2label = dict()
 file2source = dict()
 source_name_list = list()
 file2combined_factors = dict()
+file2technical_rep = dict()
 for index, row in sdrf.iterrows():
 	## extract mods
   all_mods = list(row[mod_cols])
-  var_mods = [m for m in all_mods if 'MT=variable' in m]
+  var_mods = [m for m in all_mods if 'MT=variable' in m or 'MT=Variable' in m] # workaround for capitalization
   var_mods.sort()
-  fixed_mods = [m for m in all_mods if 'MT=fixed' in m]
+  fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m] # workaround for capitalization
   fixed_mods.sort()
   raw = row['comment[data file]']
   fixed_mods_string = ""
@@ -114,9 +119,10 @@ for index, row in sdrf.iterrows():
 
   if 'comment[fragment mass tolerance]' in row:
     f_tol_str = row['comment[fragment mass tolerance]']
+    f_tol_str.replace("PPM", "ppm") # workaround
     if "ppm" in f_tol_str or "Da" in f_tol_str:
       f_tmp = f_tol_str.split(" ")
-      file2fragtol[raw] = f_tmp[0]
+      file2fragtol[raw] = f_tmp[0]      
       file2fragtolunit[raw] = f_tmp[1]
     else:
       print("Invalid fragment mass tolerance set. Assuming 10 ppm.")
@@ -129,12 +135,21 @@ for index, row in sdrf.iterrows():
 
   if 'comment[dissociation method]' in row:
     diss_method = row['comment[dissociation method]']
-    file2diss[raw] = diss_method
+    file2diss[raw] = diss_method.toUpper()
   else:
     print("No dissociation method provided. Assuming HCD.")
     file2diss[raw] = 'HCD'
 
-  file2enzyme[raw] = re.search("N[EM]=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1) # TODO: introduced because some sdrfs use NM or NE (bug)
+  if 'comment[technical replicate]' in row:
+    file2technical_rep[raw] = str(row['comment[technical replicate]'])
+  else:
+    file2technical_rep[raw] = "1"
+
+  enzyme = re.search("N[EM]=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1) # TODO: [EM] introduced because some sdrfs use NM or NE (bug)
+  enzyme = enzyme.capitalize()
+  if "Trypsin/p" in enzyme: # workaround
+    enzyme = "Trypsin/P"
+  file2enzyme[raw] = enzyme
   file2fraction[raw] = str(row['comment[fraction identifier]'])
   label = re.search("NM=(.+?)(;|$)", row['comment[label]']).group(1)
   file2label[raw] = label
@@ -147,7 +162,7 @@ for index, row in sdrf.iterrows():
     combined_factors = "none"
 
   file2combined_factors[raw] = combined_factors
-  print(combined_factors)
+  #print(combined_factors)
 
 ##################### only label-free supported right now
 
@@ -166,10 +181,14 @@ OpenMSExperimentalDesignHeader =  ["Fraction_Group", "Fraction", "Spectra_Filepa
 f.write("\t".join(OpenMSExperimentalDesignHeader) + "\n")
 for index, row in sdrf.iterrows(): # does only work for label-free not for multiplexed. TODO
   raw = row["comment[data file]"]
-  fraction_group = str(source_name_list.index(row["source name"])) # extract fraction group
+  fraction_group = str(1 + source_name_list.index(row["source name"])) # extract fraction group
   sample = fraction_group
-  condition = file2combined_factors[raw]
-  replicate = "1" # TODO see if we can extract this
+  if 'none' in file2combined_factors[raw]:
+    # no factor defined use sample as condition
+    condition = sample
+  else:
+    condition = file2combined_factors[raw]
+  replicate = file2technical_rep[raw]
   label = file2label[raw]
   if "label free sample" in label:
     label = "1"
