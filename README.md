@@ -1,11 +1,9 @@
 # sdrf-openms
 
-A repository to convert SDRF proteomics files into openms config files
+parse_sdrf.py converts a SDRF proteomics file into the OpenMS
 
-parse_sdrf.py converts a SDRF proteomics file into 
-
-- the experiment settings (search engine settings etc.)
-- the experimental design
+- experiment settings (search engine settings etc.)
+- experimental design
 
 The experimental settings file contains one row for every raw file. Columns contain relevevant parameters like precursor mass tolerance, modifications etc. These settings can usually be derived from the sdrf file.
 
