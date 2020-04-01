@@ -169,7 +169,7 @@ for index, row in sdrf.iterrows():
 
 # output of search settings
 f=open("openms.tsv","w+")
-OpenMSSearchSettingsHeader = ["Filename", "FixedModifications", "VariableModifications", "Label", "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance", "DissociationMethod", "Enzyme"]
+OpenMSSearchSettingsHeader = ["Filename", "FixedModifications", "VariableModifications", "Label", "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance", "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
 f.write("\t".join(OpenMSSearchSettingsHeader) + "\n")
 for index, row in sdrf.iterrows(): # does only work for label-free not for multiplexed. TODO
   raw = row["comment[data file]"]
