@@ -2,6 +2,13 @@ import glob
 import csv
 import re
 import pandas as pd
+import sys
+
+#sdrf = pd.read_table("https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018117/sdrf.tsv")
+if len(sys.argv) != 2:
+  print('Usage e.g.: python parse_sdrf.py "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018117/sdrf.tsv"')
+  exit(-1)
+sdrf = pd.read_table(sys.argv[1])
 
 def OpenMSifyMods(sdrf_mods):
   oms_mods = list()
@@ -49,7 +56,6 @@ def OpenMSifyMods(sdrf_mods):
   
   return ",".join(oms_mods)
 
-sdrf = pd.read_table("https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018117/sdrf.tsv")
 
 # map filename to tuple of [fixed, variable] mods
 mod_cols = [c for ind, c in enumerate(sdrf) if c.startswith('comment[modification parameters]')] # columns with modification parameters
@@ -155,7 +161,4 @@ for index, row in sdrf.iterrows(): # does only work for label-free not for multi
     label = "1"
   f.write(fraction_group+"\t"+file2fraction[raw]+"\t"+raw+"\t"+label+"\t"+sample+"\t"+condition+"\t"+replicate+"\n")
 f.close()
-
-
-exit()
 
