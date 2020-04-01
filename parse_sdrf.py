@@ -9,6 +9,7 @@ if len(sys.argv) != 2:
   print('Usage e.g.: python parse_sdrf.py "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018117/sdrf.tsv"')
   exit(-1)
 sdrf = pd.read_table(sys.argv[1])
+sdrf.columns = map(str.lower, sdrf.columns) # convert column names to lower-case
 
 def OpenMSifyMods(sdrf_mods):
   oms_mods = list()
@@ -17,14 +18,14 @@ def OpenMSifyMods(sdrf_mods):
     if "AC=UNIMOD" not in m:
       raise("only UNIMOD modifications supported.")
 
-    name = re.search("NM=(.+?);", m).group(1)
+    name = re.search("NM=(.+?)(;|$)", m).group(1)
 		# workaround for missing PP in some sdrf TODO: fix in sdrf spec?
-    if re.search("PP=(.+?);", m) == None:
+    if re.search("PP=(.+?)[;$]", m) == None:
       pp = "Anywhere"
     else:
-      pp = re.search("PP=(.+?);", m).group(1) # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
+      pp = re.search("PP=(.+?)(;|$)", m).group(1) # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
 
-    if re.search("TA=(.+?);", m) == None: # TODO: missing in sdrf.
+    if re.search("TA=(.+?)(;|$)", m) == None: # TODO: missing in sdrf.
       print("Warning no TA= specified. Setting to N-term or C-term if possible: " + m)
       if "C-term" in pp:
         ta = "C-term"
@@ -34,7 +35,7 @@ def OpenMSifyMods(sdrf_mods):
         print("Reassignment not possible. skipping")
         pass
     else:
-      ta = re.search("TA=(.+?);", m).group(1) # target amino-acid
+      ta = re.search("TA=(.+?)(;|$)", m).group(1) # target amino-acid
     aa = ta.split(",") # multiply target site e.g., S,T,Y including potentially termini "C-term"
 
     if pp == "Protein N-term" or pp == "Protein C-term":  
@@ -59,6 +60,8 @@ def OpenMSifyMods(sdrf_mods):
 
 # map filename to tuple of [fixed, variable] mods
 mod_cols = [c for ind, c in enumerate(sdrf) if c.startswith('comment[modification parameters]')] # columns with modification parameters
+factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith('factor value[') and len(sdrf[c].unique()) > 1] # get factors and drop constant ones
+
 file2mods = dict()
 file2pctol = dict()
 file2pctolunit = dict()
@@ -70,6 +73,7 @@ file2fraction = dict()
 file2label = dict()
 file2source = dict()
 source_name_list = list()
+file2combined_factors = dict()
 for index, row in sdrf.iterrows():
 	## extract mods
   all_mods = list(row[mod_cols])
@@ -130,10 +134,20 @@ for index, row in sdrf.iterrows():
     print("No dissociation method provided. Assuming HCD.")
     file2diss[raw] = 'HCD'
 
-  file2enzyme[raw] = re.search("NE=(.+?)$", row['comment[cleavage agent details]']).group(1)
+  file2enzyme[raw] = re.search("N[EM]=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1) # TODO: introduced because some sdrfs use NM or NE (bug)
   file2fraction[raw] = str(row['comment[fraction identifier]'])
-  label = re.search("NM=(.+?)$", row['comment[label]']).group(1)
+  label = re.search("NM=(.+?)(;|$)", row['comment[label]']).group(1)
   file2label[raw] = label
+
+  ## extract factors
+  all_factors = list(row[factor_cols])  
+  combined_factors = "|".join(all_factors)
+  if combined_factors == "":
+    print("No factors specified. Adding dummy factor used as condition.")
+    combined_factors = "none"
+
+  file2combined_factors[raw] = combined_factors
+  print(combined_factors)
 
 ##################### only label-free supported right now
 
@@ -154,11 +168,10 @@ for index, row in sdrf.iterrows(): # does only work for label-free not for multi
   raw = row["comment[data file]"]
   fraction_group = str(source_name_list.index(row["source name"])) # extract fraction group
   sample = fraction_group
-  condition = fraction_group
+  condition = file2combined_factors[raw]
   replicate = "1" # TODO see if we can extract this
   label = file2label[raw]
   if "label free sample" in label:
     label = "1"
   f.write(fraction_group+"\t"+file2fraction[raw]+"\t"+raw+"\t"+label+"\t"+sample+"\t"+condition+"\t"+replicate+"\n")
 f.close()
-
