@@ -98,11 +98,11 @@ def openms_convert(sdrf_file: str = None):
     fixed_mods.sort()
     raw = row['comment[data file]']
     fixed_mods_string = ""
-    if fixed_mods != None:
+    if fixed_mods is not None:
       fixed_mods_string = openms_ify_mods(fixed_mods)
 
     variable_mods_string = ""
-    if var_mods != None:
+    if var_mods is not None:
       variable_mods_string = openms_ify_mods(var_mods)
 
     file2mods[raw] = (fixed_mods_string, variable_mods_string)
@@ -178,10 +178,10 @@ def openms_convert(sdrf_file: str = None):
 
   # output of search settings
   f = open("openms.tsv", "w+")
-  OpenMSSearchSettingsHeader = ["Filename", "FixedModifications", "VariableModifications", "Label",
-                                "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance",
-                                "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
-  f.write("\t".join(OpenMSSearchSettingsHeader) + "\n")
+  open_ms_search_settings_header = ["Filename", "FixedModifications", "VariableModifications", "Label",
+                                    "PrecursorMassTolerance", "PrecursorMassToleranceUnit", "FragmentMassTolerance",
+                                    "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
+  f.write("\t".join(open_ms_search_settings_header) + "\n")
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
     f.write(raw + "\t" + file2mods[raw][0] + "\t" + file2mods[raw][1] + "\t" + file2label[raw] + "\t" + file2pctol[
@@ -191,9 +191,9 @@ def openms_convert(sdrf_file: str = None):
 
   # output of experimental design
   f = open("experimental_design.tsv", "w+")
-  OpenMSExperimentalDesignHeader = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
-                                    "MSstats_Condition", "MSstats_BioReplicate"]
-  f.write("\t".join(OpenMSExperimentalDesignHeader) + "\n")
+  open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
+                                        "MSstats_Condition", "MSstats_BioReplicate"]
+  f.write("\t".join(open_ms_experimental_design_header) + "\n")
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
     fraction_group = str(1 + source_name_list.index(row["source name"]))  # extract fraction group
@@ -214,11 +214,9 @@ def openms_convert(sdrf_file: str = None):
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
-@click.option('--output', '-o', help='Output vectors file, its default path is the same as input file',
-              default="outputfile.csv")
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, output: str, ):
-  if sdrf == None:
+def openms_from_sdrf(ctx, sdrf: str):
+  if sdrf is None:
     help()
   openms_convert(sdrf)
 
