@@ -18,8 +18,8 @@ def openms_ify_mods(sdrf_mods):
   oms_mods = list()
 
   for m in sdrf_mods:
-    if "AC=UNIMOD" not in m:
-      raise Exception("only UNIMOD modifications supported.")
+    if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
+      raise Exception("only UNIMOD modifications supported. " + m)
 
     name = re.search("NT=(.+?)(;|$)", m).group(1)
     name = name.capitalize()
@@ -86,15 +86,18 @@ def openms_convert(sdrf_file: str = None):
   file2label = dict()
   file2source = dict()
   source_name_list = list()
+  source_name2n_reps =dict()
   file2combined_factors = dict()
   file2technical_rep = dict()
   for index, row in sdrf.iterrows():
     ## extract mods
     all_mods = list(row[mod_cols])
+    print(all_mods)
     var_mods = [m for m in all_mods if 'MT=variable' in m or 'MT=Variable' in m]  # workaround for capitalization
     var_mods.sort()
     fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m]  # workaround for capitalization
     fixed_mods.sort()
+    print(row)
     raw = row['comment[data file]']
     fixed_mods_string = ""
     if fixed_mods is not None:
@@ -143,23 +146,42 @@ def openms_convert(sdrf_file: str = None):
       file2fragtolunit[raw] = "ppm"
 
     if 'comment[dissociation method]' in row:
-      diss_method = row['comment[dissociation method]']
-      file2diss[raw] = diss_method.toUpper()
+      diss_method = re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']).group(1)
+      file2diss[raw] = diss_method.upper()
     else:
       print("No dissociation method provided. Assuming HCD.")
       file2diss[raw] = 'HCD'
 
     if 'comment[technical replicate]' in row:
-      file2technical_rep[raw] = str(row['comment[technical replicate]'])
+      technical_replicate = str(row['comment[technical replicate]'])
+      if "not available" in technical_replicate:
+        file2technical_rep[raw] = "1"
+      else:
+        file2technical_rep[raw] = technical_replicate
     else:
       file2technical_rep[raw] = "1"
+
+    # store highest replicate number for this source name
+    if source_name in source_name2n_reps:
+      source_name2n_reps[source_name] = max(int(source_name2n_reps[source_name]), int(file2technical_rep[raw]))
+    else:
+      source_name2n_reps[source_name] = int(file2technical_rep[raw])
 
     enzyme = re.search("NT=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1)
     enzyme = enzyme.capitalize()
     if "Trypsin/p" in enzyme:  # workaround
       enzyme = "Trypsin/P"
     file2enzyme[raw] = enzyme
-    file2fraction[raw] = str(row['comment[fraction identifier]'])
+
+    if 'comment[fraction identifier]' in row:
+      fraction = str(row['comment[fraction identifier]'])
+      if "not available" in fraction:
+        file2fraction[raw] = "1"
+      else:
+        file2fraction[raw] = fraction
+    else:
+      file2fraction[raw] = "1"
+
     label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
     file2label[raw] = label
 
@@ -196,14 +218,22 @@ def openms_convert(sdrf_file: str = None):
   f.write("\t".join(open_ms_experimental_design_header) + "\n")
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
-    fraction_group = str(1 + source_name_list.index(row["source name"]))  # extract fraction group
+    source_name = row["source name"]
+    replicate = file2technical_rep[raw]
+
+    # calculate fraction group by counting all technical replicates of the preceeding source names
+    source_name_index = source_name_list.index(source_name)
+    offset = 0
+    for i in range(source_name_index):
+      offset = offset + int(source_name2n_reps[source_name_list[i]])
+
+    fraction_group = str(offset + int(replicate))
     sample = fraction_group
     if 'none' in file2combined_factors[raw]:
       # no factor defined use sample as condition
       condition = sample
     else:
       condition = file2combined_factors[raw]
-    replicate = file2technical_rep[raw]
     label = file2label[raw]
     if "label free sample" in label:
       label = "1"
