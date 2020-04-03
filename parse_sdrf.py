@@ -229,7 +229,6 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
   raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
-    if not keep_raw: raw = raw_ext_regex.sub(".mzML", raw)
     source_name = row["source name"]
     replicate = file2technical_rep[raw]
 
@@ -249,8 +248,12 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
     label = file2label[raw]
     if "label free sample" in label:
       label = "1"
+    if not keep_raw: 
+      out = raw_ext_regex.sub(".mzML", raw)
+    else:
+      out = raw
     f.write(fraction_group + "\t" + file2fraction[
-      raw] + "\t" + raw + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+      raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
   f.close()
 
   if len(warnings) != 0:
