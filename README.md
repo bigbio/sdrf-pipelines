@@ -24,12 +24,11 @@ be derived from the sdrf file. However, definition of conditions might need manu
 - The **Fraction** identifier indicates which fraction was measured in this file. In the case of unfractionated data the fraction identifier is 1 for all samples.
 - The **Label** identifier. 1 for label-free, 1 and 2 for SILAC light/heavy, e.g. 1-10 for TMT10Plex
 - The **Spectra_Filepath** (e.g., path = "/data/SILAC_file.mzML")
-- The **Sample** that has been measured (e.g., sample = 1)
 - **MSstats_Condition** the condition identifier as used by MSstats
 - **MSstats_BioReplicate** an identifier to indicate replication. (MSstats requires that there are no duplicate entries. E.g., if MSstats_Condition, Fraction_Group group and Fraction number are the same - as in the case of biological or technical replication, one uses the MSstats_BioReplicate to make entries non-unique)
 
-| Fraction_Group| Fraction      | Spectra_Filepath  | Label | Sample| MSstats_Condition      | MSstats_BioReplicate  |
-| ------------- |-------------|-----|---| ------------- |-------------|-----|
+| Fraction_Group| Fraction      | Spectra_Filepath  | Label | MSstats_Condition      | MSstats_BioReplicate  |
+| ------------- |-------------|-----|---| ------------- |-----------|
 | 1 | 1 | A0218_1A_R_FR01.raw | 1 | 1 | 1 | 1 |
 | 1 | 2 | A0218_1A_R_FR02.raw | 1 | 1 | 1 | 1 |
 | . | . | ... | . | . | . | . |
