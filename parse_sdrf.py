@@ -68,7 +68,7 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None):
+def openms_convert(sdrf_file: str = None, keep_raw: boolean = False):
   sdrf = pd.read_table(sdrf_file)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
@@ -226,8 +226,10 @@ def openms_convert(sdrf_file: str = None):
   open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
                                         "MSstats_Condition", "MSstats_BioReplicate"]
   f.write("\t".join(open_ms_experimental_design_header) + "\n")
+  raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
+    if (!keep_raw): raw = raw_ext_regex.sub(".mzML", raw)
     source_name = row["source name"]
     replicate = file2technical_rep[raw]
 
@@ -259,11 +261,12 @@ def openms_convert(sdrf_file: str = None):
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
+@click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str):
+def openms_from_sdrf(ctx, sdrf: str, raw: boolean):
   if sdrf is None:
     help()
-  openms_convert(sdrf)
+  openms_convert(sdrf, raw)
 
 
 cli.add_command(openms_from_sdrf)
