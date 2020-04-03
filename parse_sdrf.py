@@ -9,6 +9,7 @@ import pandas as pd
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+warnings = dict()
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -32,13 +33,16 @@ def openms_ify_mods(sdrf_mods):
         1)  # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
 
     if re.search("TA=(.+?)(;|$)", m) is None:  # TODO: missing in sdrf.
-      print("Warning no TA= specified. Setting to N-term or C-term if possible: " + m)
+      warning_message = "Warning no TA= specified. Setting to N-term or C-term if possible."
+      warnings[warning_message] = warnings.get(warning_message, 0) + 1
       if "C-term" in pp:
         ta = "C-term"
       elif "N-term" in pp:
         ta = "N-term"
       else:
-        print("Reassignment not possible. skipping")
+        warning_message = "Reassignment not possible. Skipping."
+        #print(warning_message + " "+ m)
+        warnings[warning_message] = warnings.get(warning_message, 0) + 1
         pass
     else:
       ta = re.search("TA=(.+?)(;|$)", m).group(1)  # target amino-acid
@@ -92,12 +96,12 @@ def openms_convert(sdrf_file: str = None):
   for index, row in sdrf.iterrows():
     ## extract mods
     all_mods = list(row[mod_cols])
-    print(all_mods)
+    #print(all_mods)
     var_mods = [m for m in all_mods if 'MT=variable' in m or 'MT=Variable' in m]  # workaround for capitalization
     var_mods.sort()
     fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m]  # workaround for capitalization
     fixed_mods.sort()
-    print(row)
+    #print(row)
     raw = row['comment[data file]']
     fixed_mods_string = ""
     if fixed_mods is not None:
@@ -120,12 +124,14 @@ def openms_convert(sdrf_file: str = None):
         pc_tmp = pc_tol_str.split(" ")
         file2pctol[raw] = pc_tmp[0]
         file2pctolunit[raw] = pc_tmp[1]
-      else:
-        print("Invalid precursor mass tolerance set. Assuming 10 ppm.")
+      else:        
+        warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+        warnings[warning_message] = warnings.get(warning_message, 0) + 1
         file2pctol[raw] = "10"
         file2pctolunit[raw] = "ppm"
     else:
-      print("No precursor mass tolerance set. Assuming 10 ppm.")
+      warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
+      warnings[warning_message] = warnings.get(warning_message, 0) + 1
       file2pctol[raw] = "10"
       file2pctolunit[raw] = "ppm"
 
@@ -137,11 +143,13 @@ def openms_convert(sdrf_file: str = None):
         file2fragtol[raw] = f_tmp[0]
         file2fragtolunit[raw] = f_tmp[1]
       else:
-        print("Invalid fragment mass tolerance set. Assuming 10 ppm.")
-        file2fragtol[raw] = "10"
+        warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+        warnings[warning_message] = warnings.get(warning_message, 0) + 1
+        file2fragtol[raw] = "20"
         file2fragtolunit[raw] = "ppm"
     else:
-      print("No fragment mass tolerance set. Assuming 10 ppm.")
+      warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
+      warnings[warning_message] = warnings.get(warning_message, 0) + 1
       file2fragtol[raw] = "20"
       file2fragtolunit[raw] = "ppm"
 
@@ -149,7 +157,8 @@ def openms_convert(sdrf_file: str = None):
       diss_method = re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']).group(1)
       file2diss[raw] = diss_method.upper()
     else:
-      print("No dissociation method provided. Assuming HCD.")
+      warning_message = "No dissociation method provided. Assuming HCD."
+      warnings[warning_message] = warnings.get(warning_message, 0) + 1
       file2diss[raw] = 'HCD'
 
     if 'comment[technical replicate]' in row:
@@ -189,7 +198,8 @@ def openms_convert(sdrf_file: str = None):
     all_factors = list(row[factor_cols])
     combined_factors = "|".join(all_factors)
     if combined_factors == "":
-      print("No factors specified. Adding dummy factor used as condition.")
+      warning_message = "No factors specified. Adding dummy factor used as condition."
+      warnings[warning_message] = warnings.get(warning_message, 0) + 1
       combined_factors = "none"
 
     file2combined_factors[raw] = combined_factors
@@ -240,6 +250,10 @@ def openms_convert(sdrf_file: str = None):
     f.write(fraction_group + "\t" + file2fraction[
       raw] + "\t" + raw + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
   f.close()
+
+  if len(warnings) != 0:
+    for k,v in warnings.items():
+      print('WARNING: "' + k + '" occured ' + str(v) + ' times.')
 
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
