@@ -68,7 +68,7 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None, keep_raw: boolean = False):
+def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
   sdrf = pd.read_table(sdrf_file)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
@@ -263,7 +263,7 @@ def openms_convert(sdrf_file: str = None, keep_raw: boolean = False):
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: boolean):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool):
   if sdrf is None:
     help()
   openms_convert(sdrf, raw)
