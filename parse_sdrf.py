@@ -255,6 +255,7 @@ def openms_convert(sdrf_file: str = None):
     for k,v in warnings.items():
       print('WARNING: "' + k + '" occured ' + str(v) + ' times.')
 
+  print("SUCCESS (WARNINGS=" + str(len(warnings)) + "): " + sdrf_file)
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
