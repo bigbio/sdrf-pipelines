@@ -68,7 +68,7 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool = False):
+def openms_convert(sdrf_file: str = None, keep_raw: bool = False, legacy : bool = False, verbose: bool = False):
   sdrf = pd.read_table(sdrf_file)
   sdrf = sdrf.astype(str)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
@@ -246,8 +246,13 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
 
   # output of experimental design
   f = open("experimental_design.tsv", "w+")
-  open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
-                                        "MSstats_Condition", "MSstats_BioReplicate"]
+
+  if legacy:
+    open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
+                                          "MSstats_Condition", "MSstats_BioReplicate"]
+  else:     
+    open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
+                                          "MSstats_Condition", "MSstats_BioReplicate"]
   f.write("\t".join(open_ms_experimental_design_header) + "\n")
   raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
@@ -262,6 +267,8 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
       offset = offset + int(source_name2n_reps[source_name_list[i]])
 
     fraction_group = str(offset + int(replicate))
+    sample = fraction_group
+
     if 'none' in file2combined_factors[raw]:
       # no factor defined use sample as condition
       condition = sample
@@ -275,8 +282,13 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
       out = raw_ext_regex.sub(".mzML", raw)
     else:
       out = raw
-    f.write(fraction_group + "\t" + file2fraction[
-      raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
+    
+    if legacy:
+      f.write(fraction_group + "\t" + file2fraction[
+        raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+    else:      
+      f.write(fraction_group + "\t" + file2fraction[
+        raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
   f.close()
 
   if len(warnings) != 0:
@@ -288,12 +300,13 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
+@click.option('--legacy', '-l', help='Create artifical sample column not needed in OpenMS 2.6.')
 @click.option('--verbose', '-V', help='Output debug information.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, verbose: bool):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, legacy: bool, verbose: bool):
   if sdrf is None:
     help()
-  openms_convert(sdrf, raw, verbose)
+  openms_convert(sdrf, raw, legacy, verbose)
 
 
 cli.add_command(openms_from_sdrf)
