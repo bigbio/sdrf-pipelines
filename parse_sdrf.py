@@ -68,7 +68,7 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None):
+def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
   sdrf = pd.read_table(sdrf_file)
   sdrf = sdrf.astype(str)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
@@ -248,6 +248,7 @@ def openms_convert(sdrf_file: str = None):
   open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
                                         "MSstats_Condition", "MSstats_BioReplicate"]
   f.write("\t".join(open_ms_experimental_design_header) + "\n")
+  raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
     source_name = row["source name"]
@@ -269,10 +270,13 @@ def openms_convert(sdrf_file: str = None):
     label = file2label[raw]
     if "label free sample" in label:
       label = "1"
-    
-    mzml = raw.replace(".raw", ".mzML")
+
+    if not keep_raw: 
+      out = raw_ext_regex.sub(".mzML", raw)
+    else:
+      out = raw
     f.write(fraction_group + "\t" + file2fraction[
-      raw] + "\t" + mzml + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+      raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
   f.close()
 
   if len(warnings) != 0:
@@ -283,11 +287,12 @@ def openms_convert(sdrf_file: str = None):
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
+@click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool):
   if sdrf is None:
     help()
-  openms_convert(sdrf)
+  openms_convert(sdrf, raw)
 
 
 cli.add_command(openms_from_sdrf)
