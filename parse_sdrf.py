@@ -229,7 +229,7 @@ def openms_convert(sdrf_file: str = None, keep_raw: boolean = False):
   raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
   for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
     raw = row["comment[data file]"]
-    if (!keep_raw): raw = raw_ext_regex.sub(".mzML", raw)
+    if not keep_raw: raw = raw_ext_regex.sub(".mzML", raw)
     source_name = row["source name"]
     replicate = file2technical_rep[raw]
 
