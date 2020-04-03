@@ -70,14 +70,29 @@ def openms_ify_mods(sdrf_mods):
 
 def openms_convert(sdrf_file: str = None):
   sdrf = pd.read_table(sdrf_file)
+  sdrf = sdrf.astype(str)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+  # sdrf.rename(columns={element: re.sub(r'[ ](?=[^\]]*?(?:\[|$))', '', element, flags = re.MULTILINE) for element in sdrf.columns.tolist()}, inplace=True) 
 
   # map filename to tuple of [fixed, variable] mods
   mod_cols = [c for ind, c in enumerate(sdrf) if
-              c.startswith('comment[modification parameters')]  # columns with modification parameters
+              c.startswith('comment[modification parameters')]  # columns with modification parameters              
 
   # get factor columns (except constant ones)
   factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
+
+  # get characteristics columns (except constant ones)
+  characteristics_cols = [c for ind, c in enumerate(sdrf) if c.startswith('characteristics[') and len(sdrf[c].unique()) > 1]
+
+  # remove characteristics columns already present as factor  
+  redundant_characteristics_cols = set()
+  for c in characteristics_cols:        
+    c_col = sdrf[c] # select characteristics column
+    for f in factor_cols: # Iterate over all factor columns
+      f_col = sdrf[f] # select factor column
+      if c_col.equals(f_col):
+        redundant_characteristics_cols.add(c)
+  characteristics_cols = [x for x in characteristics_cols if x not in redundant_characteristics_cols]
 
   file2mods = dict()
   file2pctol = dict()
@@ -198,9 +213,16 @@ def openms_convert(sdrf_file: str = None):
     all_factors = list(row[factor_cols])
     combined_factors = "|".join(all_factors)
     if combined_factors == "":
-      warning_message = "No factors specified. Adding dummy factor used as condition."
-      warnings[warning_message] = warnings.get(warning_message, 0) + 1
-      combined_factors = "none"
+      # fallback to characteristics (use them as factors)
+      all_factors = list(row[characteristics_cols])
+      combined_factors = "|".join(all_factors)
+      if combined_factors == "":
+        warning_message = "No factors specified. Adding dummy factor used as condition."
+        warnings[warning_message] = warnings.get(warning_message, 0) + 1
+        combined_factors = "none"
+      else:
+        warning_message = "No factors specified. Adding non-redundant characteristics as factor. Will be used as condition."
+        warnings[warning_message] = warnings.get(warning_message, 0) + 1
 
     file2combined_factors[raw] = combined_factors
     # print(combined_factors)
@@ -247,8 +269,10 @@ def openms_convert(sdrf_file: str = None):
     label = file2label[raw]
     if "label free sample" in label:
       label = "1"
+    
+    mzml = raw.replace(".raw", ".mzML")
     f.write(fraction_group + "\t" + file2fraction[
-      raw] + "\t" + raw + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+      raw] + "\t" + mzml + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
   f.close()
 
   if len(warnings) != 0:
