@@ -68,7 +68,7 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
+def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool = False):
   sdrf = pd.read_table(sdrf_file)
   sdrf = sdrf.astype(str)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
@@ -116,7 +116,8 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
     var_mods.sort()
     fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m]  # workaround for capitalization
     fixed_mods.sort()
-    #print(row)
+    if verbose:
+      print(row)
     raw = row['comment[data file]']
     fixed_mods_string = ""
     if fixed_mods is not None:
@@ -288,11 +289,12 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False):
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
+@click.option('--verbose', '-V', help='Output debug information.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, verbose: bool):
   if sdrf is None:
     help()
-  openms_convert(sdrf, raw)
+  openms_convert(sdrf, raw, verbose)
 
 
 cli.add_command(openms_from_sdrf)
