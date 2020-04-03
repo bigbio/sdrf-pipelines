@@ -1,6 +1,6 @@
 # sdrf-openms
 
-Usage:
+**Usage:**
 
 python parse_sdrf.py convert-openms -s sdrf.tsv
 
