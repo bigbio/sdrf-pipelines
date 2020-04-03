@@ -246,7 +246,7 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
 
   # output of experimental design
   f = open("experimental_design.tsv", "w+")
-  open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
+  open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
                                         "MSstats_Condition", "MSstats_BioReplicate"]
   f.write("\t".join(open_ms_experimental_design_header) + "\n")
   raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
@@ -262,7 +262,6 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
       offset = offset + int(source_name2n_reps[source_name_list[i]])
 
     fraction_group = str(offset + int(replicate))
-    sample = fraction_group
     if 'none' in file2combined_factors[raw]:
       # no factor defined use sample as condition
       condition = sample
@@ -277,7 +276,7 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, verbose: bool 
     else:
       out = raw
     f.write(fraction_group + "\t" + file2fraction[
-      raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+      raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
   f.close()
 
   if len(warnings) != 0:
