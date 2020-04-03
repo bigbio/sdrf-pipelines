@@ -300,7 +300,7 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, legacy : bool 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
-@click.option('--legacy/--modern', "-l/-m", help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
+@click.option('--legacy/--modern', "-l/-m", default=False, help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
 @click.pass_context
 def openms_from_sdrf(ctx, sdrf: str, raw: bool, legacy: bool, verbose: bool):
