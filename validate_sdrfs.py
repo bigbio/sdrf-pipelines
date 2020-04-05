@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 
-os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD000561/sdrf.tsv"')
+#os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD000561/sdrf.tsv"') # uses non unimod modification
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD000612/sdrf.tsv"')
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD001819/sdrf.tsv"')
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD001819/sdrf.tsv"')
@@ -19,5 +19,5 @@ os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bi
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD009602/sdrf.tsv"')
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD010154/sdrf.tsv"')
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD012203/sdrf.tsv"')
-#SILAC/TMTos.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD017710/sdrf.tsv"')
+#os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD017710/sdrf.tsv"') SILAC/TMT
 os.system('parse_sdrf.py convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018117/sdrf.tsv"')

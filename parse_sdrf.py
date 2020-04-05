@@ -68,12 +68,12 @@ def openms_ify_mods(sdrf_mods):
   return ",".join(oms_mods)
 
 
-def openms_convert(sdrf_file: str = None, keep_raw: bool = False, legacy : bool = False, verbose: bool = False):
+def openms_convert(sdrf_file: str = None, keep_raw: bool = False, onetable : bool = False, legacy : bool = False, verbose: bool = False):
+  print('PROCESSING: ' + sdrf_file + '"')
   sdrf = pd.read_table(sdrf_file)
   sdrf = sdrf.astype(str)
   sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
-  # sdrf.rename(columns={element: re.sub(r'[ ](?=[^\]]*?(?:\[|$))', '', element, flags = re.MULTILINE) for element in sdrf.columns.tolist()}, inplace=True) 
-
+  
   # map filename to tuple of [fixed, variable] mods
   mod_cols = [c for ind, c in enumerate(sdrf) if
               c.startswith('comment[modification parameters')]  # columns with modification parameters              
@@ -246,49 +246,107 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, legacy : bool 
 
   # output of experimental design
   f = open("experimental_design.tsv", "w+")
-
-  if legacy:
-    open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
-                                          "MSstats_Condition", "MSstats_BioReplicate"]
-  else:     
-    open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
-                                          "MSstats_Condition", "MSstats_BioReplicate"]
-  f.write("\t".join(open_ms_experimental_design_header) + "\n")
   raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
-  for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
-    raw = row["comment[data file]"]
-    source_name = row["source name"]
-    replicate = file2technical_rep[raw]
 
-    # calculate fraction group by counting all technical replicates of the preceeding source names
-    source_name_index = source_name_list.index(source_name)
-    offset = 0
-    for i in range(source_name_index):
-      offset = offset + int(source_name2n_reps[source_name_list[i]])
-
-    fraction_group = str(offset + int(replicate))
-    sample = fraction_group
-
-    if 'none' in file2combined_factors[raw]:
-      # no factor defined use sample as condition
-      condition = sample
-    else:
-      condition = file2combined_factors[raw]
-    label = file2label[raw]
-    if "label free sample" in label:
-      label = "1"
-
-    if not keep_raw: 
-      out = raw_ext_regex.sub(".mzML", raw)
-    else:
-      out = raw
-    
+  if onetable:
     if legacy:
-      f.write(fraction_group + "\t" + file2fraction[
-        raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
-    else:      
-      f.write(fraction_group + "\t" + file2fraction[
-        raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
+      open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
+                                            "MSstats_Condition", "MSstats_BioReplicate"]
+    else:     
+      open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
+                                            "MSstats_Condition", "MSstats_BioReplicate"]
+    f.write("\t".join(open_ms_experimental_design_header) + "\n")
+
+    for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
+      raw = row["comment[data file]"]
+      source_name = row["source name"]
+      replicate = file2technical_rep[raw]
+
+      # calculate fraction group by counting all technical replicates of the preceeding source names
+      source_name_index = source_name_list.index(source_name)
+      offset = 0
+      for i in range(source_name_index):
+        offset = offset + int(source_name2n_reps[source_name_list[i]])
+
+      fraction_group = str(offset + int(replicate))
+      sample = fraction_group
+
+      if 'none' in file2combined_factors[raw]:
+        # no factor defined use sample as condition
+        condition = sample
+      else:
+        condition = file2combined_factors[raw]
+      label = file2label[raw]
+      if "label free sample" in label:
+        label = "1"
+
+      if not keep_raw: 
+        out = raw_ext_regex.sub(".mzML", raw)
+      else:
+        out = raw
+      
+      if legacy:
+        f.write(fraction_group + "\t" + file2fraction[
+          raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+      else:      
+        f.write(fraction_group + "\t" + file2fraction[
+          raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
+    f.close()
+  else: # two table format
+    openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
+    f.write("\t".join(openms_file_header) + "\n")
+
+    for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
+      raw = row["comment[data file]"]
+      source_name = row["source name"]
+      replicate = file2technical_rep[raw]
+
+      # calculate fraction group by counting all technical replicates of the preceeding source names
+      source_name_index = source_name_list.index(source_name)
+      offset = 0
+      for i in range(source_name_index):
+        offset = offset + int(source_name2n_reps[source_name_list[i]])
+
+      fraction_group = str(offset + int(replicate))
+      sample = fraction_group # TODO: change this for multiplexed
+
+      label = file2label[raw]
+      if "label free sample" in label:
+        label = "1"
+
+      if not keep_raw: 
+        out = raw_ext_regex.sub(".mzML", raw)
+      else:
+        out = raw
+      
+      f.write(fraction_group + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + sample + "\n")
+
+    # sample table
+    f.write("\n")
+    openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
+    f.write("\t".join(openms_sample_header) + "\n")        
+    for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
+      raw = row["comment[data file]"]
+      source_name = row["source name"]
+      replicate = file2technical_rep[raw]
+
+      # calculate fraction group by counting all technical replicates of the preceeding source names
+      source_name_index = source_name_list.index(source_name)
+      offset = 0
+      for i in range(source_name_index):
+        offset = offset + int(source_name2n_reps[source_name_list[i]])
+
+      fraction_group = str(offset + int(replicate))
+      sample = fraction_group # TODO: change this for multiplexed
+
+      if 'none' in file2combined_factors[raw]:
+        # no factor defined use sample as condition
+        condition = sample
+      else:
+        condition = file2combined_factors[raw]
+
+      f.write(sample + "\t" + condition + "\t" + replicate + "\n")
+
   f.close()
 
   if len(warnings) != 0:
@@ -301,12 +359,13 @@ def openms_convert(sdrf_file: str = None, keep_raw: bool = False, legacy : bool 
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
 @click.option('--legacy/--modern', "-l/-m", default=False, help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
+@click.option('--onetable/--twotables', "-t1/-t2", default=False, help='Create one-table or two-tables format.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, legacy: bool, verbose: bool):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable : bool, legacy: bool, verbose: bool):
   if sdrf is None:
     help()
-  openms_convert(sdrf, raw, legacy, verbose)
+  openms_convert(sdrf, raw, onetable, legacy, verbose)
 
 
 cli.add_command(openms_from_sdrf)
