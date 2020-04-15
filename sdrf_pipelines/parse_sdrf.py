@@ -2,7 +2,7 @@
 
 import click
 
-from sdrf_pipelines.openms import OpenMS
+from sdrf_pipelines.openms.openms import OpenMS
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
