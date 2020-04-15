@@ -69,8 +69,11 @@ class OpenMS:
     # get factor columns (except constant ones)
     factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
 
-    file_mods, file_pctol, file_pctol_unit, file_frag_tol, file_frag_tol_unit, file_diss, file_enzyme, file_fraction = dict()
-    file_label, file_source, source_name_list, file_combined_factors, file_technical_rep = dict()
+    file_mods, file_pctol, file_pctol_unit, file_frag_tol = {},{} ,{}, {}
+    file_frag_tol_unit, file_diss, file_enzyme, file_fraction = {},{},{},{}
+    file_label, file_source = {}, {}
+    source_name_list = []
+    file_combined_factors, file_technical_rep = {},{}
 
     for index, row in sdrf.iterrows():
       ## extract mods
