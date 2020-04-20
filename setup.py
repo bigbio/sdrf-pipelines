@@ -14,7 +14,7 @@ setup(
   long_description=long_description,
   license="'Apache 2.0",
   url="https://github.com/bigbio/sdrf-pipelines",
-  packages=["sdrf-pipelines"],
+  packages=["sdrf_pipelines"],
   scripts=['sdrf_pipelines/parse_sdrf.py'],
   install_requires=['click', 'pandas'],
   platforms=['any'],
