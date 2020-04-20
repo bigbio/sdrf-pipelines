@@ -1,6 +1,8 @@
-# sdrf-openms
+# sdrf-pipelines
 
-**Usage:**
+
+
+## Convert to OpenMS: Usage
 
 python parse_sdrf.py convert-openms -s sdrf.tsv
 
