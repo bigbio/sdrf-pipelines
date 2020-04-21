@@ -1,6 +1,7 @@
 .idea/
 .idea*
-*.tsv
 dist/
 build/
 *egg-info/
+/experimental_design.tsv
+/openms.tsv
