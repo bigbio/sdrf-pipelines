@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setup(
   name="sdrf-pipelines",
-  version="0.0.1",
+  version="0.0.2",
   author="BigBio Team",
   author_email="ypriverol@gmail.com",
   description="Translate, convert SDRF to configuration pipelines",
@@ -14,7 +14,7 @@ setup(
   long_description=long_description,
   license="'Apache 2.0",
   url="https://github.com/bigbio/sdrf-pipelines",
-  packages = find_packages(),
+  packages=find_packages(),
   install_requires=['click', 'pandas', 'pandas_schema'],
   entry_points={
     'console_scripts': [
