@@ -13,7 +13,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
-  """This is the main tool that give access to all commands to convert SDRF files into pipelines specific configuration files"""
+  """
+  This is the main tool that give access to all commands to convert SDRF files into pipelines specific configuration files
+  """
 
 
 @click.command('convert-openms', short_help='convert sdrf to openms file output')

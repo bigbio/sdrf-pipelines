@@ -32,19 +32,24 @@ API_TERM = '/api/ontologies/{ontology}/terms/{iri}'
 API_ANCESTORS = '/api/ontologies/{ontology}/terms/{iri}/ancestors'
 
 
-def _concat_str_or_list(inputstr):
-  '''always returns a comma joined list, whether the input is a
-    single string or an iterable
-    '''
-  if type(inputstr) is str:
-    return inputstr
+def _concat_str_or_list(input_str):
+  """
+  Always returns a comma joined list, whether the input is a
+  single string or an iterable
+  @:param input_str String to join
+  """
 
-  return ','.join(inputstr)
+  if type(input_str) is str:
+    return input_str
+
+  return ','.join(input_str)
 
 
 def _dparse(iri):
-  '''double url encode the IRI, which is required
-    '''
+  """
+  Double url encode the IRI, which is required
+  @:param iri IRI in the OLS
+  """
   return urllib.parse.quote_plus(urllib.parse.quote_plus(iri))
 
 
@@ -52,7 +57,7 @@ class OlsClient:
 
   def __init__(self, ols_base=None, ontology=None, field_list=None, query_fields=None):
     """
-      :param ols_base: An optional, custom URL for the OLS RESTful API.
+    :param ols_base: An optional, custom URL for the OLS RESTful API.
     """
     self.base = (ols_base if ols_base else OLS).rstrip('/')
     self.session = requests.Session()
@@ -68,12 +73,12 @@ class OlsClient:
     self.ontology_ancestors = self.base + API_ANCESTORS
 
   def besthit(self, name, **kwargs):
-    '''
+    """
     select first element of the /search API response
-    '''
-    searchresp = self.search(name, **kwargs)
-    if searchresp:
-      return searchresp[0]
+    """
+    search_resp = self.search(name, **kwargs)
+    if search_resp:
+      return search_resp[0]
 
     return None
 
@@ -91,12 +96,11 @@ class OlsClient:
     return response.json()
 
   def get_ancestors(self, ont, iri):
-    """Gets the data for a given term
-
-        Args:
-            ontology:   The name of the ontology
-            iri:        The IRI of a term
-        """
+    """
+    Gets the data for a given term
+    @param ont: The name of the ontology
+    @param iri:The IRI of a term
+    """
     url = self.ontology_ancestors.format(ontology=ont,
                                          iri=_dparse(iri))
     response = self.session.get(url)
@@ -107,23 +111,19 @@ class OlsClient:
                      'returned an empty response: %s', response.json())
       raise e
 
-  def search(self, name, query_fields=None, ontology=None, field_list=None, childrenOf: list= [],
+  def search(self, name, query_fields=None, ontology=None, field_list=None, children_of: list = [],
              exact=None, bytype='class'):
-    """Searches the OLS with the given term
+    """
+    Searches the OLS with the given term
 
-        Args:
-            query_fields:   By default the search is performed over term labels,
-                            synonyms, descriptions, identifiers and annotation
-                            properties.
-                            This option allows to specify the fields to query,
-                            the defaults are
-                            `{label, synonym, description, short_form, obo_id,
-                            annotations, logical_description, iri}`
-            exact:          Forces exact match if not `None`
-            bytype:         restrict to terms one of
-                            {class,property,individual,ontology}
-            childrenOf: Search only under a certain term.
-        """
+    @:param query_fields: By default the search is performed over term labels,
+    synonyms, descriptions, identifiers and annotation properties. This option allows
+    to specify the fields to query, the defaults are
+    `{label, synonym, description, short_form, obo_id, annotations, logical_description, iri}`
+    @:param exact: Forces exact match if not `None`
+    @:param bytype: restrict to terms one of {class,property,individual,ontology}
+    @:param childrenOf: Search only under a certain term.
+    """
     params = {'q': name}
     if ontology is not None:
       ontology = ontology.lower()
@@ -149,8 +149,8 @@ class OlsClient:
     elif self.field_list:
       params['fieldList'] = _concat_str_or_list(self.field_list)
 
-    if childrenOf is not None and len(childrenOf) > 0:
-      params['childrenOf' ] = _concat_str_or_list(childrenOf)
+    if children_of is not None and len(children_of) > 0:
+      params['childrenOf'] = _concat_str_or_list(children_of)
 
     req = self.session.get(self.ontology_search, params=params)
     logger.debug("Request to OLS search API: %s - %s", req.status_code, name)

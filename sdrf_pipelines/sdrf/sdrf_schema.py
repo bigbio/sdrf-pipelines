@@ -98,7 +98,7 @@ class OntologyTerm(_SeriesValidation):
     labels = []
     for term in terms:
       if self._ontology_name is not None:
-        ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name,  exact="true")
+        ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name, exact="true")
       else:
         ontology_terms = client.search(term[TERM_NAME], exact="true")
 
