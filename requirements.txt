@@ -1,2 +1,4 @@
 pandas
 click
+pandas_schema
+pytest
