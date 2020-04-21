@@ -20,9 +20,11 @@ parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 
 ## Convert to OpenMS: Usage
 
+```bash
 parse_sdrf convert-openms -s sdrf.tsv
+```
 
-## Description:
+### Description:
 
 - experiment settings (search engine settings etc.)
 - experimental design
