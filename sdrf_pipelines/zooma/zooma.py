@@ -1,6 +1,7 @@
 import requests
-from ebi.ols.api.client import OlsClient
 from requests import HTTPError
+
+from sdrf_pipelines.zooma.ols import OlsClient
 
 
 class OlsTerm(object):
