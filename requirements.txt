@@ -1,2 +1,5 @@
 pandas
 click
+pandas_schema
+ebi-ols-client
+pytest
