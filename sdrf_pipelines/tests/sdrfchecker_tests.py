@@ -10,7 +10,7 @@ def test_validate_srdf():
   :return:
   """
   runner = CliRunner()
-  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/sdrf.txt', '--check_ms'])
+  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/sdrf.tsv', '--check_ms'])
 
   print(result.output)
   assert 'ERROR' not in result.output
@@ -37,4 +37,4 @@ def test_bioontologies():
 
 if __name__ == '__main__':
   test_bioontologies()
-  validate_srdf()
+  test_validate_srdf()

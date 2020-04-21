@@ -1,3 +1,6 @@
 .idea/
 .idea*
 *.tsv
+dist/
+build/
+*egg-info/

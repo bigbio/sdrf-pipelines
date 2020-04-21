@@ -1,5 +1,5 @@
 from __future__ import print_function
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -14,8 +14,8 @@ setup(
   long_description=long_description,
   license="'Apache 2.0",
   url="https://github.com/bigbio/sdrf-pipelines",
-  packages=["sdrf_pipelines"],
-  install_requires=['click', 'pandas', 'pandas_schema', ''],
+  packages = find_packages(),
+  install_requires=['click', 'pandas', 'pandas_schema'],
   entry_points={
     'console_scripts': [
       'parse_sdrf = sdrf_pipelines.parse_sdrf:main'
