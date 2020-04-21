@@ -1,10 +1,26 @@
 # sdrf-pipelines
 
+The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats and OpenMS.
 
+### Installation
+
+```bash
+pip install sdrf-pipelines
+```
+
+## Validate the SDRF
+
+# How to use it:
+
+Then, you can use the tool by executing the following command:
+
+```bash
+parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
+```
 
 ## Convert to OpenMS: Usage
 
-python parse_sdrf.py convert-openms -s sdrf.tsv
+parse_sdrf convert-openms -s sdrf.tsv
 
 ## Description:
 
