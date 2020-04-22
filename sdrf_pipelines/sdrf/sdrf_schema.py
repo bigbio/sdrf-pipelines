@@ -58,8 +58,8 @@ class SDRFColumn(Column):
 
 class OntologyTerm(_SeriesValidation):
   """
-    Checks that there is no leading whitespace in this column
-    """
+  Checks that there is no leading whitespace in this column
+  """
 
   def __init__(self, ontology_name: str = None, **kwargs):
     super().__init__(**kwargs)

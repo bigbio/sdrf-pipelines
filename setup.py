@@ -16,7 +16,7 @@ setup(
   data_files = [("", ["LICENSE"])],
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),
-  install_requires=['click', 'pandas', 'pandas_schema'],
+  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest'],
   entry_points={
     'console_scripts': [
       'parse_sdrf = sdrf_pipelines.parse_sdrf:main'
