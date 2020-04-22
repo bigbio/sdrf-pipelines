@@ -322,6 +322,7 @@ class OpenMS:
       f.write("\n")
       openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
       f.write("\t".join(openms_sample_header) + "\n")
+      sample_row_written = list()
       for index, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
         raw = row["comment[data file]"]
         source_name = row["source name"]
@@ -342,7 +343,9 @@ class OpenMS:
         else:
           condition = file2combined_factors[raw]
 
-        f.write(sample + "\t" + condition + "\t" + replicate + "\n")
+        if sample not in sample_row_written:
+          f.write(sample + "\t" + condition + "\t" + replicate + "\n")
+          sample_row_written.append(sample)
 
     f.close()
 
