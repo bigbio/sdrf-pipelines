@@ -58,8 +58,8 @@ class SDRFColumn(Column):
 
 class OntologyTerm(_SeriesValidation):
   """
-    Checks that there is no leading whitespace in this column
-    """
+  Checks that there is no leading whitespace in this column
+  """
 
   def __init__(self, ontology_name: str = None, **kwargs):
     super().__init__(**kwargs)
@@ -253,6 +253,18 @@ cell_lines_schema = SDRFSchema([
 ], min_columns=7)
 
 mass_spectrometry_schema = SDRFSchema([
+  SDRFColumn('assay name', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=False),
+  SDRFColumn('comment[fraction identifier]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=False),
+  SDRFColumn('comment[label]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("pride")],
+             allow_empty=True,
+             optional_type=False),
+  SDRFColumn('comment[technical replicate]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=True),
   SDRFColumn('comment[instrument]',
              [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms")],
              allow_empty=True,
