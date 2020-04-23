@@ -225,6 +225,10 @@ class OpenMS:
 
     ##################### only label-free supported right now
 
+
+
+
+
     # output of search settings
     f = open("openms.tsv", "w+")
     open_ms_search_settings_header = ["URI", "Filename", "FixedModifications", "VariableModifications", "Label",
@@ -282,12 +286,15 @@ class OpenMS:
         else:
           out = raw
 
+        # MSstats BioReplicate column needs to be different for samples from different conditions.
+        # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
+        MSstatsBioReplicate = sample 
         if legacy:
           f.write(fraction_group + "\t" + file2fraction[
-            raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + replicate + "\n")
+            raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
         else:
           f.write(fraction_group + "\t" + file2fraction[
-            raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + replicate + "\n")
+            raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
       f.close()
     else:  # two table format
       openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
@@ -343,8 +350,12 @@ class OpenMS:
         else:
           condition = file2combined_factors[raw]
 
+        # MSstats BioReplicate column needs to be different for samples from different conditions.
+        # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
+        MSstatsBioReplicate = sample 
+
         if sample not in sample_row_written:
-          f.write(sample + "\t" + condition + "\t" + replicate + "\n")
+          f.write(sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
           sample_row_written.append(sample)
 
     f.close()
