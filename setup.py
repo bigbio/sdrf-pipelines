@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setup(
   name="sdrf-pipelines",
-  version="0.0.3",
+  version="0.0.4",
   author="BigBio Team",
   author_email="ypriverol@gmail.com",
   description="Translate, convert SDRF to configuration pipelines",
