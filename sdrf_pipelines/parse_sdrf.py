@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
+#!/usr/bin/env python3
+
 import click
 import logging
 
 from sdrf_pipelines.openms.openms import OpenMS
+from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY, ALL_TEMPLATES, DEFAULT_TEMPLATE
 from sdrf_pipelines.utils.exceptions import AppConfigException
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -30,7 +34,17 @@ def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, ve
   if sdrf is None:
     help()
   OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose)
-
+  
+@click.command('convert-maxquant', short_help = 'convert sdrf to maxquant parameters file and generate an experimental design file')
+@click.option('--sdrf', '-s', help='SDRF file')
+@click.option('--output1','-o1',help='parameters .xml file  output file path')
+@click.option('--output2','-o2',help='maxquant experimental design .txt file')
+@click.pass_context
+def maxquant_from_sdrf(ctx, sdrf: str, output1: str, output2: str):
+    if sdrf is None:
+        help()
+    Maxquant().maxquant_convert(sdrf, output1) # Generate maxquant paramaters .xml file
+    Maxquant().maxquant_experiamental_design(sdrf,output2) # Generate maxquant experiment design .txt file 
 
 @click.command('validate-sdrf', short_help='Command to validate the sdrf file')
 @click.option('--sdrf_file', '-s', help='SDRF file to be validated')
@@ -62,7 +76,7 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
 
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
-
+cli.add_command(maxquant_from_sdrf)
 
 def main():
   cli()
