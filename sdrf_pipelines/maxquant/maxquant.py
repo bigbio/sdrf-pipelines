@@ -94,6 +94,10 @@ class Maxquant():
                     redundant_characteristics_cols.add(c)
         characteristics_cols = [x for x in characteristics_cols if x not in redundant_characteristics_cols]
 
+        enzy_cols = [c for ind, c in enumerate(sdrf) if
+                    c.startswith('comment[cleavage agent details]')]
+        
+            
         file2mods = dict()
         file2pctol = dict()
         file2pctolunit = dict()
@@ -108,8 +112,10 @@ class Maxquant():
         source_name2n_reps = dict()
         file2technical_rep = dict()
         file2instrument = dict()
-        
+
         for index, row in sdrf.iterrows():
+            all_enzy = list(row[enzy_cols])
+            print(all_enzy)
             ## extract mods
             all_mods = list(row[mod_cols])
             # print(all_mods)
@@ -196,13 +202,17 @@ class Maxquant():
                 source_name2n_reps[source_name] = max(int(source_name2n_reps[source_name]), int(file2technical_rep[raw]))
             else:
                 source_name2n_reps[source_name] = int(file2technical_rep[raw])
-                
-            enzyme = re.search("NT=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1)
-            enzyme = enzyme.capitalize()
-            if "Trypsin/p" in enzyme:  # workaround
-                enzyme = "Trypsin/P"
-            file2enzyme[raw] = enzyme
-
+            
+            e_list = []
+            for e in all_enzy:
+                enzyme = re.search("NT=(.+?)(;|$)", e).group(1)
+                enzyme = enzyme.capitalize()
+                if "Trypsin/p" in enzyme:  # workaround
+                    enzyme = "Trypsin/P"
+                e_list.append(enzyme)
+            file2enzyme[raw] = e_list
+            #print(enzyme)
+            
             if 'comment[fraction identifier]' in row:
                 fraction = str(row['comment[fraction identifier]'])
                 if "not available" in fraction:
@@ -306,7 +316,7 @@ class Maxquant():
         separateLfq.appendChild(doc.createTextNode('False'))
         root.appendChild(separateLfq)
         
-        lfqStabilizeLargeRatios = doc.createElement('True')
+        lfqStabilizeLargeRatios = doc.createElement('lfqStabilizeLargeRatios')
         lfqStabilizeLargeRatios.appendChild(doc.createTextNode('True'))
         root.appendChild(lfqStabilizeLargeRatios)
         
@@ -321,10 +331,6 @@ class Maxquant():
         boxCarMode = doc.createElement('boxCarMode')
         boxCarMode.appendChild(doc.createTextNode('all'))
         root.appendChild(boxCarMode)
-        
-        decoyMode = doc.createElement('decoyMode')
-        decoyMode.appendChild(doc.createTextNode('revert'))
-        root.appendChild(decoyMode)
         
         includeContaminants = doc.createElement('includeContaminants')
         includeContaminants.appendChild(doc.createTextNode('True'))
@@ -354,12 +360,8 @@ class Maxquant():
         minDeltaScoreModifiedPeptides.appendChild(doc.createTextNode('6'))
         root.appendChild(minDeltaScoreModifiedPeptides)
         
-        minDeltaScoreUnmodifiedPeptides = doc.createElement('minDeltaScoreUnmodifiedPeptides')
-        minDeltaScoreUnmodifiedPeptides.appendChild(doc.createTextNode('0'))
-        root.appendChild(minDeltaScoreUnmodifiedPeptides)
-        
         minScoreUnmodifiedPeptides = doc.createElement('minScoreUnmodifiedPeptides')
-        minScoreUnmodifiedPeptides.appendChild(doc.createTextNode('o'))
+        minScoreUnmodifiedPeptides.appendChild(doc.createTextNode('0'))
         root.appendChild(minScoreUnmodifiedPeptides)        
         
         minScoreModifiedPeptides = doc.createElement('minScoreModifiedPeptides')
@@ -415,7 +417,7 @@ class Maxquant():
         root.appendChild(dependentPeptidesFractionDifference)
         
         msmsConnection = doc.createElement('msmsConnection')
-        msmsConnection.appendChild(doc.createTextNode('0'))
+        msmsConnection.appendChild(doc.createTextNode('False'))
         root.appendChild(msmsConnection)
 
         ibaq = doc.createElement('ibaq')
@@ -591,6 +593,10 @@ class Maxquant():
         quantMode.appendChild(doc.createTextNode('1'))
         root.appendChild(quantMode)
         
+        massDifferenceMods = doc.createElement('massDifferenceMods')
+        massDifferenceMods.appendChild(doc.createTextNode(''))
+        root.appendChild(massDifferenceMods)
+        
         mainSearchMaxCombinations = doc.createElement('mainSearchMaxCombinations')
         mainSearchMaxCombinations.appendChild(doc.createTextNode('200'))
         root.appendChild(mainSearchMaxCombinations)
@@ -666,7 +672,7 @@ class Maxquant():
         window_name = doc.createElement('name')
         window_name.appendChild(doc.createTextNode('Session1'))
         maxquant_version = doc.createElement('maxQuantVersion')
-        maxquant_version.appendChild(doc.createTextNode(''))
+        maxquant_version.appendChild(doc.createTextNode('1.6.7.0'))  #default version
         tempFolder = doc.createElement('tempFolder')
         tempFolder.appendChild(doc.createTextNode(''))
         pluginFolder = doc.createElement('pluginFolder')
@@ -703,6 +709,7 @@ class Maxquant():
         root.appendChild(maxquant_version)
         root.appendChild(tempFolder)
         root.appendChild(pluginFolder)
+        root.appendChild(numThreads)
         root.appendChild(emailAddress)
         root.appendChild(smtpHost)
         root.appendChild(emailFromAddress)
@@ -753,17 +760,20 @@ class Maxquant():
         #create paramGroupIndices subnode
         paramGroupIndices = doc.createElement('paramGroupIndices')
         parameterGroup = {}
-        tag = 0; tmp = {} 
-        for key1,value1 in file2enzyme.items():
-            value2 = file2instrument[key1] + file2label[key1] + str(file2mods[key1])
+        tag = 0; tmp = []
+        
+        referenceChannel = doc.createElement('referenceChannel')
+        
+        for key1,instr_val in file2instrument.items():
+            value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1])
             
-            if  tag == 0 and tmp == {}:
+            if  tag == 0 and tmp == []:
                 int_node = doc.createElement('int')
                 int_node.appendChild(doc.createTextNode('0'))
-                tmp[value1] = value2
+                tmp.append({instr_val:value2})
                 parameterGroup['0'] = [file2instrument[key1],file2label[key1],file2mods[key1],file2enzyme[key1]]
                 
-            elif value1 in tmp.keys() and value2 == tmp[value1]:
+            elif {instr_val:value2} in tmp:
                 int_node = doc.createElement('int')
                 int_text = doc.createTextNode(str(tag))
                 int_node.appendChild(int_text)
@@ -773,24 +783,28 @@ class Maxquant():
                 int_node = doc.createElement('int')
                 int_text = doc.createTextNode(str(tag))
                 int_node.appendChild(int_text)
-                tmp[value1] = value2
-                parameterGroup[str(tag)] = [file2instrument[key1],file2label[key1],file2mods[key1]]
+                tmp.append({instr_val:value2})
+                parameterGroup[str(tag)] = [file2instrument[key1],file2label[key1],file2mods[key1],file2enzyme[key1]]
     
-            paramGroupIndices.appendChild(int_node)    
+            paramGroupIndices.appendChild(int_node)  
+            
+            #create referenceChannelsubnode
+            
+            string = doc.createElement('string')
+            string.appendChild(doc.createTextNode(''))
+            referenceChannel.appendChild(string)
         del tmp
         root.appendChild(paramGroupIndices)
         
-        #create referenceChannelsubnode
-        referenceChannel = doc.createElement('referenceChannel')
-        string = doc.createElement('string')
-        string.appendChild(doc.createTextNode(''))
-        referenceChannel.appendChild(string)
+        root.appendChild(referenceChannel)
         
         intensPred_node = doc.createElement('intensPred')
         intensPred_node.appendChild(doc.createTextNode('False'))
+        root.appendChild(intensPred_node)
         
         intensPredModelReTrain = doc.createElement('intensPredModelReTrain')
         intensPredModelReTrain.appendChild(doc.createTextNode('False'))
+        root.appendChild(intensPredModelReTrain)
         
         #create parameterGroup paramas subnode
         parameterGroups = doc.createElement('parameterGroups')
@@ -999,13 +1013,18 @@ class Maxquant():
             
             #create enzymes subnode
             enzymes_node = doc.createElement('enzymes')
-            enzymes_node.appendChild(doc.createTextNode(j[3]))
+            for index in range(len(j[3])):
+                string = doc.createElement('string')
+                string.appendChild(doc.createTextNode(j[3][index]))
+                enzymes_node.appendChild(string)
             enzymesFirstSearch = doc.createElement('enzymesFirstSearch')
             enzymesFirstSearch.appendChild(doc.createTextNode(''))
             enzymeModeFirstSearch = doc.createElement('enzymeModeFirstSearch')
             enzymeModeFirstSearch.appendChild(doc.createTextNode('0'))
             useEnzymeFirstSearch = doc.createElement('useEnzymeFirstSearch')
             useEnzymeFirstSearch.appendChild(doc.createTextNode('False'))
+            
+            #create variable modification
             useVariableModificationsFirstSearch = doc.createElement('useVariableModificationsFirstSearch')
             useVariableModificationsFirstSearch.appendChild(doc.createTextNode('False'))
             useMultiModification = doc.createElement('useMultiModification')
@@ -1027,27 +1046,27 @@ class Maxquant():
             doMassFiltering = doc.createElement('doMassFiltering')
             doMassFiltering.appendChild(doc.createTextNode('True'))
             firstSearchTol = doc.createElement('firstSearchTol')
-            firstSearchTol.appendChild(doc.createTextNode('0.07'))
+            firstSearchTol.appendChild(doc.createTextNode('20'))
             mainSearchTol = doc.createElement('mainSearchTol')
-            mainSearchTol.appendChild(doc.createTextNode('0.006'))
+            mainSearchTol.appendChild(doc.createTextNode('4.5'))
             searchTolInPpm = doc.createElement('searchTolInPpm')
             searchTolInPpm.appendChild(doc.createTextNode('False'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
-            isotopeMatchTol.appendChild(doc.createTextNode('0.005'))
+            isotopeMatchTol.appendChild(doc.createTextNode('2'))
             isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
-            isotopeMatchTolInPpm.appendChild(doc.createTextNode('False'))
+            isotopeMatchTolInPpm.appendChild(doc.createTextNode('True'))
             isotopeTimeCorrelation = doc.createElement('isotopeTimeCorrelation')
             isotopeTimeCorrelation.appendChild(doc.createTextNode('0.6'))
             theorIsotopeCorrelation = doc.createElement('theorIsotopeCorrelation')
-            theorIsotopeCorrelation.appendChild(doc.createTextNode('theorIsotopeCorrelation'))
+            theorIsotopeCorrelation.appendChild(doc.createTextNode('0.6'))
             checkMassDeficit = doc.createElement('checkMassDeficit')
-            checkMassDeficit.appendChild(doc.createTextNode('False'))
+            checkMassDeficit.appendChild(doc.createTextNode('True'))
             recalibrationInPpm = doc.createElement('recalibrationInPpm')
-            recalibrationInPpm.appendChild(doc.createTextNode('recalibrationInPpm'))
+            recalibrationInPpm.appendChild(doc.createTextNode('True'))
             intensityDependentCalibration = doc.createElement('intensityDependentCalibration')
-            intensityDependentCalibration.appendChild(doc.createTextNode('True'))
+            intensityDependentCalibration.appendChild(doc.createTextNode('False'))
             minScoreForCalibration = doc.createElement('minScoreForCalibration')
-            minScoreForCalibration.appendChild(doc.createTextNode('47'))
+            minScoreForCalibration.appendChild(doc.createTextNode('70'))
             matchLibraryFile = doc.createElement('matchLibraryFile')
             matchLibraryFile.appendChild(doc.createTextNode('False'))
             libraryFile = doc.createElement('libraryFile')
@@ -1136,8 +1155,9 @@ class Maxquant():
             parameterGroup.appendChild(matchType)
             parameterGroup.appendChild(intensityDetermination)
             parameterGroup.appendChild(centroidMatchTol)
-            parameterGroup.appendChild(centroidHalfWidthInPpm)
+            parameterGroup.appendChild(centroidMatchTolInPpm)
             parameterGroup.appendChild(centroidHalfWidth)
+            parameterGroup.appendChild(centroidHalfWidthInPpm)
             parameterGroup.appendChild(centroidHalfWidthInPpm)
             parameterGroup.appendChild(valleyFactor)
             parameterGroup.appendChild(isotopeValleyFactor)
@@ -1172,6 +1192,8 @@ class Maxquant():
             parameterGroup.appendChild(enzymeModeFirstSearch)
             parameterGroup.appendChild(useEnzymeFirstSearch)
             parameterGroup.appendChild(useVariableModificationsFirstSearch)
+            parameterGroup.appendChild(variableModifications)
+            parameterGroup.appendChild(useMultiModification)
             parameterGroup.appendChild(multiModifications)
             parameterGroup.appendChild(isobaricLabels)
             parameterGroup.appendChild(neucodeLabels)
@@ -1428,6 +1450,6 @@ class Maxquant():
                 tr = "1"
             experiment = source_name + '_Tr_' + tr
             f.write('\n' + data_file + '\t' + fraction + '\t' + experiment + '\t')
+        f.close()
         print('SUCCESS Generate maxquant experimental design file')
        
-        
