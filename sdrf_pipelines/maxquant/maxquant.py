@@ -67,9 +67,9 @@ class Maxquant():
 
         return ",".join(oms_mods)
     
-    def maxquant_convert(self,sdrf_file,output_path,verbose = False):
+    def maxquant_convert(self,sdrf_file, fastaFilePath, matchBetweenRuns, peptideFDR, proteinFDR, tempFolder, raw_Folder,numThreads,output_path):
         print('PROCESSING: ' + sdrf_file + '"')
-        sdrf = pd.read_table(sdrf_file)
+        sdrf = pd.read_csv(sdrf_file, sep ='\t')
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
@@ -115,7 +115,7 @@ class Maxquant():
 
         for index, row in sdrf.iterrows():
             all_enzy = list(row[enzy_cols])
-            print(all_enzy)
+            
             ## extract mods
             all_mods = list(row[mod_cols])
             # print(all_mods)
@@ -123,8 +123,7 @@ class Maxquant():
             var_mods.sort()
             fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m]  # workaround for capitalization
             fixed_mods.sort()
-            if verbose:
-                print(row)
+            
             raw = row['comment[data file]']
             fixed_mods_string = ""
             if fixed_mods is not None:
@@ -221,8 +220,19 @@ class Maxquant():
                     file2fraction[raw] = fraction
             else:
                 file2fraction[raw] = 0
+             
+            #Temporary support label free
+            if "not  available" in row['comment[label]']:
+                label = 'label free sample'
+            else:
+                try:
+                    label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
 
-            label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
+                except:
+                    if row['comment[label]'] == 'iBAQ':
+                        label = 'iBAQ'
+
+                
             file2label[raw] = label
             
 #        print(file2mods)
@@ -242,12 +252,12 @@ class Maxquant():
         #create fastaFiles subnode
         fastaFiles = doc.createElement('fastaFiles')
         FastaFileInfo = doc.createElement('FastaFileInfo')
-        fastaFilePath = doc.createElement('fastaFilePath')
-        fastaFilePath.appendChild(doc.createTextNode(''))
+        fastaFilePath_node = doc.createElement('fastaFilePath')
+        fastaFilePath_node.appendChild(doc.createTextNode(fastaFilePath))
         identifierParseRule = doc.createElement('identifierParseRule')
-        identifierParseRule.appendChild(doc.createTextNode(''))
+        identifierParseRule.appendChild(doc.createTextNode('>([^\s]*)'))   # will be improved
         descriptionParseRule = doc.createElement('descriptionParseRule')
-        descriptionParseRule.appendChild(doc.createTextNode(''))
+        descriptionParseRule.appendChild(doc.createTextNode('>(.*)'))
         taxonomyParseRule = doc.createElement('taxonomyParseRule')
         taxonomyParseRule.appendChild(doc.createTextNode(''))
         variationParseRule = doc.createElement('variationParseRule')
@@ -256,7 +266,7 @@ class Maxquant():
         modificationParseRule.appendChild(doc.createTextNode(''))
         taxonomyId = doc.createElement('taxonomyId')
         taxonomyId.appendChild(doc.createTextNode(''))
-        FastaFileInfo.appendChild(fastaFilePath)
+        FastaFileInfo.appendChild(fastaFilePath_node)
         FastaFileInfo.appendChild(identifierParseRule)
         FastaFileInfo.appendChild(descriptionParseRule)
         FastaFileInfo.appendChild(taxonomyParseRule)
@@ -372,9 +382,9 @@ class Maxquant():
         secondPeptide.appendChild(doc.createTextNode('True'))
         root.appendChild(secondPeptide)        
         
-        matchBetweenRuns = doc.createElement('matchBetweenRuns')
-        matchBetweenRuns.appendChild(doc.createTextNode('False'))
-        root.appendChild(matchBetweenRuns)        
+        matchBetweenRuns_node = doc.createElement('matchBetweenRuns')
+        matchBetweenRuns_node.appendChild(doc.createTextNode(matchBetweenRuns))
+        root.appendChild(matchBetweenRuns_node)        
         
         matchUnidentifiedFeatures = doc.createElement('matchUnidentifiedFeatures')
         matchUnidentifiedFeatures.appendChild(doc.createTextNode('False'))
@@ -493,11 +503,11 @@ class Maxquant():
         root.appendChild(psmFdrCrosslink)
         
         peptideFdr = doc.createElement('peptideFdr')
-        peptideFdr.appendChild(doc.createTextNode('0.01'))
+        peptideFdr.appendChild(doc.createTextNode(str(peptideFDR)))
         root.appendChild(peptideFdr)
         
         proteinFdr = doc.createElement('proteinFdr')
-        proteinFdr.appendChild(doc.createTextNode('0.01'))
+        proteinFdr.appendChild(doc.createTextNode(str(proteinFDR)))
         root.appendChild(proteinFdr)
         
         siteFdr = doc.createElement('siteFdr')
@@ -562,24 +572,27 @@ class Maxquant():
         root.appendChild(restrictMods)
          
         matchingTimeWindow = doc.createElement('matchingTimeWindow')
-        matchingTimeWindow.appendChild(doc.createTextNode('0'))
-        root.appendChild(matchingTimeWindow)
-         
         matchingIonMobilityWindow = doc.createElement('matchingIonMobilityWindow')
-        matchingIonMobilityWindow.appendChild(doc.createTextNode('0'))
-        root.appendChild(matchingIonMobilityWindow) 
-        
         alignmentTimeWindow = doc.createElement('alignmentTimeWindow')
-        alignmentTimeWindow.appendChild(doc.createTextNode('0'))
-        root.appendChild(alignmentTimeWindow)
-        
         alignmentIonMobilityWindow = doc.createElement('alignmentIonMobilityWindow')
-        alignmentIonMobilityWindow.appendChild(doc.createTextNode('0'))
+        if matchBetweenRuns == True:
+            matchingTimeWindow.appendChild(doc.createTextNode('0.7'))
+            matchingIonMobilityWindow.appendChild(doc.createTextNode('0.05'))
+            alignmentTimeWindow.appendChild(doc.createTextNode('20'))
+            alignmentIonMobilityWindow.appendChild(doc.createTextNode('1'))
+        else:
+            matchingTimeWindow.appendChild(doc.createTextNode('0'))
+            matchingIonMobilityWindow.appendChild(doc.createTextNode('0'))
+            alignmentTimeWindow.appendChild(doc.createTextNode('0'))
+            alignmentIonMobilityWindow.appendChild(doc.createTextNode('0'))
+        root.appendChild(matchingTimeWindow)
+        root.appendChild(matchingIonMobilityWindow)
+        root.appendChild(alignmentTimeWindow)
         root.appendChild(alignmentIonMobilityWindow)
         
-        numberOfCandidatesMultiplexedMsms = doc.createElement('numberOfCandidatesMultiplexedMsms')
-        numberOfCandidatesMultiplexedMsms.appendChild(doc.createTextNode('25'))
-        root.appendChild(numberOfCandidatesMultiplexedMsms)
+#        numberOfCandidatesMultiplexedMsms = doc.createElement('numberOfCandidatesMultiplexedMsms')
+#        numberOfCandidatesMultiplexedMsms.appendChild(doc.createTextNode('25'))
+#        root.appendChild(numberOfCandidatesMultiplexedMsms)
         
         numberOfCandidatesMsms = doc.createElement('numberOfCandidatesMsms')
         numberOfCandidatesMsms.appendChild(doc.createTextNode('15'))
@@ -602,7 +615,7 @@ class Maxquant():
         root.appendChild(mainSearchMaxCombinations)
         
         writeMsScansTable = doc.createElement('writeMsScansTable')
-        writeMsScansTable.appendChild(doc.createTextNode('False'))
+        writeMsScansTable.appendChild(doc.createTextNode('True'))
         root.appendChild(writeMsScansTable)
         
         writeMsmsScansTable = doc.createElement('writeMsmsScansTable')
@@ -630,7 +643,7 @@ class Maxquant():
         root.appendChild(writeMzRangeTable)
                 
         writeMzTab = doc.createElement('writeMzTab')
-        writeMzTab.appendChild(doc.createTextNode('False'))
+        writeMzTab.appendChild(doc.createTextNode('True'))
         root.appendChild(writeMzTab)        
         
         disableMd5 = doc.createElement('disableMd5')
@@ -645,9 +658,9 @@ class Maxquant():
         etdIncludeB.appendChild(doc.createTextNode('False'))
         root.appendChild(etdIncludeB)
                 
-        complementaryTmtCollapseNplets = doc.createElement('complementaryTmtCollapseNplets')
-        complementaryTmtCollapseNplets.appendChild(doc.createTextNode('True'))
-        root.appendChild(complementaryTmtCollapseNplets)
+#        complementaryTmtCollapseNplets = doc.createElement('complementaryTmtCollapseNplets')
+#        complementaryTmtCollapseNplets.appendChild(doc.createTextNode('True'))
+#        root.appendChild(complementaryTmtCollapseNplets)
                 
         ms2PrecursorShift = doc.createElement('ms2PrecursorShift')
         ms2PrecursorShift.appendChild(doc.createTextNode('0'))
@@ -672,13 +685,13 @@ class Maxquant():
         window_name = doc.createElement('name')
         window_name.appendChild(doc.createTextNode('Session1'))
         maxquant_version = doc.createElement('maxQuantVersion')
-        maxquant_version.appendChild(doc.createTextNode('1.6.7.0'))  #default version
-        tempFolder = doc.createElement('tempFolder')
-        tempFolder.appendChild(doc.createTextNode(''))
+        maxquant_version.appendChild(doc.createTextNode('1.6.10.43'))  #default version
+        tempFolder_node = doc.createElement('tempFolder')
+        tempFolder_node.appendChild(doc.createTextNode(tempFolder))
         pluginFolder = doc.createElement('pluginFolder')
         pluginFolder.appendChild(doc.createTextNode(''))
-        numThreads = doc.createElement('numThreads')
-        numThreads.appendChild(doc.createTextNode('1'))
+        numThreads_node = doc.createElement('numThreads')
+        numThreads_node.appendChild(doc.createTextNode(str(numThreads)))
         emailAddress = doc.createElement('emailAddress')
         emailAddress.appendChild(doc.createTextNode(''))
         smtpHost = doc.createElement('smtpHost')
@@ -707,9 +720,9 @@ class Maxquant():
         useDotNetCore.appendChild(doc.createTextNode('False'))
         root.appendChild(window_name)
         root.appendChild(maxquant_version)
-        root.appendChild(tempFolder)
+        root.appendChild(tempFolder_node)
         root.appendChild(pluginFolder)
-        root.appendChild(numThreads)
+        root.appendChild(numThreads_node)
         root.appendChild(emailAddress)
         root.appendChild(smtpHost)
         root.appendChild(emailFromAddress)
@@ -730,7 +743,7 @@ class Maxquant():
         experiments = doc.createElement('experiments')
         for key,value in file2source.items():
             string = doc.createElement('string')
-            string.appendChild(doc.createTextNode(key))
+            string.appendChild(doc.createTextNode(raw_Folder + '\\' + key))
             filePaths.appendChild(string)
             string = doc.createElement('string')
             string.appendChild(doc.createTextNode(value + '_Tr_' + file2technical_rep[key]))
@@ -817,6 +830,8 @@ class Maxquant():
                 maxCharge.appendChild(doc.createTextNode('5'))
                 minPeakLen = doc.createElement('minPeakLen')
                 minPeakLen.appendChild(doc.createTextNode('3'))
+                diaMinPeakLen = doc.createElement('diaMinPeakLen')
+                diaMinPeakLen.appendChild(doc.createTextNode('3'))
                 useMs1Centroids = doc.createElement('useMs1Centroids')
                 useMs1Centroids.appendChild(doc.createTextNode('True'))
                 useMs2Centroids = doc.createElement('useMs2Centroids')
@@ -839,6 +854,8 @@ class Maxquant():
                 maxCharge.appendChild(doc.createTextNode('5'))
                 minPeakLen = doc.createElement('minPeakLen')
                 minPeakLen.appendChild(doc.createTextNode('3'))
+                diaMinPeakLen = doc.createElement('diaMinPeakLen')
+                diaMinPeakLen.appendChild(doc.createTextNode('3'))
                 useMs1Centroids = doc.createElement('useMs1Centroids')
                 useMs1Centroids.appendChild(doc.createTextNode('True'))
                 useMs2Centroids = doc.createElement('useMs2Centroids')
@@ -861,6 +878,8 @@ class Maxquant():
                 maxCharge.appendChild(doc.createTextNode('5'))
                 minPeakLen = doc.createElement('minPeakLen')
                 minPeakLen.appendChild(doc.createTextNode('3'))
+                diaMinPeakLen = doc.createElement('diaMinPeakLen')
+                diaMinPeakLen.appendChild(doc.createTextNode('3'))
                 useMs1Centroids = doc.createElement('useMs1Centroids')
                 useMs1Centroids.appendChild(doc.createTextNode('True'))
                 useMs2Centroids = doc.createElement('useMs2Centroids')
@@ -882,7 +901,9 @@ class Maxquant():
                 maxCharge = doc.createElement('maxCharge')
                 maxCharge.appendChild(doc.createTextNode('4'))
                 minPeakLen = doc.createElement('minPeakLen')
-                minPeakLen.appendChild(doc.createTextNode('3'))
+                minPeakLen.appendChild(doc.createTextNode('2'))
+                diaMinPeakLen = doc.createElement('diaMinPeakLen')
+                diaMinPeakLen.appendChild(doc.createTextNode('2'))
                 useMs1Centroids = doc.createElement('useMs1Centroids')
                 useMs1Centroids.appendChild(doc.createTextNode('True'))
                 useMs2Centroids = doc.createElement('useMs2Centroids')
@@ -905,6 +926,8 @@ class Maxquant():
                 maxCharge.appendChild(doc.createTextNode('7'))
                 minPeakLen = doc.createElement('minPeakLen')
                 minPeakLen.appendChild(doc.createTextNode('2'))
+                diaMinPeakLen = doc.createElement('diaMinPeakLen')
+                diaMinPeakLen.appendChild(doc.createTextNode('2'))
                 useMs1Centroids = doc.createElement('useMs1Centroids')
                 useMs1Centroids.appendChild(doc.createTextNode('False'))
                 useMs2Centroids = doc.createElement('useMs2Centroids')
@@ -1050,7 +1073,7 @@ class Maxquant():
             mainSearchTol = doc.createElement('mainSearchTol')
             mainSearchTol.appendChild(doc.createTextNode('4.5'))
             searchTolInPpm = doc.createElement('searchTolInPpm')
-            searchTolInPpm.appendChild(doc.createTextNode('False'))
+            searchTolInPpm.appendChild(doc.createTextNode('True'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
             isotopeMatchTol.appendChild(doc.createTextNode('2'))
             isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
@@ -1119,12 +1142,19 @@ class Maxquant():
             crosslinkMaxDiUnsaturated.appendChild(doc.createTextNode('0'))
             crosslinkMaxDiSaturated = doc.createElement('crosslinkMaxDiSaturated')
             crosslinkMaxDiSaturated.appendChild(doc.createTextNode('0'))
-            crosslinkUseSeparateFasta = doc.createElement('crosslinkUseSeparateFasta')
-            crosslinkUseSeparateFasta.appendChild(doc.createTextNode('False'))
-            crosslinkCleaveModifications = doc.createElement('crosslinkCleaveModifications')
-            crosslinkCleaveModifications.appendChild(doc.createTextNode(''))
+#            crosslinkUseSeparateFasta = doc.createElement('crosslinkUseSeparateFasta')
+#            crosslinkUseSeparateFasta.appendChild(doc.createTextNode('False'))
+#            crosslinkCleaveModifications = doc.createElement('crosslinkCleaveModifications')
+#            crosslinkCleaveModifications.appendChild(doc.createTextNode(''))
+            crosslinkModifications = doc.createElement('crosslinkModifications')
+            crosslinkModifications.appendChild(doc.createTextNode(''))
             crosslinkFastaFiles = doc.createElement('crosslinkFastaFiles')
             crosslinkFastaFiles.appendChild(doc.createTextNode(''))
+            crosslinkSites = doc.createElement('crosslinkSites')
+            crosslinkSites.appendChild(doc.createTextNode(''))
+            crosslinkNetworkFiles = doc.createElement('crosslinkNetworkFiles')
+            crosslinkNetworkFiles.appendChild(doc.createTextNode(''))
+            
             crosslinkMode = doc.createElement('crosslinkMode')
             crosslinkMode.appendChild(doc.createTextNode('PeptidesWithCleavedLinker'))
             peakRefinement = doc.createElement('peakRefinement')
@@ -1132,20 +1162,42 @@ class Maxquant():
             isobaricSumOverWindow = doc.createElement('isobaricSumOverWindow')
             isobaricSumOverWindow.appendChild(doc.createTextNode('True'))
             isobaricWeightExponent = doc.createElement('tisobaricWeightExponent')
-            isobaricWeightExponent.appendChild(doc.createTextNode('0.35'))
+            isobaricWeightExponent.appendChild(doc.createTextNode('0.75'))
             diaLibraryType = doc.createElement('diaLibraryType')
             diaLibraryType.appendChild(doc.createTextNode('0'))
             diaLibraryPath = doc.createElement('diaLibraryPath')
             diaLibraryPath.appendChild(doc.createTextNode(''))
+            diaPeptidePaths = doc.createElement('diaPeptidePaths')
+            diaPeptidePaths.appendChild(doc.createTextNode(''))
             diaEvidencePaths = doc.createElement('diaEvidencePaths')
             diaEvidencePaths.appendChild(doc.createTextNode(''))
             diaMsmsPaths = doc.createElement('diaMsmsPaths')
             diaMsmsPaths.appendChild(doc.createTextNode(''))
+            diaInitialPrecMassTolPpm = doc.createElement('diaInitialPrecMassTolPpm')
+            diaInitialPrecMassTolPpm.appendChild(doc.createTextNode('20'))
+            diaInitialFragMassTolPpm = doc.createElement('diaInitialFragMassTolPpm')
+            diaInitialFragMassTolPpm.appendChild(doc.createTextNode('20'))
+            diaCorrThresholdFeatureClustering = doc.createElement('diaCorrThresholdFeatureClustering')
+            diaCorrThresholdFeatureClustering.appendChild(doc.createTextNode('0.85'))
+            diaPrecTolPpmFeatureClustering = doc.createElement('diaPrecTolPpmFeatureClustering')
+            diaPrecTolPpmFeatureClustering.appendChild(doc.createTextNode('2'))
+            diaFragTolPpmFeatureClustering = doc.createElement('diaFragTolPpmFeatureClustering')
+            diaFragTolPpmFeatureClustering.appendChild(doc.createTextNode('2'))
+            diaScoreN = doc.createElement('diaScoreN')
+            diaScoreN.appendChild(doc.createTextNode('7'))
+            diaMinScore = doc.createElement('diaMinScore')
+            diaMinScore.appendChild(doc.createTextNode('2.99'))
+            diaPrecursorQuant = doc.createElement('diaPrecursorQuant')
+            diaPrecursorQuant.appendChild(doc.createTextNode('False'))
+            diaDiaTopNFragmentsForQuant = doc.createElement('diaDiaTopNFragmentsForQuant')
+            diaDiaTopNFragmentsForQuant.appendChild(doc.createTextNode('3'))
+            
             
             #appendChild in parameterGroup
             parameterGroup.appendChild(msInstrument)
             parameterGroup.appendChild(maxCharge)
             parameterGroup.appendChild(minPeakLen)
+            parameterGroup.appendChild(diaMinPeakLen)
             parameterGroup.appendChild(useMs1Centroids)
             parameterGroup.appendChild(useMs2Centroids)
             parameterGroup.appendChild(cutPeaks)
@@ -1239,17 +1291,29 @@ class Maxquant():
             parameterGroup.appendChild(crosslinkMaxMonoSaturated)
             parameterGroup.appendChild(crosslinkMaxDiUnsaturated)
             parameterGroup.appendChild(crosslinkMaxDiSaturated)
-            parameterGroup.appendChild(crosslinkUseSeparateFasta)
-            parameterGroup.appendChild(crosslinkCleaveModifications)
+            #parameterGroup.appendChild(crosslinkUseSeparateFasta)
+            parameterGroup.appendChild(crosslinkModifications)
             parameterGroup.appendChild(crosslinkFastaFiles)
+            parameterGroup.appendChild(crosslinkSites)
+            parameterGroup.appendChild(crosslinkNetworkFiles)
             parameterGroup.appendChild(crosslinkMode)
             parameterGroup.appendChild(peakRefinement)
             parameterGroup.appendChild(isobaricSumOverWindow)
             parameterGroup.appendChild(isobaricWeightExponent)
             parameterGroup.appendChild(diaLibraryType)
             parameterGroup.appendChild(diaLibraryPath)
+            parameterGroup.appendChild(diaPeptidePaths)
             parameterGroup.appendChild(diaEvidencePaths)
             parameterGroup.appendChild(diaMsmsPaths)
+            parameterGroup.appendChild(diaInitialPrecMassTolPpm)
+            parameterGroup.appendChild(diaInitialFragMassTolPpm)
+            parameterGroup.appendChild(diaCorrThresholdFeatureClustering)
+            parameterGroup.appendChild(diaPrecTolPpmFeatureClustering)
+            parameterGroup.appendChild(diaFragTolPpmFeatureClustering)
+            parameterGroup.appendChild(diaScoreN)
+            parameterGroup.appendChild(diaMinScore)
+            parameterGroup.appendChild(diaPrecursorQuant)
+            parameterGroup.appendChild(diaDiaTopNFragmentsForQuant)
             parameterGroups.appendChild(parameterGroup)
         root.appendChild(parameterGroups)
         
@@ -1272,11 +1336,7 @@ class Maxquant():
             IncludeAmmonia = doc.createElement('IncludeAmmonia')
             DependentLosses = doc.createElement('DependentLosses')
             Recalibration = doc.createElement('Recalibration')
-            DiaFragMatchCount = doc.createElement('DiaFragMatchCount')
-            DiaFragMatchTolerance = doc.createElement('DiaFragMatchTolerance')
-            DiaFragMatchToleranceInPpm = doc.createElement('DiaFragMatchToleranceInPpm')
-            DiaFragFeatureClusteringTolerance = doc.createElement('DiaFragFeatureClusteringTolerance')
-            DiaFragFeatureClusteringToleranceInPpm = doc.createElement('DiaFragFeatureClusteringToleranceInPpm')
+
             if i == 0:
                 Name.appendChild(doc.createTextNode('FTMS'))
                 MatchTolerance.appendChild(doc.createTextNode('20'))
@@ -1293,11 +1353,7 @@ class Maxquant():
                 IncludeAmmonia.appendChild(doc.createTextNode('True'))
                 DependentLosses.appendChild(doc.createTextNode('True'))
                 Recalibration.appendChild(doc.createTextNode('False'))
-                DiaFragMatchCount.appendChild(doc.createTextNode('6'))
-                DiaFragMatchTolerance.appendChild(doc.createTextNode('20'))
-                DiaFragMatchToleranceInPpm.appendChild(doc.createTextNode('True'))
-                DiaFragFeatureClusteringTolerance.appendChild(doc.createTextNode('2'))
-                DiaFragFeatureClusteringToleranceInPpm.appendChild(doc.createTextNode('True'))
+
             elif i == 1:
                 Name.appendChild(doc.createTextNode('ITMS'))
                 MatchTolerance.appendChild(doc.createTextNode('0.5'))
@@ -1314,11 +1370,7 @@ class Maxquant():
                 IncludeAmmonia.appendChild(doc.createTextNode('True'))
                 DependentLosses.appendChild(doc.createTextNode('True'))
                 Recalibration.appendChild(doc.createTextNode('False'))
-                DiaFragMatchCount.appendChild(doc.createTextNode('6'))
-                DiaFragMatchTolerance.appendChild(doc.createTextNode('0.5'))
-                DiaFragMatchToleranceInPpm.appendChild(doc.createTextNode('False'))
-                DiaFragFeatureClusteringTolerance.appendChild(doc.createTextNode('0.2'))
-                DiaFragFeatureClusteringToleranceInPpm.appendChild(doc.createTextNode('False'))
+
             elif i == 2:
                 Name.appendChild(doc.createTextNode('TOF'))
                 MatchTolerance.appendChild(doc.createTextNode('40'))
@@ -1335,11 +1387,7 @@ class Maxquant():
                 IncludeAmmonia.appendChild(doc.createTextNode('True'))
                 DependentLosses.appendChild(doc.createTextNode('True'))
                 Recalibration.appendChild(doc.createTextNode('False'))
-                DiaFragMatchCount.appendChild(doc.createTextNode('6'))
-                DiaFragMatchTolerance.appendChild(doc.createTextNode('30'))
-                DiaFragMatchToleranceInPpm.appendChild(doc.createTextNode('True'))
-                DiaFragFeatureClusteringTolerance.appendChild(doc.createTextNode('2'))
-                DiaFragFeatureClusteringToleranceInPpm.appendChild(doc.createTextNode('True'))
+
             elif i == 3:
                 Name.appendChild(doc.createTextNode('Unknown'))
                 MatchTolerance.appendChild(doc.createTextNode('20'))
@@ -1356,11 +1404,7 @@ class Maxquant():
                 IncludeAmmonia.appendChild(doc.createTextNode('True'))
                 DependentLosses.appendChild(doc.createTextNode('True'))
                 Recalibration.appendChild(doc.createTextNode('False'))
-                DiaFragMatchCount.appendChild(doc.createTextNode('6'))
-                DiaFragMatchTolerance.appendChild(doc.createTextNode('20'))
-                DiaFragMatchToleranceInPpm.appendChild(doc.createTextNode('True'))
-                DiaFragFeatureClusteringTolerance.appendChild(doc.createTextNode('2'))
-                DiaFragFeatureClusteringToleranceInPpm.appendChild(doc.createTextNode('True'))
+
             msmsParams.appendChild(Name)
             msmsParams.appendChild(MatchTolerance)
             msmsParams.appendChild(MatchToleranceInPpm)
@@ -1376,11 +1420,6 @@ class Maxquant():
             msmsParams.appendChild(IncludeAmmonia)
             msmsParams.appendChild(DependentLosses)
             msmsParams.appendChild(Recalibration)
-            msmsParams.appendChild(DiaFragMatchCount)
-            msmsParams.appendChild(DiaFragMatchTolerance)
-            msmsParams.appendChild(DiaFragMatchToleranceInPpm)
-            msmsParams.appendChild(DiaFragFeatureClusteringTolerance)
-            msmsParams.appendChild(DiaFragFeatureClusteringToleranceInPpm)
             msmsParamsArray.appendChild(msmsParams)
         root.appendChild(msmsParamsArray)
         
@@ -1426,7 +1465,7 @@ class Maxquant():
         
         #create maxquant experimental design file
     def maxquant_experiamental_design(self,sdrf_file,output):
-        sdrf = pd.read_table(sdrf_file)
+        sdrf = pd.read_csv(sdrf_file, sep='\t')
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)
         f = open(output,'w')
@@ -1452,4 +1491,3 @@ class Maxquant():
             f.write('\n' + data_file + '\t' + fraction + '\t' + experiment + '\t')
         f.close()
         print('SUCCESS Generate maxquant experimental design file')
-       
