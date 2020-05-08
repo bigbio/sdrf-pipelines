@@ -1491,7 +1491,3 @@ class Maxquant():
             f.write('\n' + data_file + '\t' + fraction + '\t' + experiment + '\t')
         f.close()
         print('SUCCESS Generate maxquant experimental design file')
-       
-#if  __name__ == '__main__':
-#    Maxquant().maxquant_convert('C:/Users/ChengXin/Documents/GitHub/bigbio_proteomics-metadata-standard/proteomics-metadata-standard/annotated-projects/PXD000612/sdrf.tsv', './param.xml') # Generate maxquant paramaters .xml file
-#    Maxquant().maxquant_experiamental_design('C:/Users/ChengXin/Documents/GitHub/bigbio_proteomics-metadata-standard/proteomics-metadata-standard/annotated-projects/PXD000612/sdrf.tsv','./design.txt') # Generate maxquant experiment design .txt file
