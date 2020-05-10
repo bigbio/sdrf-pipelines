@@ -1,6 +1,6 @@
 # sdrf-pipelines
 
-The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats and OpenMS.
+The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats,OpenMS and MaxQuant.
 
 ### Installation
 
@@ -59,3 +59,40 @@ be derived from the sdrf file. However, definition of conditions might need manu
 | 10 | 15 | A0218_10A_FR15.raw | 1 | 10 | 10 | 1 |
 
 For details, please see the MSstats documentation
+
+## Convert to MaxQuant: Usage
+
+```bash
+parse_sdrf convert-maxquant -s sdrf.tsv -f {here_the_path_to_protein_database_file} -m {True or False} -pef {default 0.01} -prf {default 0.01} -t {temporary folder} -r {raw_data_folder} -n {number of threads:default 1} -o1 {parameters(.xml) output file path} -o2 {maxquant experimental design(.txt) output file path}
+```
+-f : please use single /  
+-m : via matching between runs to boosts number of identifications<br>
+-pef : posterior error probability calculation based on target-decoy search<br>
+-prf : protein score = product of peptide PEPs (one for each sequence)<br>
+-t : place on SSD (if possible) for faster search,please use single / <br>
+-r : please use single \\ <br>
+-n : each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available <br>
+    (otherwise, MaxQuant can crash)
+
+### Description
+
+- maxquant parameters file (mqpar.xml)
+- maxquant experimental design file (.txt)
+
+The maxquant parameters file mqpar.xml contains the parameters required for maxquant operation.some settings can usually be derived from the sdrf file such as enzyme, fixed modification, variable modification, instrument, fraction and label etc.Set other parameters as default.
+
+Some parameters are listed：<br>
+&nbsp;&nbsp;&nbsp; `<fastaFilePath>TAIR10_pep_20101214.fasta</fastaFilePath>`<br>
+&nbsp;&nbsp;&nbsp; `<matchBetweenRuns>True</matchBetweenRuns>`<br>
+&nbsp;&nbsp;&nbsp; `<maxQuantVersion>1.6.10.43</maxQuantVersion>`<br>
+&nbsp;&nbsp;&nbsp; `<tempFolder>C:/Users/test</tempFolder>`<br>
+&nbsp;&nbsp;&nbsp; `<numThreads>2</numThreads>`<br>
+&nbsp;&nbsp;&nbsp; ```<filePaths><string>C:\Users\search_spectra\AT\130402_08.raw</string><string>C:\Users\search_spectra\AT\130412_08.raw</string></filePaths>```<br>
+&nbsp;&nbsp;&nbsp; `<experiments>
+		<string>sample 1_Tr_1</string>
+		<string>sample 2_Tr_1</string>
+	</experiments>`  
+&nbsp;&nbsp;&nbsp;`<fractions>
+		<short>32767</short>
+		<short>32767</short>
+	</fractions>`
