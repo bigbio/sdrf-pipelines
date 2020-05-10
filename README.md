@@ -119,7 +119,7 @@ Some parameters are listed：
 The maxquant experimental design file contains name,Fraction,Experiement and PTM column.Most entries can be derived from the sdrf file.  
 - **Name**  raw data file name.
 - **Fraction**  In the Fraction column you must assign if the corresponding files shown in the left column belong to a fraction of a gel fraction. If your data is not obtained through gel-based pre-fractionation you must assign the same number(default 1) for all files in the column Fraction.
-- **Experiment**  In the column named as Experiment if you want to combine all experimental replicates as a single dataset to be analyzed by MaxQuant, you must enter the same identifier for the files which should be concatenated as shown below. However, if you want each individual file to be treated as a different experiment which you want to compare further you should assign different identifiers to each of the files.  
+- **Experiment**  In the column named as Experiment if you want to combine all experimental replicates as a single dataset to be analyzed by MaxQuant, you must enter the same identifier for the files which should be concatenated . However, if you want each individual file to be treated as a different experiment which you want to compare further you should assign different identifiers to each of the files as shown below.  
   
 | Name | Fraction | Experiment | PTM |  
 | :----:| :----: | :----: | :----: |  
