@@ -113,8 +113,9 @@ Some parameters are listed：
     - \<string>Acetyl (Protein N-term)\</string>
     - \<string>Phospho (T)\</string>
     - \<string>Phospho (S)\</string>
-- \</variableModifications>
-
+- \</variableModifications>  
+  
+For details, please see the MaxQuant documentation
 
 The maxquant experimental design file contains name,Fraction,Experiement and PTM column.Most entries can be derived from the sdrf file.  
 - **Name**  raw data file name.
