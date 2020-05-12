@@ -23,7 +23,7 @@ MASS_SPECTROMETRY = 'mass_spectrometry'
 ALL_TEMPLATES = [DEFAULT_TEMPLATE, HUMAN_TEMPLATE, VERTEBRATES_TEMPLATE, NON_VERTEBRATES_TEMPLATE, PLANTS_TEMPLATE,
                  CELL_LINES_TEMPLATE]
 
-TERM_NAME = 'NM'
+TERM_NAME = 'NT'
 
 
 def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
@@ -38,10 +38,8 @@ def ontology_term_parser(cell_value: str = None):
     """
     term = {}
     values = cell_value.split(";")
-    if len(values) == 1:
-        name = values[0].lower()
-        if "=" not in name:
-            term[TERM_NAME] = name
+    if len(values) == 1 and '=' not in values[0]:
+        term[TERM_NAME] = values[0].lower()
     else:
         for name in values:
             value_terms = name.split("=")
@@ -84,7 +82,7 @@ class OntologyTerm(_SeriesValidation):
         """
         cell_value = cell_value.lower()
         term = ontology_term_parser(cell_value)
-        if term[TERM_NAME] in labels:
+        if term.get(TERM_NAME) in labels:
             return True
         return False
 
@@ -98,16 +96,18 @@ class OntologyTerm(_SeriesValidation):
         terms = [ontology_term_parser(x) for x in series.unique()]
         labels = []
         for term in terms:
-            if self._ontology_name is not None:
-                ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name, exact="true")
+            if TERM_NAME not in term:
+                ontology_terms = None
             else:
-                ontology_terms = client.search(term[TERM_NAME], exact="true")
+                if self._ontology_name is not None:
+                    ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name, exact="true")
+                else:
+                    ontology_terms = client.search(term[TERM_NAME], exact="true")
 
             if ontology_terms is not None:
                 query_labels = [o['label'].lower() for o in ontology_terms]
                 for label in query_labels:
                     labels.append(label)
-
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
 
