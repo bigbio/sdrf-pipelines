@@ -40,8 +40,8 @@ def ontology_term_parser(cell_value: str = None):
     values = cell_value.split(";")
     if len(values) == 1:
         name = values[0].lower()
-    if "=" not in name:
-        term[TERM_NAME] = name
+        if "=" not in name:
+            term[TERM_NAME] = name
     else:
         for name in values:
             value_terms = name.split("=")
