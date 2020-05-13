@@ -3,6 +3,7 @@
 #pip install sdrf-pipelines
 
 parse_sdrf convert-maxquant -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD000612/sdrf.tsv" -o1 param.xml -o2 design.txt
+parse_sdrf convert-openms -t2 -l -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD018241/sdrf-phosphoproteomics.tsv"
 
 #parse_sdrf convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD009602/sdrf.tsv"
 #parse_sdrf convert-openms -s "https://raw.githubusercontent.com/bigbio/proteomics-metadata-standard/master/annotated-projects/PXD011799/sdrf.tsv"

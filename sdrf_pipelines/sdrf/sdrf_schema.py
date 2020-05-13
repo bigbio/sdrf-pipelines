@@ -204,7 +204,7 @@ human_schema = SDRFSchema([
     SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
-    SDRFColumn('characteristics[ethnicity]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+    SDRFColumn('characteristics[ancestry category]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('characteristics[age]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
