@@ -24,6 +24,7 @@ ALL_TEMPLATES = [DEFAULT_TEMPLATE, HUMAN_TEMPLATE, VERTEBRATES_TEMPLATE, NON_VER
                  CELL_LINES_TEMPLATE]
 
 TERM_NAME = 'NT'
+NOT_AVAILABLE = 'not available'
 
 
 def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
@@ -60,9 +61,10 @@ class OntologyTerm(_SeriesValidation):
     Checks that there is no leading whitespace in this column
     """
 
-    def __init__(self, ontology_name: str = None, **kwargs):
+    def __init__(self, ontology_name: str = None, not_available: bool = False,  **kwargs):
         super().__init__(**kwargs)
         self._ontology_name = ontology_name
+        self._not_available = not_available
 
     @property
     def default_message(self):
@@ -108,6 +110,8 @@ class OntologyTerm(_SeriesValidation):
                 query_labels = [o['label'].lower() for o in ontology_terms]
                 for label in query_labels:
                     labels.append(label)
+        if(self._not_available):
+          labels.append(NOT_AVAILABLE)
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
 
@@ -272,7 +276,7 @@ mass_spectrometry_schema = SDRFSchema([
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[modification parameters]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                                                  OntologyTerm("unimod")],
+                                                  OntologyTerm(ontology_name="unimod",not_available=True)],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
