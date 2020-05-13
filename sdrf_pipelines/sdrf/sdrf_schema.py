@@ -43,7 +43,7 @@ def ontology_term_parser(cell_value: str = None):
     else:
         for name in values:
             value_terms = name.split("=")
-            term[value_terms[0].upper()] = value_terms[1].lower()
+            term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
     return term
 
 
@@ -204,7 +204,7 @@ human_schema = SDRFSchema([
     SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
-    SDRFColumn('characteristics[ethnicity]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+    SDRFColumn('characteristics[ancestry category]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('characteristics[age]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
