@@ -219,7 +219,7 @@ human_schema = SDRFSchema([
              optional_type=False),
     SDRFColumn('characteristics[developmental stage]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
-             optional_type=False),
+             optional_type=True),
     SDRFColumn('characteristics[individual]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=True)
