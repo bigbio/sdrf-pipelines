@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 
 from sdrf_pipelines.sdrf.sdrf_schema import human_schema, HUMAN_TEMPLATE, VERTEBRATES_TEMPLATE, \
     vertebrates_chema, NON_VERTEBRATES_TEMPLATE, nonvertebrates_chema, PLANTS_TEMPLATE, plants_chema, \
@@ -30,7 +31,11 @@ class SdrfDataFrame(pd.DataFrame):
         :return:
         """
 
-        df = pd.read_csv(sdrf_file, sep='\t')
+        df = pd.read_csv(sdrf_file, sep='\t', skip_blank_lines=False)
+        nrows = df.shape[0]
+        df = df.dropna(axis='index', how='all')
+        if df.shape[0] < nrows:
+            logging.warning('There were empty lines.')
         # Convert all columns and values in the dataframe to lowercase
         df = df.astype(str).apply(lambda x: x.str.lower())
         df.columns = map(str.lower, df.columns)
