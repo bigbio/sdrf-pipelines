@@ -5,7 +5,7 @@ from typing import Any
 import pandas as pd
 from pandas_schema import Column, Schema
 from pandas_schema.validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, _SeriesValidation, \
-    _BaseValidation
+    _BaseValidation, MatchesPatternValidation
 
 from sdrf_pipelines.sdrf import sdrf
 from sdrf_pipelines.utils.exceptions import LogicError
@@ -50,10 +50,15 @@ def ontology_term_parser(cell_value: str = None):
 
 class SDRFColumn(Column):
 
-    def __init__(self, name: str, validations: typing.Iterable['_BaseValidation'] = [], allow_empty=False,
-               optional_type=True):
+    def __init__(self, name: str, validations: typing.Iterable['_BaseValidation'] = [],
+                 optional_validations: typing.Iterable['_BaseValidation'] = [],
+                 allow_empty=False, optional_type=True):
         super().__init__(name, validations, allow_empty)
+        self.optional_validations = optional_validations
         self._optional = optional_type
+
+    def validate_optional(self, series):
+        return [error for validation in self.optional_validations for error in validation.get_errors(series, self)]
 
 
 class OntologyTerm(_SeriesValidation):
@@ -61,7 +66,7 @@ class OntologyTerm(_SeriesValidation):
     Checks that there is no leading whitespace in this column
     """
 
-    def __init__(self, ontology_name: str = None, not_available: bool = False,  **kwargs):
+    def __init__(self, ontology_name: str = None, not_available: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._ontology_name = ontology_name
         self._not_available = not_available
@@ -111,7 +116,7 @@ class OntologyTerm(_SeriesValidation):
                 for label in query_labels:
                     labels.append(label)
         if(self._not_available):
-          labels.append(NOT_AVAILABLE)
+            labels.append(NOT_AVAILABLE)
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
 
@@ -146,6 +151,9 @@ class SDRFSchema(Schema):
             for error in error_ontology_terms:
                 errors.append(error)
 
+        warnings = self.check_recommendations(panda_sdrf)
+        for w in warnings:
+            logging.warning(w)
         return errors
 
     def validate_mandatory_columns(self, panda_sdrf):
@@ -159,8 +167,7 @@ class SDRFSchema(Schema):
             return LogicError(error_message, error_type=logging.ERROR)
         return None
 
-    def validate_columns(self, panda_sdrf):
-        # Iterate over each pair of schema columns and data frame series and run validations
+    def _get_column_pairs(self, panda_sdrf):
         column_pairs = []
         columns_to_pair = self.columns
         errors = []
@@ -171,10 +178,21 @@ class SDRFSchema(Schema):
                 errors.append(LogicError(message, error_type=logging.ERROR))
             elif column.name in panda_sdrf:
                 column_pairs.append((panda_sdrf[column.name], column))
+        return column_pairs, errors
 
+    def validate_columns(self, panda_sdrf):
+        # Iterate over each pair of schema columns and data frame series and run validations
+        column_pairs, errors = self._get_column_pairs(panda_sdrf)
         for series, column in column_pairs:
             errors += column.validate(series)
         return sorted(errors, key=lambda e: e.row)
+
+    def check_recommendations(self, panda_sdrf):
+        column_pairs, errors = self._get_column_pairs(panda_sdrf)
+        warnings = []
+        for series, column in column_pairs:
+            warnings += column.validate_optional(series)
+        return sorted(warnings, key=lambda e: e.row)
 
 
 default_schema = SDRFSchema([
@@ -212,6 +230,8 @@ human_schema = SDRFSchema([
              allow_empty=True,
              optional_type=False),
     SDRFColumn('characteristics[age]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+                [MatchesPatternValidation(r'(?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)',
+                    case=False)],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('characteristics[sex]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
@@ -276,7 +296,7 @@ mass_spectrometry_schema = SDRFSchema([
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[modification parameters]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                                                  OntologyTerm(ontology_name="unimod",not_available=True)],
+                                                  OntologyTerm(ontology_name="unimod", not_available=True)],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
