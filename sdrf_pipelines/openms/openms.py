@@ -2,12 +2,16 @@ import re
 
 import pandas as pd
 
+from sdrf_pipelines.openms.unimod import UnimodDatabase
+
 
 class OpenMS:
 
   def __init__(self) -> None:
     super().__init__()
     self.warnings = dict()
+    self._unimod_database = UnimodDatabase()
+
 
   def openms_ify_mods(self, sdrf_mods):
     oms_mods = list()
@@ -18,6 +22,11 @@ class OpenMS:
 
       name = re.search("NT=(.+?)(;|$)", m).group(1)
       name = name.capitalize()
+
+      accession = re.search("AC=(.+?)(;|$)", m).group(1)
+      ptm = self._unimod_database.get_by_accession(accession)
+      if ptm != None:
+        name = ptm.get_name()
 
       # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
       if re.search("PP=(.+?)[;$]", m) is None:
@@ -288,7 +297,7 @@ class OpenMS:
 
         # MSstats BioReplicate column needs to be different for samples from different conditions.
         # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
-        MSstatsBioReplicate = sample 
+        MSstatsBioReplicate = sample
         if legacy:
           f.write(fraction_group + "\t" + file2fraction[
             raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
@@ -352,7 +361,7 @@ class OpenMS:
 
         # MSstats BioReplicate column needs to be different for samples from different conditions.
         # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
-        MSstatsBioReplicate = sample 
+        MSstatsBioReplicate = sample
 
         if sample not in sample_row_written:
           f.write(sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
