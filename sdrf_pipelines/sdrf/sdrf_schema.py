@@ -1,5 +1,6 @@
 import logging
 import typing
+import re
 from typing import Any
 
 import pandas as pd
@@ -121,6 +122,8 @@ class OntologyTerm(_SeriesValidation):
 
 
 class SDRFSchema(Schema):
+    _special_columns = {'sourcename', 'assayname', 'materialtype'}
+    _column_template = r'^(characteristics|comment|factor value)\s*\[([^\]]+)\](?:\.\d+)?$'
 
     def __init__(self, columns: typing.Iterable[SDRFColumn], ordered: bool = False, min_columns: int = 0):
         super().__init__(columns, ordered)
@@ -151,10 +154,30 @@ class SDRFSchema(Schema):
             for error in error_ontology_terms:
                 errors.append(error)
 
+        error_names = self.validate_column_names(panda_sdrf)
+        if error_names:
+            errors.append(error_names)
+
         warnings = self.check_recommendations(panda_sdrf)
         for w in warnings:
             logging.warning(w)
         return errors
+
+    def validate_column_names(self, panda_sdrf):
+        errors = []
+        spaces = []
+        for cname in panda_sdrf.columns:
+            if cname != cname.strip():
+                spaces.append(cname)
+                continue
+            if cname.replace(' ', '') in self._special_columns:
+                continue
+            m = re.match(self._column_template, cname)
+            if not m:
+                errors.append(cname)
+        if errors + spaces:
+            return LogicError('Invalid columns present: ' + ', '.join(errors) +
+                ', '.join(e + ' (leading or trailing whitespace)' for e in spaces), error_type=logging.ERROR)
 
     def validate_mandatory_columns(self, panda_sdrf):
         error_mandatory = []
