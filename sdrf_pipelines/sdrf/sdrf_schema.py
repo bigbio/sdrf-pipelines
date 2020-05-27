@@ -59,7 +59,12 @@ class SDRFColumn(Column):
         self._optional = optional_type
 
     def validate_optional(self, series):
-        return [error for validation in self.optional_validations for error in validation.get_errors(series, self)]
+        warnings = []
+        for validation in self.optional_validations:
+            for error in validation.get_errors(series, self):
+                w = LogicError(error.message, error.value, error.row, error.column, error_type=logging.WARN)
+                warnings.append(w)
+        return warnings
 
 
 class OntologyTerm(_SeriesValidation):
@@ -158,9 +163,8 @@ class SDRFSchema(Schema):
         if error_names:
             errors.append(error_names)
 
-        warnings = self.check_recommendations(panda_sdrf)
-        for w in warnings:
-            logging.warning(w)
+        errors.extend(self.check_recommendations(panda_sdrf))
+
         return errors
 
     def validate_column_names(self, panda_sdrf):
