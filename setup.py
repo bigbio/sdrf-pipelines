@@ -6,7 +6,7 @@ with open("README.md", "r", encoding='UTF-8') as fh:
 
 setup(
   name="sdrf-pipelines",
-  version="0.0.5",
+  version="0.0.6",
   author="BigBio Team",
   author_email="ypriverol@gmail.com",
   description="Translate, convert SDRF to configuration pipelines",
@@ -30,5 +30,5 @@ setup(
       'Topic :: Scientific/Engineering :: Bio-Informatics'
   ],
   keywords ='sdrf python multiomics proteomics',
-  python_requires='>=3.5',
+  python_requires='>=3.6',
 )
