@@ -299,7 +299,10 @@ plants_chema = SDRFSchema([
 
 
 cell_lines_schema = SDRFSchema([
-    SDRFColumn('characteristics[cell line code]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=False),
+    SDRFColumn('characteristics[cultured cell]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False)
 ], min_columns=7)
