@@ -325,15 +325,15 @@ mass_spectrometry_schema = SDRFSchema([
     SDRFColumn('comment[modification parameters]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
                                                   OntologyTerm(ontology_name="unimod", not_available=True)],
              allow_empty=True,
-             optional_type=False),
+             optional_type=True),
     SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
                                                  OntologyTerm("ms")],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[fragment mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
-             optional_type=False),
+             optional_type=True),
     SDRFColumn('comment[precursor mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
-             optional_type=False)
+             optional_type=True)
 ], min_columns=7)
