@@ -1,12 +1,12 @@
 from __future__ import print_function
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='UTF-8') as fh:
     long_description = fh.read()
 
 setup(
   name="sdrf-pipelines",
-  version="0.0.5",
+  version="0.0.6",
   author="BigBio Team",
   author_email="ypriverol@gmail.com",
   description="Translate, convert SDRF to configuration pipelines",
@@ -16,7 +16,7 @@ setup(
   data_files = [("", ["LICENSE"])],
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),
-  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest'],
+  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest', 'pyecharts'],
   entry_points={
     'console_scripts': [
       'parse_sdrf = sdrf_pipelines.parse_sdrf:main'
@@ -30,5 +30,5 @@ setup(
       'Topic :: Scientific/Engineering :: Bio-Informatics'
   ],
   keywords ='sdrf python multiomics proteomics',
-  python_requires='>=3.5',
+  python_requires='>=3.6',
 )
