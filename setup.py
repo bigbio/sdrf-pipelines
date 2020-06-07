@@ -1,7 +1,7 @@
 from __future__ import print_function
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='UTF-8') as fh:
     long_description = fh.read()
 
 setup(
@@ -16,7 +16,7 @@ setup(
   data_files = [("", ["LICENSE"])],
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),
-  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest'],
+  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest', 'pyecharts'],
   entry_points={
     'console_scripts': [
       'parse_sdrf = sdrf_pipelines.parse_sdrf:main'
