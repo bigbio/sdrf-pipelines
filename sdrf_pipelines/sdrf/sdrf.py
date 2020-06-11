@@ -9,7 +9,7 @@ from sdrf_pipelines.sdrf.sdrf_schema import human_schema, HUMAN_TEMPLATE, VERTEB
 class SdrfDataFrame(pd.DataFrame):
 
     @property
-    def _constructor(self, template):
+    def _constructor(self):
         """
         This method is makes it so our methods return an instance
         :return:
