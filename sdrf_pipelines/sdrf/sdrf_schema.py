@@ -236,6 +236,9 @@ default_schema = SDRFSchema([
              [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ncbitaxon")],
              allow_empty=False,
              optional_type=False),
+    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=False,
+             optional_type=False),
     SDRFColumn('assay name',
              [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=False,
@@ -299,7 +302,10 @@ plants_chema = SDRFSchema([
 
 
 cell_lines_schema = SDRFSchema([
-    SDRFColumn('characteristics[cell line code]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=False),
+    SDRFColumn('characteristics[cultured cell]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False)
 ], min_columns=7)
@@ -325,15 +331,15 @@ mass_spectrometry_schema = SDRFSchema([
     SDRFColumn('comment[modification parameters]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
                                                   OntologyTerm(ontology_name="unimod", not_available=True)],
              allow_empty=True,
-             optional_type=False),
+             optional_type=True),
     SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
                                                  OntologyTerm("ms")],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[fragment mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
-             optional_type=False),
+             optional_type=True),
     SDRFColumn('comment[precursor mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
-             optional_type=False)
+             optional_type=True)
 ], min_columns=7)
