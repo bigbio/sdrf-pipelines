@@ -34,4 +34,5 @@ setup(
   ],
   keywords='sdrf python multiomics proteomics',
   python_requires='>=3.6',
+  include_package_data=True,
 )
