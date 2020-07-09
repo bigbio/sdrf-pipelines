@@ -14,6 +14,9 @@ setup(
   long_description=long_description,
   license="'Apache 2.0",
   data_files = [("", ["LICENSE"])],
+  package_data={
+      'sdrf-pipelines': ['sdrf_pipelines/openms/*.xml'],
+  },
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),
   install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest', 'pyecharts'],
