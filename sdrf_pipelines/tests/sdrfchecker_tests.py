@@ -21,7 +21,7 @@ def test_convert_openms():
     :return:
     """
   runner = CliRunner()
-  result = runner.invoke(cli, ['convert-openms', '-t2', '-l', '-s','sdrf_pipelines/testdata/sdrf.tsv'])
+  result = runner.invoke(cli, ['convert-openms', '-t2', '-l', '-s','testdata/sdrf.tsv'])
   print('convert to openms' + result.output)
   assert 'ERROR' not in result.output
 
