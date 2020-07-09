@@ -8,7 +8,6 @@ from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY, ALL_TEMPLATES, DEFAULT_TEMPLATE
 from sdrf_pipelines.utils.exceptions import AppConfigException
-from sdrf_pipelines.graphical_summary import graphical_summary
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -91,22 +90,9 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
     sys.exit(bool(errors))
 
 
-@click.command('graph-summary-sdrf', short_help='Command to convert the sdrf file to graph')
-@click.option('--sdrf_file', '-s', help='SDRF file to be validated')
-@click.option('--output_file', '-o', help='output html file')
-@click.pass_context
-def graphical_summary_from_sdrf(ctx, sdrf_file: str, output_file: str):
-    if sdrf_file is None:
-        msg = "The config file for the pipeline is missing, please provide one "
-        logging.error(msg)
-        raise AppConfigException(msg)
-    graphical_summary.generate_graphical_summary(sdrf_file, output_file)
-
-
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
-cli.add_command(graphical_summary_from_sdrf)
 
 def main():
     cli()

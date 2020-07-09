@@ -6,20 +6,20 @@ with open("README.md", "r", encoding='UTF-8') as fh:
 
 setup(
   name="sdrf-pipelines",
-  version="0.0.6",
+  version="0.0.7",
   author="BigBio Team",
   author_email="ypriverol@gmail.com",
   description="Translate, convert SDRF to configuration pipelines",
   long_description_content_type="text/markdown",
   long_description=long_description,
   license="'Apache 2.0",
-  data_files = [("", ["LICENSE"])],
+  data_files=[("", ["LICENSE"])],
   package_data={
       'sdrf-pipelines': ['sdrf_pipelines/openms/*.xml'],
   },
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),
-  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest', 'pyecharts'],
+  install_requires=['click', 'pandas', 'pandas_schema', 'requests', 'pytest'],
   entry_points={
     'console_scripts': [
       'parse_sdrf = sdrf_pipelines.parse_sdrf:main'
@@ -32,6 +32,6 @@ setup(
       "Operating System :: OS Independent",
       'Topic :: Scientific/Engineering :: Bio-Informatics'
   ],
-  keywords ='sdrf python multiomics proteomics',
+  keywords='sdrf python multiomics proteomics',
   python_requires='>=3.6',
 )
