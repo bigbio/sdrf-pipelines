@@ -45,7 +45,7 @@ class UnimodDatabase:
   hidden = True
 
   def __init__(self, **kwargs):
-    self.unimodfile = str(pathlib.Path(__file__).parent) + "/unimod.xml"
+    self.unimodfile = pkg_resources.resource_filename(__name__, "unimod.xml")
     self.hidden = kwargs.get("hidden", True)
     node = et.parse(self.unimodfile)
     root = node.getroot()
