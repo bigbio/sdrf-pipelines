@@ -1,7 +1,7 @@
-import pathlib
 import re
 import xml.etree.ElementTree as et
 import pkg_resources
+
 
 class PTMSite(object):
 

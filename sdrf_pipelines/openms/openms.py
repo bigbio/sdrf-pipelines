@@ -12,7 +12,6 @@ class OpenMS:
     self.warnings = dict()
     self._unimod_database = UnimodDatabase()
 
-
   def openms_ify_mods(self, sdrf_mods):
     oms_mods = list()
 
@@ -233,10 +232,6 @@ class OpenMS:
       # print(combined_factors)
 
     ##################### only label-free supported right now
-
-
-
-
 
     # output of search settings
     f = open("openms.tsv", "w+")
