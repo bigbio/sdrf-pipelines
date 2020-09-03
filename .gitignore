@@ -5,3 +5,4 @@ build/
 *egg-info/
 /experimental_design.tsv
 /openms.tsv
+__pycache__

@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from sdrf_pipelines.openms.unimod import UnimodDatabase
 
 #example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
@@ -24,6 +25,8 @@ class OpenMS:
   def __init__(self) -> None:
     super().__init__()
     self.warnings = dict()
+    self._unimod_database = UnimodDatabase()
+
 
   # convert modifications in sdrf file to OpenMS notation
   def openms_ify_mods(self, sdrf_mods):
@@ -35,6 +38,11 @@ class OpenMS:
 
       name = re.search("NT=(.+?)(;|$)", m).group(1)
       name = name.capitalize()
+
+      accession = re.search("AC=(.+?)(;|$)", m).group(1)
+      ptm = self._unimod_database.get_by_accession(accession)
+      if ptm != None:
+        name = ptm.get_name()
 
       # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
       if re.search("PP=(.+?)[;$]", m) is None:
