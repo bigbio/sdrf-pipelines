@@ -25,11 +25,13 @@ def cli():
               help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
 @click.option('--onetable/--twotables', "-t1/-t2", default=False, help='Create one-table or two-tables format.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
+@click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
+
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool):
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool, conditionsfromcolumns: str):
   if sdrf is None:
     help()
-  OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose)
+  OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
 
 
 @click.command('validate-sdrf', short_help='Command to validate the sdrf file')
