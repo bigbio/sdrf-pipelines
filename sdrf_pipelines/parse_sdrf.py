@@ -11,7 +11,6 @@ from sdrf_pipelines.utils.exceptions import AppConfigException
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
@@ -27,11 +26,14 @@ def cli():
               help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
 @click.option('--onetable/--twotables', "-t1/-t2", default=False, help='Create one-table or two-tables format.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
+@click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
+
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool):
-    if sdrf is None:
-        help()
-    OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose)
+
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool, conditionsfromcolumns: str):
+  if sdrf is None:
+    help()
+  OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
 
 
 @click.command('convert-maxquant', short_help='convert sdrf to maxquant parameters file and generate an experimental design file')
