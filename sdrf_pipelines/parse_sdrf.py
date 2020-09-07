@@ -39,6 +39,7 @@ def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, ve
 @click.command('convert-maxquant', short_help='convert sdrf to maxquant parameters file and generate an experimental design file')
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--fastafilepath', '-f', help='protein database file path,please use /')
+@click.option('--mqconfpath', '-mcf', help='MaxQuant configure path')
 @click.option('--matchbetweenruns', '-m', help='via matching between runs to boosts number of identifications')
 @click.option('--peptidefdr', '-pef', help='posterior error probability calculation based on target-decoy search', default=0.01)
 @click.option('--proteinfdr', '-prf', help='protein score = product of peptide PEPs (one for each sequence)', default=0.01)
@@ -50,14 +51,15 @@ def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, ve
 @click.option('--output1', '-o1', help='parameters .xml file  output file path')
 @click.option('--output2', '-o2', help='maxquant experimental design .txt file')
 @click.pass_context
-def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, matchbetweenruns: bool, peptidefdr, proteinfdr,
-        tempfolder: str, raw_folder: str, numthreads: int, output1: str, output2: str):
+def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfpath: str, matchbetweenruns: bool, peptidefdr,
+                       proteinfdr,
+                       tempfolder: str, raw_folder: str, numthreads: int, output1: str, output2: str):
     if sdrf is None:
         help()
     print(raw_folder)
-    Maxquant().maxquant_convert(sdrf, fastafilepath, matchbetweenruns, peptidefdr, proteinfdr,
-        tempfolder, raw_folder, numthreads, output1)  # Generate maxquant paramaters .xml file
-    Maxquant().maxquant_experiamental_design(sdrf, output2)  # Generate maxquant experiment design .txt file
+    Maxquant().maxquant_convert(sdrf, fastafilepath, mqconfpath, matchbetweenruns, peptidefdr, proteinfdr,
+                                tempfolder, raw_folder, numthreads, output1)
+    Maxquant().maxquant_experiamental_design(sdrf, output2)
 
 
 @click.command('validate-sdrf', short_help='Command to validate the sdrf file')
