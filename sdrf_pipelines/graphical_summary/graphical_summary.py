@@ -1,330 +1,517 @@
 import pandas as pd
-from pyecharts.charts import Tree
-from pyecharts import options as opts
 
 
 def build_relate_data(sdrf_file):
-    data = []
-
+    test = []
     print('PROCESSING: ' + sdrf_file + '"')
     sdrf = pd.read_csv(sdrf_file, sep='\t')
     sdrf = sdrf.astype(str)
     sdrf.columns = map(str.lower, sdrf.columns)
-    global factor_cols
     factor_cols = [c for ind, c in enumerate(sdrf) if
                    c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
-    global tag
-    tag = len(factor_cols)
+
     if 'characteristics[biological replicate]' not in sdrf.columns:
         print("warning: no biological replicate,the default is 1")
+
     if 'comment[technical replicate]' not in sdrf.columns:
         print("warning: no technical replicate,the default is 1")
 
-    if not factor_cols:
-        print("warning: no factor value")
-        for index, row in sdrf.iterrows():
-            if 'characteristics[biological replicate]' in sdrf.columns:
-                if row['characteristics[biological replicate]'] == 'not available' \
-                        or row['characteristics[biological replicate]'] == 'not applicable':
-                    row['characteristics[biological replicate]'] = '1'
-                else:
-                    pass
-
-            if data == list():
-                if 'characteristics[biological replicate]' in sdrf.columns:
-                    data.append({'name': row['characteristics[biological replicate]']})
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[0]["children"] = [{'name': row["comment[technical replicate]"]}]
+    if factor_cols:
+        parent = index1 = 0
+        f1 = list(set(sdrf[factor_cols[0]]))
+        for k, v in zip(['name'] * len(f1), f1):
+            test.append({k: v})
+            s = sdrf[sdrf[factor_cols[0]] == v]
+            if len(factor_cols) != 1:
+                f2 = list(set(s[factor_cols[1]]))
+                for i in f2:
+                    if 'children' in test[-1]:
+                        test[-1]['children'].append({'name': i})
                     else:
-                        data[0]['children'] = [{'name': '1'}]
-                else:
-                    data = [{'name': '1'}]
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[0]['children'] = [{'name': row["comment[technical replicate]"]}]
-                    else:
-                        data[0]["children"] = [{'name': '1'}]
-
-                data[0]['children'][0]['children'] = [{'name': row["comment[fraction identifier]"]}]
-            elif 'characteristics[biological replicate]' in sdrf.columns:
-                if row['characteristics[biological replicate]'] in [i["name"] for i in data]:
-                    index1 = [i['name'] for i in data].index(row['characteristics[biological replicate]'])
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        if row['comment[technical replicate]'] in [i['name'] for i in data[index1]['children']]:
-                            index2 = [i['name'] for i in data[index1]['children']].index(
-                                row['comment[technical replicate]'])
-                            data[index1]['children'][index2]["children"].append(
-                                {'name': row['comment[fraction identifier]']})
-                        else:
-                            data[index1]['children'].append({'name': row['comment[technical replicate]']})
-                            data[index1]['children'][-1]['children'] = [{'name': row['comment[fraction identifier]']}]
-                    else:
-                        data[index1]['children'][0]['children'].append({'name': row['comment[fraction identifier]']})
-                else:
-                    data.append({'name': row['characteristics[biological replicate]']})
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[-1]['children'] = [{'name': row['comment[technical replicate]']}]
-                    else:
-                        data[-1]['children'] = [{'name': '1'}]
-                    data[-1]['children'][0]['children'] = [{'name': row['comment[fraction identifier]']}]
-            else:
-                if 'comment[technical replicate]' in sdrf.columns:
-                    if row['comment[technical replicate]'] in [i['name'] for i in data[0]['children']]:
-                        index2 = [i['name'] for i in data[0]['children']].index(row['comment[technical replicate]'])
-                        data[0]['children'][index2]['children'].append(
-                            {'name': row['comment[fraction identifier]']})
-                    else:
-                        data[0]['children'].append({'name': row['comment[technical replicate]']})
-                        data[0]['children'][-1]['children'] = [{'name': row['comment[fraction identifier]']}]
-                else:
-                    data[0]['children'][0]['children'].append(
-                        {'name': row['comment[fraction identifier]']})
-
-        return data
-
-    for index, row in sdrf.iterrows():
-        if 'characteristics[biological replicate]' in sdrf.columns:
-            if row['characteristics[biological replicate]'] == 'not available' \
-                    or row['characteristics[biological replicate]'] == 'not applicable':
-                row['characteristics[biological replicate]'] = '1'
-
-        j = 1
-        if tag == 1:
-            if data == list():
-                data.append({'name': row[factor_cols[0]]})
-                if 'characteristics[biological replicate]' in sdrf.columns:
-                    data[0]['children'] = [{'name': row['characteristics[biological replicate]']}]
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[0]['children'][0]['children'] = [{'name': row[
-                            "comment[technical replicate]"]}]
-                    else:
-                        data[0]['children'][0]['children'] = [{'name': '1'}]
-                else:
-                    data[0]['children'] = [{'name': '1'}]
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[0]['children'][0]['children'] = [{'name': row[
-                            "comment[technical replicate]"]}]
-                    else:
-                        data[0]['children'][0]['children'] = [{'name': '1'}]
-
-                data[0]['children'][0]['children'][0]['children'] = [{'name': row["comment[fraction identifier]"]}]
-
-            elif row[factor_cols[0]] in [i["name"] for i in data]:
-                index = [i['name'] for i in data].index(row[factor_cols[0]])
-                if 'characteristics[biological replicate]' in sdrf.columns:
-                    if row['characteristics[biological replicate]'] in [i['name'] for i in
-                                                                        data[index]['children']]:
-                        index2 = [i['name'] for i in data[index]['children']].index(
-                            row['characteristics[biological replicate]'])
-                        if 'comment[technical replicate]' in sdrf.columns:
-                            if row['comment[technical replicate]'] in [i['name'] for i in
-                                                                       data[index]['children'][index2]['children']]:
-                                index3 = [i['name'] for i in
-                                          data[index]['children'][index2]['children']].index(
-                                    row['comment[technical replicate]'])
-                                data[index]['children'][index2]['children'][index3]['children'].append(
-                                    {'name': row['comment[fraction identifier]']})
-                            else:
-                                data[index]['children'][index2]['children'] = [{'name': 1}]
-                                data[index]['children'][index2]['children'][0]['children'] = \
-                                    [{'name': row['comment[fraction identifier]']}]
-                        else:
-
-                            data[index]['children'][index2]['children'][0]['children'].append(
-                                {'name': row['comment[fraction identifier]']})
-                    else:
-                        data[index]['children'].append(
-                            {'name': row['characteristics[biological replicate]']})
-                        if 'comment[technical replicate]' in sdrf.columns:
-                            data[index]['children'][-1]['children'] = [
-                                {'name': row['comment[technical replicate]']}]
-                        else:
-                            data[index]['children'][-1]['children'] = [{'name': '1'}]
-
-                        data[index]['children'][-1]['children'][0]['children'] = [
-                            {'name': row['comment[fraction identifier]']}]
-
-                else:
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        if row['comment[technical replicate]'] in [i['name'] for i in
-                                                                   data[index]['children'][0][
-                                                                       'children']]:
-                            index3 = [i['name'] for i in data[index]['children'][0]['children']].index(
-                                row['comment[technical replicate]'])
-                            data[index]['children'][0]['children'][index3]['children'].append(
-                                {'name': row['comment[fraction identifier]']})
-                        else:
-                            data[index]['children'][0]['children'].append(
-                                {'name': row['comment[technical replicate]']})
-                            data[index]['children'][0]['children'][-1]['children'] = [
-                                {'name': row['comment[fraction identifier]']}]
-
-                    else:
-                        if row['comment[fraction identifier]'] in [i['name'] for i in
-                                                                   data[index]['children'][0]['children'][0][
-                                                                       'children']]:
-                            pass
-                        else:
-                            data[index]['children'][0]['children'][0]['children'].append(
-                                {'name': row['comment[fraction identifier]']})
-            else:
-                data.append({'name': row[factor_cols[0]]})
-                if 'characteristics[biological replicate]' in sdrf.columns:
-                    data[-1]['children'] = [{'name': row['characteristics[biological replicate]']}]
-                else:
-                    data[-1]['children'] = [{'name': '1'}]
-
-                if 'comment[technical replicate]' in sdrf.columns:
-                    data[-1]['children'][0]['children'] = [{'name': row['comment[technical replicate]']}]
-                else:
-                    data[-1]['children'][0]['children'] = [{'name': '1'}]
-
-                data[-1]['children'][0]['children'][0]['children'] = [
-                    {'name': row['comment[fraction identifier]']}]
-
-        else:
-            while j < tag:
-                if data == list():
-                    data.append({'name': row[factor_cols[0]]})
-                    data[0]['children'] = [{'name': row[factor_cols[j]]}]
-                    if 'characteristics[biological replicate]' in sdrf.columns:
-                        data[0]['children'][0]['children'] = [{'name': row['characteristics[biological replicate]']}]
-                        if 'comment[technical replicate]' in sdrf.columns:
-                            data[0]['children'][0]['children'][0]['children'] = [{'name': row[
-                                "comment[technical replicate]"]}]
-                        else:
-                            data[0]['children'][0]['children'][0]['children'] = [{'name': '1'}]
-
-                    else:
-                        data[0]['children'][0]['children'] = [{'name': '1'}]
-                        if 'comment[technical replicate]' in sdrf.columns:
-                            data[0]['children'][0]['children'][0]['children'] = [{'name': row[
-                                "comment[technical replicate]"]}]
-                        else:
-                            data[0]['children'][0]['children'][0]['children'] = [{'name': '1'}]
-
-                    data[0]['children'][0]['children'][0]['children'][0]['children'] = [
-                        {'name': row["comment[fraction identifier]"]}]
-
-                elif row[factor_cols[j - 1]] in [i["name"] for i in data]:
-                    index = [i['name'] for i in data].index(row[factor_cols[j - 1]])
-                    if row[factor_cols[j]] in [i['name'] for i in data[index]['children']]:
-                        index_1 = [i['name'] for i in data[index]['children']].index(row[factor_cols[j]])
-                        if 'characteristics[biological replicate]' in sdrf.columns:
-                            if row['characteristics[biological replicate]'] in [i['name'] for i in
-                                                                                data[index]['children'][index_1][
-                                                                                    'children']]:
-                                index2 = [i['name'] for i in data[index]['children'][index_1]['children']].index(
-                                    row['characteristics[biological replicate]'])
-                                if 'comment[technical replicate]' in sdrf.columns:
-                                    if row['comment[technical replicate]'] in [i['name'] for i in
-                                                                               data[index]['children'][index_1][
-                                                                                   'children'][
-                                                                                   index2]['children']]:
-                                        index3 = [i['name'] for i in
-                                                  data[index]['children'][index_1]['children'][index2][
-                                                      'children']].index(
-                                            row['comment[technical replicate]'])
-                                        data[index]['children'][index_1]['children'][index2]['children'][index3][
-                                            'children'].append(
-                                            {'name': row['comment[fraction identifier]']})
+                        test[-1]['children'] = [{'name': i}]
+                    s1 = s[s[factor_cols[1]] == i]
+                    if len(factor_cols) == 2:
+                        if 'characteristics[biological replicate]' not in sdrf.columns:
+                            test[-1]['children'][-1]['children'] = [{'name': '1'}]
+                            if 'comment[technical replicate]' not in sdrf.columns:
+                                test[-1]['children'][-1]['children'][-1]['children'] = [{'name': '1'}]
+                                frs = sorted(list(set(s1["comment[fraction identifier]"])))
+                                for fr in frs:
+                                    m = test[-1]['children'][-1]['children'][-1]['children'][-1]
+                                    if 'children' in m:
+                                        test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] \
+                                            .append({'name': fr})
                                     else:
-                                        data[index]['children'][index_1]['children'][0]['children'].append(
-                                            {'name': row['comment[technical replicate]']})
-                                        data[index]['children'][index_1]['children'][0]['children'][-1][
-                                            'children'] = [{'name': row['comment[fraction identifier]']}]
-                                else:
-                                    data[index]['children'][index_1]['children'][
-                                        0]['children'] = [{'name': 1}]
-                                    data[index]['children'][index_1]['children'][0]['children'][0][
-                                        'children'].append(
-                                        {'name': row['comment[fraction identifier]']})
-
+                                        test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] \
+                                            = [{'name': fr}]
                             else:
-                                data[index]['children'][index_1]['children'].append(
-                                    {'name': row['characteristics[biological replicate]']})
-                                data[index]['children'][index_1]['children'][-1]['children'] = [
-                                    {'name': row['comment[technical replicate]']}]
-                                data[index]['children'][index_1]['children'][-1]['children'][0]['children'] = [
-                                    {'name': row['comment[fraction identifier]']}]
+                                trs = sorted(list(set(s1["comment[technical replicate]"])))
+                                for tr in trs:
+                                    if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                        test[-1]['children'][-1]['children'][-1]['children'].append(
+                                            {'name': tr})
+                                    else:
+                                        test[-1]['children'][-1]['children'][-1]['children'] = [
+                                            {'name': tr}]
+                                    s2 = s1[s1["comment[technical replicate]"] == tr]
+                                    frs = sorted(list(set(s2["comment[fraction identifier]"])))
+                                    for fr in frs:
+                                        m = test[-1]['children'][-1]['children'][-1]['children'][-1]
+                                        if 'children' in m:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                'children'].append(
+                                                {'name': fr})
+                                        else:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                'children'] = [{'name': fr}]
                         else:
-                            if 'comment[technical replicate]' in sdrf.columns:
-                                if row['comment[technical replicate]'] in [i['name'] for i in
-                                                                           data[index]['children'][index_1]['children'][
-                                                                               0][
-                                                                               'children']]:
-                                    index3 = [i['name'] for i in
-                                              data[index]['children'][index_1]['children'][0]['children']].index(
-                                        row['comment[technical replicate]'])
-                                    data[index]['children'][index_1]['children'][0]['children'][index3][
-                                        'children'].append(
-                                        {'name': row['comment[fraction identifier]']})
+                            brs = sorted(list(set(s1['characteristics[biological replicate]'])))
+                            for br in brs:
+                                if 'children' in test[-1]['children'][-1]:
+                                    test[-1]['children'][-1]['children'].append({'name': br})
                                 else:
-                                    data[index]['children'][index_1]['children'][0]['children'].append(
-                                        {'name': row['comment[technical replicate]']})
-                                    data[index]['children'][index_1]['children'][0]['children'][-1]['children'] = [
-                                        {'name': row['comment[fraction identifier]']}]
+                                    test[-1]['children'][-1]['children'] = [{'name': br}]
+                                if 'comment[technical replicate]' not in sdrf.columns:
+                                    test[-1]['children'][-1]['children'][-1]['children'] = [{'name': '1'}]
+                                    s2 = s1[s1['characteristics[biological replicate]'] == br]
+                                    frs = sorted(list(set(s2["comment[fraction identifier]"])))
+                                    for fr in frs:
+                                        m = test[-1]['children'][-1]['children'][-1]['children'][-1]
+                                        if 'children' in m:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                'children'].append(
+                                                {'name': fr})
+                                        else:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                'children'] = [{'name': fr}]
+                                else:
+                                    s2 = s1[s1['characteristics[biological replicate]'] == br]
+                                    trs = sorted(list(set(s2["comment[technical replicate]"])))
+                                    for tr in trs:
+                                        if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                            test[-1]['children'][-1]['children'][-1]['children'] \
+                                                .append({'name': tr})
+                                        else:
+                                            test[-1]['children'][-1]['children'][-1]['children'] = [
+                                                {'name': tr}]
+                                        s3 = s2[s2["comment[technical replicate]"] == tr]
+                                        frs = sorted(list(set(s3["comment[fraction identifier]"])))
+                                        for fr in frs:
+                                            m = test[-1]['children'][-1]['children'][-1]['children'][-1]
+                                            if 'children' in m:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                    'children'] \
+                                                    .append({'name': fr})
+                                            else:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                    'children'] = [
+                                                    {'name': fr}]
 
+                    else:
+                        f3 = list(set(s1[factor_cols[2]]))
+                        for j in f3:
+                            if 'children' in test[-1]['children'][-1]:
+                                test[-1]['children'][-1]['children'].append({'name': j})
                             else:
-                                if row['comment[fraction identifier]'] in [
-                                    i['name'] for i in
-                                    data[index]['children'][index_1]['children'][0]['children'][0]['children']
-                                ]:
-                                    pass
+                                test[-1]['children'][-1]['children'] = [{'name': j}]
+                            s2 = s1[s1[factor_cols[2]] == j]
+                            if len(factor_cols) == 3:
+                                if 'characteristics[biological replicate]' not in sdrf.columns:
+                                    test[-1]['children'][-1]['children'][-1]['children'] = [{'name': '1'}]
+                                    if 'comment[technical replicate]' not in sdrf.columns:
+                                        test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] = [
+                                            {'name': '1'}]
+                                        frs = sorted(list(set(s2["comment[fraction identifier]"])))
+                                        for fr in frs:
+                                            m = test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][-1]
+                                            if 'children' in m:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][
+                                                    -1]['children'].append({'name': fr})
+                                            else:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][
+                                                    -1]['children'] = [{'name': fr}]
+                                    else:
+                                        trs = sorted(list(set(s2["comment[technical replicate]"])))
+                                        for tr in trs:
+                                            if 'children' in test[-1]['children'][-1]['children'][-1]['children'][-1]:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                    'children'].append({'name': tr})
+                                            else:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] = [
+                                                    {'name': tr}]
+                                            s3 = s2[s2["comment[technical replicate]"] == tr]
+                                            frs = sorted(list(set(s3["comment[fraction identifier]"])))
+                                            for fr in frs:
+                                                if test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][
+                                                    -1]:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'].append(
+                                                        {'name': fr})
+                                                else:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'] = [{'name': fr}]
                                 else:
-                                    data[index]['children'][index_1]['children'][0]['children'][0]['children'].append(
-                                        {'name': row['comment[fraction identifier]']})
-
+                                    brs = sorted(list(set(s2['characteristics[biological replicate]'])))
+                                    for br in brs:
+                                        if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                            test[-1]['children'][-1]['children'][-1]['children'].append({'name': br})
+                                        else:
+                                            test[-1]['children'][-1]['children'][-1]['children'] = [{'name': br}]
+                                        if 'comment[technical replicate]' not in sdrf.columns:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] \
+                                                = [{'name': '1'}]
+                                            s3 = s2[s2['characteristics[biological replicate]'] == br]
+                                            frs = sorted(list(set(s3["comment[fraction identifier]"])))
+                                            for fr in frs:
+                                                m = \
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]
+                                                if 'children' in m:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'].append(
+                                                        {'name': fr})
+                                                else:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'] \
+                                                        = [{'name': fr}]
+                                        else:
+                                            s3 = s2[s2['characteristics[biological replicate]'] == br]
+                                            trs = sorted(list(set(s3["comment[technical replicate]"])))
+                                            for tr in trs:
+                                                m = test[-1]['children'][-1]['children'][-1]['children'][-1]
+                                                if 'children' in m:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] \
+                                                        .append({'name': tr})
+                                                else:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'] = [{'name': tr}]
+                                                s4 = s3[s3["comment[technical replicate]"] == tr]
+                                                frs = sorted(list(set(s4["comment[fraction identifier]"])))
+                                                for fr in frs:
+                                                    m = test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]
+                                                    if 'children' in m:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'] \
+                                                            .append({'name': fr})
+                                                    else:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'] = [
+                                                            {'name': fr}]
+                            else:
+                                f4 = list(set(s2[factor_cols[3]]))
+                                for e in f4:
+                                    if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                        test[-1]['children'][-1]['children'][-1]['children'].append({'name': j})
+                                    else:
+                                        test[-1]['children'][-1]['children'][-1]['children'] = [{'name': j}]
+                                    s3 = s2[s2[factor_cols[3]] == e]
+                                    if 'characteristics[biological replicate]' not in sdrf.columns:
+                                        test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] = [
+                                            {'name': '1'}]
+                                        if 'comment[technical replicate]' not in sdrf.columns:
+                                            test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][-1][
+                                                'children'] \
+                                                = [{'name': '1'}]
+                                            frs = sorted(list(set(s3["comment[fraction identifier]"])))
+                                            for fr in frs:
+                                                m = \
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][
+                                                        -1]['children'][-1]
+                                                if 'children' in m:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'][-1]['children']. \
+                                                        append({'name': fr})
+                                                else:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'][-1]['children'] = [{'name': fr}]
+                                        else:
+                                            trs = sorted(list(set(s3["comment[technical replicate]"])))
+                                            for tr in trs:
+                                                m = \
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]
+                                                if 'children' in m:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'].append({'name': tr})
+                                                else:
+                                                    test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'] = [{'name': tr}]
+                                                s4 = s3[s3["comment[technical replicate]"] == tr]
+                                                frs = sorted(list(set(s4["comment[fraction identifier]"])))
+                                                for fr in frs:
+                                                    m = test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'][-1]
+                                                    if 'children' in m:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'][-1]['children']. \
+                                                            append({'name': fr})
+                                                    else:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'][-1]['children'] = [{'name': fr}]
+                                    else:
+                                        brs = sorted(list(set(s3['characteristics[biological replicate]'])))
+                                        for br in brs:
+                                            if 'children' in test[-1]['children'][-1]['children'][-1]['children'][-1]:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                    'children'].append({'name': br})
+                                            else:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1]['children'] = [
+                                                    {'name': br}]
+                                            if 'comment[technical replicate]' not in sdrf.columns:
+                                                test[-1]['children'][-1]['children'][-1]['children'][-1]['children'][
+                                                    -1]['children'] = [{'name': '1'}]
+                                                s4 = s3[s3['characteristics[biological replicate]'] == br]
+                                                frs = sorted(list(set(s4["comment[fraction identifier]"])))
+                                                for fr in frs:
+                                                    m = test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][-1]['children'][-1]
+                                                    if 'children' in m:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'][-1]['children']. \
+                                                            append({'name': fr})
+                                                    else:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'][-1]['children'] = [{'name': fr}]
+                                            else:
+                                                s4 = s3[s3['characteristics[biological replicate]'] == br]
+                                                trs = sorted(list(set(s4["comment[technical replicate]"])))
+                                                for tr in trs:
+                                                    m = test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                        'children'][
+                                                        -1]
+                                                    if 'children' in m:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'].append({'name': tr})
+                                                    else:
+                                                        test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'] = [{'name': tr}]
+                                                    s5 = s4[s4["comment[technical replicate]"] == tr]
+                                                    frs = sorted(list(set(s5["comment[fraction identifier]"])))
+                                                    for fr in frs:
+                                                        m = test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                            'children'][-1]['children'][-1]
+                                                        if 'children' in m:
+                                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                                'children'][-1]['children'][-1]['children']. \
+                                                                append({'name': fr})
+                                                        else:
+                                                            test[-1]['children'][-1]['children'][-1]['children'][-1][
+                                                                'children'][-1]['children'][-1]['children'] = [
+                                                                {'name': fr}]
+            else:
+                if 'characteristics[biological replicate]' not in sdrf.columns:
+                    test[-1]['children'] = [{'name': '1'}]
+                    if 'comment[technical replicate]' not in sdrf.columns:
+                        test[-1]['children'][-1]['children'] = [{'name': '1'}]
+                        frs = sorted(list(set(s["comment[fraction identifier]"])))
+                        for fr in frs:
+                            if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                test[-1]['children'][-1]['children'][-1]['children'].append({'name': fr})
+                            else:
+                                test[-1]['children'][-1]['children'][-1]['children'] = [{'name': fr}]
                     else:
-                        data[index]['children'].append({'name': row[factor_cols[j]]})
-                        data[index]['children'][-1]['children'] = [{'name': '1'}]
-                        data[index]['children'][-1]['children'][0]['children'] = [{'name': '1'}]
-                        data[index]['children'][-1]['children'][0]['children'][0]['children'] = [{'name': '1'}]
-
+                        trs = sorted(list(set(s["comment[technical replicate]"])))
+                        for tr in trs:
+                            if 'children' in test[-1]['children'][-1]:
+                                test[-1]['children'][-1]['children'].append({'name': tr})
+                            else:
+                                test[-1]['children'][-1]['children'] = [{'name': tr}]
+                            s1 = s[s["comment[technical replicate]"] == tr]
+                            frs = sorted(list(set(s1["comment[fraction identifier]"])))
+                            for fr in frs:
+                                if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                    test[-1]['children'][-1]['children'][-1]['children'].append({'name': fr})
+                                else:
+                                    test[-1]['children'][-1]['children'][-1]['children'] = [{'name': fr}]
                 else:
-                    data.append({'name': row[factor_cols[j - 1]]})
-                    data[-1]['children'] = [{'name': row[factor_cols[j]]}]
-                    if 'characteristics[biological replicate]' in sdrf.columns:
-                        data[-1]['children'][0]['children'] = [{'name': row['characteristics[biological replicate]']}]
+                    brs = sorted(list(set(s['characteristics[biological replicate]'])))
+                    for br in brs:
+                        if 'children' in test[-1]:
+                            test[-1]['children'].append({'name': br})
+                        else:
+                            test[-1]['children'] = [{'name': br}]
+                        if 'comment[technical replicate]' not in sdrf.columns:
+                            test[-1]['children'][-1]['children'] = [{'name': '1'}]
+                            s1 = s[s['characteristics[biological replicate]'] == br]
+                            frs = sorted(list(set(s1["comment[fraction identifier]"])))
+                            for fr in frs:
+                                if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                    test[-1]['children'][-1]['children'][-1]['children'].append({'name': fr})
+                                else:
+                                    test[-1]['children'][-1]['children'][-1]['children'] = [{'name': fr}]
+                        else:
+                            s1 = s[s['characteristics[biological replicate]'] == br]
+                            trs = sorted(list(set(s1["comment[technical replicate]"])))
+                            for tr in trs:
+                                if 'children' in test[-1]['children'][-1]:
+                                    test[-1]['children'][-1]['children'].append({'name': tr})
+                                else:
+                                    test[-1]['children'][-1]['children'] = [{'name': tr}]
+                                s2 = s1[s1["comment[technical replicate]"] == tr]
+                                frs = sorted(list(set(s2["comment[fraction identifier]"])))
+                                for fr in frs:
+                                    if 'children' in test[-1]['children'][-1]['children'][-1]:
+                                        test[-1]['children'][-1]['children'][-1]['children'].append({'name': fr})
+                                    else:
+                                        test[-1]['children'][-1]['children'][-1]['children'] = [{'name': fr}]
+    else:
+        if 'characteristics[biological replicate]' not in sdrf.columns:
+            test = [{'name': '1'}]
+            if 'comment[technical replicate]' not in sdrf.columns:
+                test[-1]['children'] = [{'name': '1'}]
+                frs = sorted(list(set(sdrf["comment[fraction identifier]"])))
+                for fr in frs:
+                    if 'children' in test[-1]['children'][-1]:
+                        test[-1]['children'][-1]['children'].append({'name': fr})
                     else:
-                        data[-1]['children'][0]['children'] = [{'name': '1'}]
-                    if 'comment[technical replicate]' in sdrf.columns:
-                        data[-1]['children'][0]['children'][0]['children'] = [
-                            {'name': row['comment[technical replicate]']}]
+                        test[-1]['children'][-1]['children'] = [{'name': fr}]
+            else:
+                trs = sorted(list(set(sdrf["comment[technical replicate]"])))
+                for tr in trs:
+                    if 'children' in test[-1]:
+                        test[-1]['children'].append({'name': tr})
                     else:
-                        data[-1]['children'][0]['children'][0]['children'] = [{'name': '1'}]
-                    data[-1]['children'][0]['children'][0]['children'][0]['children'] = [
-                        {'name': row['comment[fraction identifier]']}]
+                        test[-1]['children'] = [{'name': tr}]
+                    s = sdrf[sdrf["comment[technical replicate]"] == tr]
+                    frs = sorted(list(set(s["comment[fraction identifier]"])))
+                    for fr in frs:
+                        if 'children' in test[-1]['children'][-1]:
+                            test[-1]['children'][-1]['children'].append({'name': fr})
+                        else:
+                            test[-1]['children'][-1]['children'] = [{'name': fr}]
+        else:
+            brs = sorted(list(set(sdrf['characteristics[biological replicate]'])))
+            for br in brs:
+                test.append({'name': br})
+                s = sdrf[sdrf['characteristics[biological replicate]'] == br]
+                if 'comment[technical replicate]' not in sdrf.columns:
+                    test[-1]['children'] = [{'name': '1'}]
+                    frs = sorted(list(set(s["comment[fraction identifier]"])))
+                    for fr in frs:
+                        if 'children' in test[-1]['children'][-1]:
+                            test[-1]['children'][-1]['children'].append({'name': fr})
+                        else:
+                            test[-1]['children'][-1]['children'] = [{'name': fr}]
+                else:
+                    trs = sorted(list(set(s["comment[technical replicate]"])))
+                    for tr in trs:
+                        if 'children' in test[-1]:
+                            test[-1]['children'].append({'name': tr})
+                        else:
+                            test[-1]['children'] = [{'name': tr}]
+                        s1 = s[s["comment[technical replicate]"] == tr]
+                        frs = sorted(list(set(s1["comment[fraction identifier]"])))
+                        for fr in frs:
+                            if 'children' in test[-1]['children'][-1]:
+                                test[-1]['children'][-1]['children'].append({'name': fr})
+                            else:
+                                test[-1]['children'][-1]['children'] = [{'name': fr}]
 
-                j += 1
-
-    return data
+    return test
 
 
 def generate_graphical_summary(sdrf_file, output_file):
-    page_title = 'SDRF Graphical summary'
-    title = 'SDRF Graphical summary'
+    sdrf = pd.read_csv(sdrf_file, sep='\t')
+    sdrf = sdrf.astype(str)
+    sdrf.columns = map(str.lower, sdrf.columns)
+    factor_cols = [c for ind, c in enumerate(sdrf) if
+                   c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
     data = build_relate_data(sdrf_file)
-    if tag == 0:
-        subtitle = 'First Level: biological replicate \n\n' + 'Second Level: technical replicate \n\n' + \
-                   'Last Level: Fraction'
-    elif tag == 1:
-        subtitle = 'First Level:' + factor_cols[0] + '\n\n' + \
-                   'Second Level: biological replicate \n\n' + 'Third Level: technical replicate \n\n' + \
-                   'Last level: Fraction'
+    if len(factor_cols) == 0:
+        subtitle = "First Level: biological replicate \\n\\n" + "Second Level: technical replicate \\n\\n" + \
+                   "Last Level: Fraction"
+    elif len(factor_cols) == 1:
+        subtitle = "First Level:" + factor_cols[0] + "\\n\\n" + \
+                   "Second Level: biological replicate \\n\\n" + "Third Level: technical replicate \\n\\n" + \
+                   "Last level: Fraction"
 
+    elif len(factor_cols) == 2:
+        subtitle = "First Level: " + factor_cols[0] + "\\n\\n" + \
+                   "Second Level: " + factor_cols[1] + "\\n\\n" + \
+                   "Third Level: biological replicate \\n\\n" + "Fourth Level: technical replicate \\n\\n" + \
+                   "Last level: Fraction"
+    elif len(factor_cols) == 3:
+        subtitle = "First Level: " + factor_cols[0] + "\\n\\n" + \
+                   "Second Level: " + factor_cols[1] + "\\n\\n" + \
+                   "Third Level: " + factor_cols[2] + "\\n\\n" + \
+                   "Fourth Level: biological replicate \\n\\n" + "Fifth Level: technical replicate \\n\\n" + \
+                   "Last level: Fraction"
     else:
-        subtitle = 'First Level: ' + factor_cols[0] + '\n\n' + \
-                   'Second Level: ' + factor_cols[1] + '\n\n' + \
-                   'Third Level: biological replicate \n\n' + 'Fouth Level: technical replicate \n\n' + \
-                   'Last level: Fraction'
+        subtitle = "First Level: " + factor_cols[0] + "\\n\\n" + \
+                   "Second Level: " + factor_cols[1] + "\\n\\n" + \
+                   "Third Level: " + factor_cols[2] + "\\n\\n" + \
+                   "Fourth Level: " + factor_cols[3] + "\\n\\n" + \
+                   "Fifth Level: biological replicate \\n\\n" + "Sixth Level: technical replicate \\n\\n" + \
+                   "Last level: Fraction"
 
-    data = [{'children': data, 'name': 'SDRF'}]  # temp name
-    t = Tree(opts.InitOpts(page_title=page_title, width="100%", height="600px", ))
-    t.set_global_opts(title_opts=opts.TitleOpts(title=title,
-                                                subtitle=subtitle, item_gap=50,
-                                                subtitle_textstyle_opts={'color': '#175', 'font_style': 'oblique'})
-                      )
+    data = [{'children': data, 'name': 'SDRF'}]
 
-    t.add("", data, symbol='arrow', orient='TB', initial_tree_depth=1)
-    t.render(output_file)
+    message = """<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>SDRF Graphical summary</title>
+            <script type="text/javascript" src="https://assets.pyecharts.org/assets/echarts.min.js"></script>
+    
+    </head>
+    <body>
+    <div id="4c19e92110404b2aaf9e62a096e146d0" class="chart-container" style="width:100%s; height:600px;"></div>
+    <script>
+        var chart_4c19e92110404b2aaf9e62a096e146d0 = echarts.init(
+            document.getElementById('4c19e92110404b2aaf9e62a096e146d0'), 'white', {renderer: 'canvas'});
+        var option_4c19e92110404b2aaf9e62a096e146d0 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "color": [
+        "#c23531",
+        "#2f4554",
+        "#61a0a8",
+        "#d48265",
+        "#749f83",
+        "#ca8622",
+        "#bda29a",
+        "#6e7074",
+        "#546570",
+        "#c4ccd3",
+        "#f05b72",
+        "#ef5b9c",
+        "#f47920",
+        "#905a3d",
+        "#fab27b",
+        "#2a5caa",
+        "#444693",
+        "#726930",
+        "#b2d235",
+        "#6d8346",
+        "#ac6767",
+        "#1d953f",
+        "#6950a1",
+        "#918597"
+    ],
+    "series": [
+        {
+            "type": "tree",
+            "data": """ + str(data) + """, "symbol": "arrow", "symbolSize": 7, "roam": false, "expandAndCollapse": 
+            true, "initialTreeDepth": 1, "layout": "orthogonal", "orient": "TB", "label": { "show": true, "position": 
+            "top", "margin": 8 }, "leaves": { "label": { "show": true, "position": "top", "margin": 8 } } } ], 
+            "legend": [ { "data": [], "selected": {}, "show": true, "padding": 5, "itemGap": 10, "itemWidth": 25, 
+            "itemHeight": 14 } ], "tooltip": { "show": true, "trigger": "item", "triggerOn": "mousemove|click", 
+            "axisPointer": { "type": "line" }, "textStyle": { "fontSize": 14 }, "borderWidth": 0 }, "title": [ { 
+            "text": "SDRF Graphical summary", 
+            "subtext": \"""" + str(subtitle) + """\", 
+            "padding": 5, "itemGap": 50, "subtextStyle": { "color": "#175", "font_style": "oblique" } } ] }; 
+            chart_4c19e92110404b2aaf9e62a096e146d0.setOption(option_4c19e92110404b2aaf9e62a096e146d0); </script> 
+            </body> </html> """
+
+    f = open(output_file, 'w')
+    f.write(message)
+    f.close()
     print("Successfully generated")
