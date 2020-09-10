@@ -3,4 +3,3 @@ click
 pandas_schema
 pytest
 requests
-pyecharts
