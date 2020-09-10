@@ -4,6 +4,8 @@ Created on Sun Apr 19 09:46:14 2020
 
 @author: ChengXin
 """
+import os
+
 import pandas as pd
 import re
 from xml.dom.minidom import *
@@ -742,7 +744,7 @@ class Maxquant:
     experiments = doc.createElement('experiments')
     for key, value in file2source.items():
       string = doc.createElement('string')
-      string.appendChild(doc.createTextNode(raw_Folder + '\\' + key))
+      string.appendChild(doc.createTextNode(raw_Folder + os.sep + key))
       filePaths.appendChild(string)
       string = doc.createElement('string')
       string.appendChild(doc.createTextNode(value + '_Tr_' + file2technical_rep[key]))
