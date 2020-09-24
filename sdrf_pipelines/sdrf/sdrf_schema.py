@@ -26,6 +26,7 @@ ALL_TEMPLATES = [DEFAULT_TEMPLATE, HUMAN_TEMPLATE, VERTEBRATES_TEMPLATE, NON_VER
 
 TERM_NAME = 'NT'
 NOT_AVAILABLE = 'not available'
+NOT_APPLICABLE = 'not applicable'
 
 
 def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
@@ -72,10 +73,11 @@ class OntologyTerm(_SeriesValidation):
     Checks that there is no leading whitespace in this column
     """
 
-    def __init__(self, ontology_name: str = None, not_available: bool = False, **kwargs):
+    def __init__(self, ontology_name: str = None, not_available: bool = False, not_applicable: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._ontology_name = ontology_name
         self._not_available = not_available
+        self._not_applicable = not_applicable
 
     @property
     def default_message(self):
@@ -121,8 +123,10 @@ class OntologyTerm(_SeriesValidation):
                 query_labels = [o['label'].lower() for o in ontology_terms]
                 for label in query_labels:
                     labels.append(label)
-        if(self._not_available):
+        if self._not_available:
             labels.append(NOT_AVAILABLE)
+        if self._not_applicable:
+            labels.append(NOT_APPLICABLE)
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
 
@@ -233,7 +237,7 @@ default_schema = SDRFSchema([
              allow_empty=True,
              optional_type=False),
     SDRFColumn('characteristics[organism]',
-             [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ncbitaxon")],
+             [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ncbitaxon", not_applicable=True)],
              allow_empty=False,
              optional_type=False),
     SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
@@ -333,7 +337,7 @@ mass_spectrometry_schema = SDRFSchema([
              allow_empty=True,
              optional_type=True),
     SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                                                 OntologyTerm("ms")],
+                                                 OntologyTerm("ms", not_applicable=True)],
              allow_empty=True,
              optional_type=False),
     SDRFColumn('comment[fragment mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
