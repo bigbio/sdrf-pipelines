@@ -61,7 +61,7 @@ def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfdir: str, match
                        tempfolder: str, raw_folder: str, numthreads: int, output1: str, output2: str):
     if sdrf is None:
         help()
-    print(raw_folder)
+
     Maxquant().maxquant_convert(sdrf, fastafilepath, mqconfdir, matchbetweenruns, peptidefdr, proteinfdr,
                                 tempfolder, raw_folder, numthreads, output1)
     Maxquant().maxquant_experiamental_design(sdrf, output2)
