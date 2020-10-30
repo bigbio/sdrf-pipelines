@@ -63,12 +63,24 @@ For details, please see the MSstats documentation
 ## Convert to MaxQuant: Usage
 
 ```bash
-parse_sdrf convert-maxquant -s sdrf.tsv -f {here_the_path_to_protein_database_file,please use single /} -m {True or False} -pef {default 0.01} -prf {default 0.01} -t {temporary folder} -r {raw_data_folder,please use single \} -n {number of threads:default 1} -o1 {parameters(.xml) output file path} -o2 {maxquant experimental design(.txt) output file path}
+parse_sdrf convert-maxquant -s sdrf.tsv -f {here_the_path_to_protein_database_file} -m {True or False} -pef {default 0.01} -prf {default 0.01} -t {temporary folder} -r {raw_data_folder} -n {number of threads:default 1} -o1 {parameters(.xml) output file path} -o2 {maxquant experimental design(.txt) output file path}
 ```  
+eg. 
+```bash
+parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin/MyProgram/search_spectra/AT/TAIR10_pep_20101214.fasta -r /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -o1 /root/ChengXin/test.xml -o2 /root/ChengXin/test_exp.xml -t /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -pef 0.01 -prf 0.01 -n 4
+```
+
+**If you want to run maxquant under windows, please use \\**
+
+ 
+- -s  : SDRF file
+- -f : fasta file
+- -r : spectra raw file folder
+- -mcf : MaxQuant default configure path (if given, Can add new modifications)
 - -m : via matching between runs to boosts number of identifications  
 - -pef : posterior error probability calculation based on target-decoy search  
 - -prf : protein score = product of peptide PEPs (one for each sequence)  
-- -t : place on SSD (if possible) for faster search,please use single  /
+- -t : place on SSD (if possible) for faster search
 - -n : each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available(otherwise, MaxQuant can crash)
 
 ### Description
