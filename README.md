@@ -70,7 +70,7 @@ eg.
 parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin/MyProgram/search_spectra/AT/TAIR10_pep_20101214.fasta -r /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -o1 /root/ChengXin/test.xml -o2 /root/ChengXin/test_exp.xml -t /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -pef 0.01 -prf 0.01 -n 4
 ```
 
-**If you want to run maxquant under windows, please use \\**
+**If you want to run maxquant under windows, please use \\ so that maxquant can correctly identify**
 
  
 - -s  : SDRF file
