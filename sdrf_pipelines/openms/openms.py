@@ -38,9 +38,10 @@ class OpenMS:
         self.tmt10plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131': 10}
         self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
-                          'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
-        self.silac3 = {'silac light': 1,'silac medium': 2,'silac heavy': 3}
+                         'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
+        self.silac3 = {'silac light': 1, 'silac medium': 2, 'silac heavy': 3}
         self.silac2 = {'silac light': 1, 'silac heavy': 2}
+
     # convert modifications in sdrf file to OpenMS notation
     def openms_ify_mods(self, sdrf_mods):
         oms_mods = list()
@@ -96,7 +97,7 @@ class OpenMS:
             else:  # Anywhere in the peptide
                 for a in aa:
                     oms_mods.append(name + " (" + a + ")")  # specific site in peptide
-        print(oms_mods)
+
         return ",".join(oms_mods)
 
     def openms_convert(self, sdrf_file: str = None, keep_raw: bool = False, one_table: bool = False,
@@ -131,7 +132,7 @@ class OpenMS:
             characteristics_cols = [c for ind, c in enumerate(sdrf) if
                                     c.startswith('characteristics[') and len(sdrf[c].unique()) > 1]
             # and remove characteristics columns already present as factor
-            characteristics_cols, f = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
+            characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
             print('Factor columns: ' + str(factor_cols))
             print('Characteristics columns (those covered by factor columns removed): ' + str(characteristics_cols))
         else:
@@ -251,6 +252,8 @@ class OpenMS:
                 elif 'SILAC' in row['comment[label]']:
                     labels = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                     label = ';'.join(labels)
+                elif 'label free sample' in row['comment[label]']:
+                    label = 'label free sample'
                 else:
                     label = ''  # TODO For else
             f2c.file2label[raw] = label
@@ -277,8 +280,6 @@ class OpenMS:
         files_per_condition = Counter(f2c.file2combined_factors.values()).values()
         print("Conditions (" + str(len(conditions)) + "): " + str(conditions))
         print("Files per condition: " + str(files_per_condition))
-
-        ##################### only label-free supported right now
 
         if not split_by_columns:
             # output of search settings for every row in sdrf
@@ -328,7 +329,8 @@ class OpenMS:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 combined_factors = "NONE"
             else:
-                warning_message = "No factors specified. Adding non-redundant characteristics as factor. Will be used as condition."
+                warning_message = "No factors specified. Adding non-redundant characteristics as factor. Will be used " \
+                                  "as condition. "
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         return combined_factors
 
@@ -341,7 +343,7 @@ class OpenMS:
                 if c_col.equals(f_col):
                     redundant_characteristics_cols.add(c)
         characteristics_cols = [x for x in characteristics_cols if x not in redundant_characteristics_cols]
-        return characteristics_cols, f
+        return characteristics_cols
 
     def reportWarnings(self, sdrf_file):
         if len(self.warnings) != 0:
@@ -357,7 +359,7 @@ class OpenMS:
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
         f.write("\t".join(openms_file_header) + "\n")
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'(\d+$)')
+        sample_identifier_re = re.compile(r'sample (\d+$)')
         Fraction_group = {}
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
@@ -378,9 +380,9 @@ class OpenMS:
                 Fraction_group[raw] = fraction_group
             try:
                 sample = re.search(sample_identifier_re, source_name).group(1)
+            except Exception as e:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-            except Exception as e:
                 sample = source_name
 
             label = file2label[raw].split(';')
@@ -404,7 +406,7 @@ class OpenMS:
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
             else:
-                pass    # TODO for else
+                pass  # TODO for else
             if not keep_raw:
                 out = raw_ext_regex.sub(".mzML", raw)
             else:
@@ -424,16 +426,25 @@ class OpenMS:
         mixture_identifier = 1
         mixture_raw_tag = {}
         mixture_sample_tag = {}
+        BioReplicate = []
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
-
             try:
                 sample = re.search(sample_identifier_re, source_name).group(1)
+
+                # MSstats BioReplicate column needs to be different for samples from different conditions.
+                # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
+                MSstatsBioReplicate = sample
+                if sample not in BioReplicate:
+                    BioReplicate.append(sample)
             except Exception as e:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 sample = source_name
+                if sample not in BioReplicate:
+                    BioReplicate.append(sample)
+                MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
 
             if 'NONE' in file2combined_factors[raw]:
                 # no factor defined use sample as condition
@@ -442,9 +453,6 @@ class OpenMS:
                 condition = file2combined_factors[raw].split(';')[combined_fac_index[raw]]
                 combined_fac_index[raw] = combined_fac_index[raw] + 1
 
-            # MSstats BioReplicate column needs to be different for samples from different conditions.
-            # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
-            MSstatsBioReplicate = sample
             if len(openms_sample_header) == 4:
                 if raw not in mixture_raw_tag.keys():
                     if sample not in mixture_sample_tag.keys():
@@ -497,11 +505,12 @@ class OpenMS:
         f.write("\t".join(open_ms_experimental_design_header) + "\n")
         combined_fac_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'(\d+$)')
+        sample_identifier_re = re.compile(r'sample (\d+$)')
         Fraction_group = {}
         mixture_identifier = 1
         mixture_raw_tag = {}
         mixture_sample_tag = {}
+        BioReplicate = []
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -523,10 +532,19 @@ class OpenMS:
 
             try:
                 sample = re.search(sample_identifier_re, source_name).group(1)
+
+                # MSstats BioReplicate column needs to be different for samples from different conditions.
+                # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
+                MSstatsBioReplicate = sample
+                if sample not in BioReplicate:
+                    BioReplicate.append(sample)
             except Exception as e:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 sample = source_name
+                if sample not in BioReplicate:
+                    BioReplicate.append(sample)
+                MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
 
             if 'NONE' in file2combined_factors[raw]:
                 # no factor defined use sample as condition
@@ -556,15 +574,11 @@ class OpenMS:
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
             else:
-                pass    # TODO for else
+                pass  # TODO for else
             if not keep_raw:
                 out = raw_ext_regex.sub(".mzML", raw)
             else:
                 out = raw
-
-            # MSstats BioReplicate column needs to be different for samples from different conditions.
-            # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
-            MSstatsBioReplicate = sample
 
             if "MSstats_Mixture" in open_ms_experimental_design_header:
                 if raw not in mixture_raw_tag.keys():
@@ -606,7 +620,7 @@ class OpenMS:
                                           "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
         f.write("\t".join(open_ms_search_settings_header) + "\n")
         raws = list()
-        for _0, row in sdrf.iterrows():  # does only work for label-free not for multiplexed. TODO
+        for _0, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
             if raw in raws:
@@ -628,7 +642,7 @@ class OpenMS:
             elif "silac" in f2c.file2label[raw]:
                 label = "SILAC"
             else:
-                pass    # TODO For else
+                pass  # TODO For else
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
                 f2c.file2pctol[
