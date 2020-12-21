@@ -523,7 +523,7 @@ class Maxquant():
             mq_name.append(title.lower())
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
-                warning_message = "only UNIMOD modifications supported. skip" + m
+                warning_message = "only UNIMOD modifications supported. skip " + m
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
             name = re.search("NT=(.+?)(;|$)", m).group(1)
@@ -549,18 +549,18 @@ class Maxquant():
                 else:
                     aa = ta.split(",")  # multiply target site e.g., S,T,Y
             if name.startswith('Label'):
-                if ta[0] == 'K' and name == 'Label:13C(6)15N(2)':
+                if aa[0] == 'K' and name == 'Label:13C(6)15N(2)':
                     oms_mods.append("Lys8")
-                elif ta[0] == 'K' and name == 'Label:13C(6)':
+                elif aa[0] == 'K' and name == 'Label:13C(6)':
                     oms_mods.append("Lys6")
-                elif ta[0] == 'K' and name == 'Label:2H(4)':
+                elif aa[0] == 'K' and name == 'Label:2H(4)':
                     oms_mods.append("Lys4")
-                elif ta[0] == 'R' and name == 'Label:13C(6)15N(4)':
+                elif aa[0] == 'R' and name == 'Label:13C(6)15N(4)':
                     oms_mods.append("Arg10")
-                elif ta[0] == 'R' and name == 'Label:13C(6)':
+                elif aa[0] == 'R' and name == 'Label:13C(6)':
                     oms_mods.append("Arg6")
                 else:
-                    warning_message = "modifications is not supported in MaxQuant. skip" + m
+                    warning_message = "modifications is not supported in MaxQuant. skip " + m
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
@@ -621,7 +621,7 @@ class Maxquant():
                             index = new_name.index(name.lower())
                             oms_mods.append(new_title[index])
                 else:
-                    warning_message = "modifications is not supported in MaxQuant. skip" + m
+                    warning_message = "modifications is not supported in MaxQuant. skip " + m
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
             elif mqconfdir:
@@ -630,7 +630,7 @@ class Maxquant():
                         index = new_name.index(name.lower())
                         oms_mods.append(new_title[index])
             else:
-                warning_message = "modifications is not supported in MaxQuant. skip" + m
+                warning_message = "modifications is not supported in MaxQuant. skip " + m
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
         return ",".join(oms_mods)
@@ -995,7 +995,7 @@ class Maxquant():
 
         # create default textnode:Empty
         Empty_text = doc.createTextNode('')
-        # 创建一个根节点
+        # create a root node
         root = doc.createElement('MaxQuantParams')
         root.setAttribute('xmlns:xsd', "http://www.w3.org/2001/XMLSchema")
         root.setAttribute('xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance")
