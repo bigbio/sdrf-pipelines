@@ -1488,12 +1488,10 @@ class Maxquant():
         # technical replicates belong to different experiments otherwise, the intensities would be combined
         filePaths = doc.createElement('filePaths')
         experiments = doc.createElement('experiments')
+        raw_path = self.convert_path(raw_Folder)
         for key, value in file2source.items():
             string = doc.createElement('string')
-            if "\\" in raw_Folder:
-                string.appendChild(doc.createTextNode(raw_Folder + key))
-            else:
-                string.appendChild(doc.createTextNode(raw_Folder + key))
+            string.appendChild(doc.createTextNode(raw_path + key))
             filePaths.appendChild(string)
             string = doc.createElement('string')
             string.appendChild(doc.createTextNode(value + '_Tr_' + file2technical_rep[key]))
@@ -2334,3 +2332,8 @@ class Maxquant():
             f.write('\n' + data_file + '\t' + fraction + '\t' + experiment + '\t')
         f.close()
         print('SUCCESS Generate maxquant experimental design file')
+
+    def convert_path(self, path: str):
+        seps = r'\/'
+        sep_other = seps.replace(os.sep, '')
+        return path.replace(sep_other, os.sep) if sep_other in path else path
