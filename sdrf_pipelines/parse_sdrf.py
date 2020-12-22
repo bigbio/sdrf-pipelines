@@ -51,10 +51,11 @@ def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, ve
               default='')
 @click.option('--raw_folder', '-r', help='spectrum raw data folder', required=True)
 @click.option('--numthreads', '-n',
-              help='each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available '
+              help='each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores '
+                   'available '
                    '(otherwise, MaxQuant can crash)', default=1)
-@click.option('--output1', '-o1', help='parameters .xml file  output file path', default='./')
-@click.option('--output2', '-o2', help='maxquant experimental design .txt file', default='./')
+@click.option('--output1', '-o1', help='parameters .xml file  output file path', default='./mqpar.xml')
+@click.option('--output2', '-o2', help='maxquant experimental design .txt file', default='./exp_design.xml')
 @click.pass_context
 def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfdir: str, matchbetweenruns: bool, peptidefdr,
                        proteinfdr,
