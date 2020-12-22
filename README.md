@@ -70,8 +70,6 @@ eg.
 parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin/MyProgram/search_spectra/AT/TAIR10_pep_20101214.fasta -r /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -o1 /root/ChengXin/test.xml -o2 /root/ChengXin/test_exp.xml -t /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -pef 0.01 -prf 0.01 -n 4
 ```
 
-**If you want to run maxquant under windows, please use \\ so that maxquant can correctly identify**
-
  
 - -s  : SDRF file
 - -f : fasta file
@@ -80,7 +78,7 @@ parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin
 - -m : via matching between runs to boosts number of identifications  
 - -pef : posterior error probability calculation based on target-decoy search  
 - -prf : protein score = product of peptide PEPs (one for each sequence)  
-- -t : place on SSD (if possible) for faster search
+- -t : place on SSD (if possible) for faster search，It is recommended not to be the same as the raw file directory
 - -n : each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available(otherwise, MaxQuant can crash)
 
 ### Description
