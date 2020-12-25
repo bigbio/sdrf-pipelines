@@ -359,8 +359,10 @@ class OpenMS:
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
         f.write("\t".join(openms_file_header) + "\n")
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'sample (\d+$)')
+        sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
         Fraction_group = {}
+        sample_id_map = {}
+        sample_id = 1
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -383,7 +385,14 @@ class OpenMS:
             except Exception as e:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                sample = source_name
+
+                # Solve non-sample id expression models
+                if source_name in sample_id_map.keys():
+                    sample = sample_id_map[source_name]
+                else:
+                    sample_id_map[source_name] = sample_id
+                    sample = sample_id
+                    sample_id += 1
 
             label = file2label[raw].split(';')
             if "label free sample" in label:
@@ -412,7 +421,7 @@ class OpenMS:
             else:
                 out = raw
 
-            f.write(Fraction_group[raw] + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + sample + "\n")
+            f.write(Fraction_group[raw] + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
 
         # sample table
         f.write("\n")
@@ -427,6 +436,7 @@ class OpenMS:
         mixture_raw_tag = {}
         mixture_sample_tag = {}
         BioReplicate = []
+
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -441,7 +451,10 @@ class OpenMS:
             except Exception as e:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                sample = source_name
+
+                # Solve non-sample id expression models
+                sample = sample_id_map[source_name]
+
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
@@ -468,12 +481,12 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if sample not in sample_row_written:
-                    f.write(sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" +
+                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" +
                             str(mix_id) + "\n")
                     sample_row_written.append(sample)
             else:
                 if sample not in sample_row_written:
-                    f.write(sample + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
+                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
                     sample_row_written.append(sample)
 
         f.close()
@@ -505,12 +518,14 @@ class OpenMS:
         f.write("\t".join(open_ms_experimental_design_header) + "\n")
         combined_fac_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'sample (\d+$)')
+        sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
         Fraction_group = {}
         mixture_identifier = 1
         mixture_raw_tag = {}
         mixture_sample_tag = {}
         BioReplicate = []
+        sample_id_map = {}
+        sample_id = 1
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -539,9 +554,16 @@ class OpenMS:
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
             except Exception as e:
-                warning_message = "No sample identifier"
+                warning_message = "No sample number identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                sample = source_name
+
+                # Solve non-sample id expression models
+                if source_name in sample_id_map.keys():
+                    sample = sample_id_map[source_name]
+                else:
+                    sample_id_map[source_name] = sample_id
+                    sample = sample_id
+                    sample_id += 1
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
@@ -595,7 +617,7 @@ class OpenMS:
 
                 if legacy:
                     f.write(Fraction_group[raw] + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition
+                        raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition
                             + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
                 else:
                     f.write(Fraction_group[raw] + "\t" + file2fraction[
@@ -604,7 +626,7 @@ class OpenMS:
             else:
                 if legacy:
                     f.write(Fraction_group[raw] + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + sample + "\t" + condition + "\t" +
+                        raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition + "\t" +
                             MSstatsBioReplicate + "\n")
                 else:
                     f.write(Fraction_group[raw] + "\t" + file2fraction[
@@ -637,12 +659,17 @@ class OpenMS:
                     label = 'tmt10plex'
                 else:
                     label = 'tmt6plex'
+
+                # add TMT modification as fixed modification
+                if 'TMT' not in f2c.file2mods[raw][0] and 'TMT' not in f2c.file2mods[raw][1]:
+                    tmt_fix_mod = ''
             elif "label free sample" in f2c.file2label[raw]:
                 label = "label free sample"
             elif "silac" in f2c.file2label[raw]:
                 label = "SILAC"
             else:
                 pass  # TODO For else
+
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
                 f2c.file2pctol[
