@@ -10,7 +10,7 @@ def test_validate_srdf():
   :return:
   """
   runner = CliRunner()
-  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/sdrf.tsv', '--check_ms'])
+  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/PXD000288.sdrf.tsv', '--check_ms'])
 
   print(result.output)
   assert 'ERROR' not in result.output
