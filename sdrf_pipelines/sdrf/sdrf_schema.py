@@ -314,7 +314,6 @@ cell_lines_schema = SDRFSchema([
              optional_type=False)
 ], min_columns=7)
 
-
 mass_spectrometry_schema = SDRFSchema([
     SDRFColumn('assay name', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
