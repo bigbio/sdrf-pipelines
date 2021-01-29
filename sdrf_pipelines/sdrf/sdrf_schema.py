@@ -131,7 +131,7 @@ class OntologyTerm(_SeriesValidation):
 
 
 class SDRFSchema(Schema):
-    _special_columns = {'sourcename', 'assayname', 'materialtype'}
+    _special_columns = {'sourcename', 'assayname', 'materialtype', 'technologytype'}
     _column_template = r'^(characteristics|comment|factor value)\s*\[([^\]]+)\](?:\.\d+)?$'
 
     def __init__(self, columns: typing.Iterable[SDRFColumn], ordered: bool = False, min_columns: int = 0):
