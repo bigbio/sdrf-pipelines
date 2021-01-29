@@ -1,5 +1,12 @@
 # sdrf-pipelines
 
+![Python application](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20application/badge.svg)
+![Python package](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20package/badge.svg)
+![Upload Python Package](https://github.com/bigbio/sdrf-pipelines/workflows/Upload%20Python%20Package/badge.svg)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/ebf85b7ad8304422ab495c3f720bf3ae)](https://www.codacy.com/gh/bigbio/sdrf-pipelines/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bigbio/sdrf-pipelines&amp;utm_campaign=Badge_Grade)
+[![PyPI version](https://badge.fury.io/py/sdrf-pipelines.svg)](https://badge.fury.io/py/sdrf-pipelines)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/sdrf-pipelines)
+
 The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats,OpenMS and MaxQuant.
 
 ### Installation
@@ -64,20 +71,20 @@ For details, please see the MSstats documentation
 
 ```bash
 parse_sdrf convert-maxquant -s sdrf.tsv -f {here_the_path_to_protein_database_file} -m {True or False} -pef {default 0.01} -prf {default 0.01} -t {temporary folder} -r {raw_data_folder} -n {number of threads:default 1} -o1 {parameters(.xml) output file path} -o2 {maxquant experimental design(.txt) output file path}
-```  
-eg. 
+```
+eg.
 ```bash
 parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin/MyProgram/search_spectra/AT/TAIR10_pep_20101214.fasta -r /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -o1 /root/ChengXin/test.xml -o2 /root/ChengXin/test_exp.xml -t /root/ChengXin/MyProgram/virtuabox/share/raw_data/ -pef 0.01 -prf 0.01 -n 4
 ```
 
- 
+
 - -s  : SDRF file
 - -f : fasta file
 - -r : spectra raw file folder
 - -mcf : MaxQuant default configure path (if given, Can add new modifications)
-- -m : via matching between runs to boosts number of identifications  
-- -pef : posterior error probability calculation based on target-decoy search  
-- -prf : protein score = product of peptide PEPs (one for each sequence)  
+- -m : via matching between runs to boosts number of identifications
+- -pef : posterior error probability calculation based on target-decoy search
+- -prf : protein score = product of peptide PEPs (one for each sequence)
 - -t : place on SSD (if possible) for faster search，It is recommended not to be the same as the raw file directory
 - -n : each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available(otherwise, MaxQuant can crash)
 
@@ -88,51 +95,55 @@ parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin
 
 The maxquant parameters file mqpar.xml contains the parameters required for maxquant operation.some settings can usually be derived from the sdrf file such as enzyme, fixed modification, variable modification, instrument, fraction and label etc.Set other parameters as default.The current version of maxquant supported by the script is 1.6.10.43
 
-Some parameters are listed：  
+Some parameters are listed：
 - \<fastaFilePath>TAIR10_pep_20101214.fasta\</fastaFilePath>
-- \<matchBetweenRuns>True\</matchBetweenRuns>  
-- \<maxQuantVersion>1.6.10.43\</maxQuantVersion>  
-- \<tempFolder>C:/Users/test\</tempFolder>  
-- \<numThreads>2\</numThreads>  
-- \<filePaths>  
-    - \<string>C:\Users\search_spectra\AT\130402_08.raw\</string>  
-    - \<string>C:\Users\search_spectra\AT\130412_08.raw\</string>  
-- \</filePaths> 
-- \<experiments>  
-    - \<string>sample 1_Tr_1\</string>  
-    - \<string>sample 2_Tr_1\</string>  
-- \</experiments>  
-- \<fractions>  
-    - \<short>32767\</short>  
-    - \<short>32767\</short>  
-- \</fractions>  
-- \<paramGroupIndices>  
-    - \<int>0\</int>  
-    - \<int>1\</int>  
+- \<matchBetweenRuns>True\</matchBetweenRuns>
+- \<maxQuantVersion>1.6.10.43\</maxQuantVersion>
+- \<tempFolder>C:/Users/test\</tempFolder>
+- \<numThreads>2\</numThreads>
+- \<filePaths>
+    - \<string>C:\Users\search_spectra\AT\130402_08.raw\</string>
+    - \<string>C:\Users\search_spectra\AT\130412_08.raw\</string>
+- \</filePaths>
+- \<experiments>
+    - \<string>sample 1_Tr_1\</string>
+    - \<string>sample 2_Tr_1\</string>
+- \</experiments>
+- \<fractions>
+    - \<short>32767\</short>
+    - \<short>32767\</short>
+- \</fractions>
+- \<paramGroupIndices>
+    - \<int>0\</int>
+    - \<int>1\</int>
 - \</paramGroupIndices>
-- \<msInstrument>0\</msInstrument>  
--  \<fixedModifications>  
-    - \<string>Carbamidomethyl (C)\</string>  
-- \</fixedModifications>  
-- \<enzymes>  
-    - \<string>Trypsin\</string>  
-- \</enzymes>  
+- \<msInstrument>0\</msInstrument>
+-  \<fixedModifications>
+    - \<string>Carbamidomethyl (C)\</string>
+- \</fixedModifications>
+- \<enzymes>
+    - \<string>Trypsin\</string>
+- \</enzymes>
 - \<variableModifications>
     - \<string>Oxidation (M)\</string>
     - \<string>Phospho (Y)\</string>
     - \<string>Acetyl (Protein N-term)\</string>
     - \<string>Phospho (T)\</string>
     - \<string>Phospho (S)\</string>
-- \</variableModifications>  
-  
+- \</variableModifications>
+
 For details, please see the MaxQuant documentation
 
-The maxquant experimental design file contains name,Fraction,Experiement and PTM column.Most entries can be derived from the sdrf file.  
+The maxquant experimental design file contains name,Fraction,Experiement and PTM column.Most entries can be derived from the sdrf file.
 - **Name**  raw data file name.
 - **Fraction**  In the Fraction column you must assign if the corresponding files shown in the left column belong to a fraction of a gel fraction. If your data is not obtained through gel-based pre-fractionation you must assign the same number(default 1) for all files in the column Fraction.
-- **Experiment**  In the column named as Experiment if you want to combine all experimental replicates as a single dataset to be analyzed by MaxQuant, you must enter the same identifier for the files which should be concatenated . However, if you want each individual file to be treated as a different experiment which you want to compare further you should assign different identifiers to each of the files as shown below.  
-  
-| Name | Fraction | Experiment | PTM |  
-| :----:| :----: | :----: | :----: |  
-| 130402_08.raw | 1 | sample 1_Tr_1 |     |  
+- **Experiment**  In the column named as Experiment if you want to combine all experimental replicates as a single dataset to be analyzed by MaxQuant, you must enter the same identifier for the files which should be concatenated . However, if you want each individual file to be treated as a different experiment which you want to compare further you should assign different identifiers to each of the files as shown below.
+
+| Name | Fraction | Experiment | PTM |
+| :----:| :----: | :----: | :----: |
+| 130402_08.raw | 1 | sample 1_Tr_1 |     |
 | 130412_08.raw | 1 | sample 2_Tr_1 |     |
+
+# Citation
+
+Perez-Riverol, Yasset, and European Bioinformatics Community for Mass Spectrometry. "Toward a Sample Metadata Standard in Public Proteomics Repositories." Journal of Proteome Research 19.10 (2020): 3906-3909. [Manuscript](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.0c00376)
