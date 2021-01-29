@@ -15,7 +15,6 @@ def test_validate_srdf():
   print(result.output)
   assert 'ERROR' not in result.output
 
-
 def test_convert_openms():
   """
     Test the default behaviour of the vcf-to-proteindb tool
