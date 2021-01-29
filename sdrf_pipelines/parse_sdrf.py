@@ -28,37 +28,42 @@ def cli():
 @click.option('--onetable/--twotables', "-t1/-t2", default=False, help='Create one-table or two-tables format.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
 @click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
-
 @click.pass_context
+def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool,
+                     conditionsfromcolumns: str):
+    if sdrf is None:
+        help()
+    OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
 
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool, conditionsfromcolumns: str):
-  if sdrf is None:
-    help()
-  OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
 
-
-@click.command('convert-maxquant', short_help='convert sdrf to maxquant parameters file and generate an experimental design file')
-@click.option('--sdrf', '-s', help='SDRF file')
-@click.option('--fastafilepath', '-f', help='protein database file path,please use /')
-@click.option('--mqconfpath', '-mcf', help='MaxQuant configure path')
-@click.option('--matchbetweenruns', '-m', help='via matching between runs to boosts number of identifications')
-@click.option('--peptidefdr', '-pef', help='posterior error probability calculation based on target-decoy search', default=0.01)
-@click.option('--proteinfdr', '-prf', help='protein score = product of peptide PEPs (one for each sequence)', default=0.01)
-@click.option('--tempfolder', '-t', help='temporary folder: place on SSD (if possible) for faster search, please use /')
-@click.option('--raw_folder', '-r', help='raw data folder,please use \\')
+@click.command('convert-maxquant',
+               short_help='convert sdrf to maxquant parameters file and generate an experimental design file')
+@click.option('--sdrf', '-s', help='SDRF file', required=True)
+@click.option('--fastafilepath', '-f', help='protein database file path', required=True)
+@click.option('--mqconfdir', '-mcf', help='MaxQuant default configure path')
+@click.option('--matchbetweenruns', '-m', help='via matching between runs to boosts number of identifications',
+              default='True')
+@click.option('--peptidefdr', '-pef', help='posterior error probability calculation based on target-decoy search',
+              default=0.01)
+@click.option('--proteinfdr', '-prf', help='protein score = product of peptide PEPs (one for each sequence)',
+              default=0.01)
+@click.option('--tempfolder', '-t', help='temporary folder: place on SSD (if possible) for faster search',
+              default='')
+@click.option('--raw_folder', '-r', help='spectrum raw data folder', required=True)
 @click.option('--numthreads', '-n',
-    help='each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available '
-    '(otherwise, MaxQuant can crash)', default=1)
-@click.option('--output1', '-o1', help='parameters .xml file  output file path')
-@click.option('--output2', '-o2', help='maxquant experimental design .txt file')
+              help='each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores '
+                   'available '
+                   '(otherwise, MaxQuant can crash)', default=1)
+@click.option('--output1', '-o1', help='parameters .xml file  output file path', default='./mqpar.xml')
+@click.option('--output2', '-o2', help='maxquant experimental design .txt file', default='./exp_design.xml')
 @click.pass_context
-def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfpath: str, matchbetweenruns: bool, peptidefdr,
+def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfdir: str, matchbetweenruns: bool, peptidefdr,
                        proteinfdr,
                        tempfolder: str, raw_folder: str, numthreads: int, output1: str, output2: str):
     if sdrf is None:
         help()
-    print(raw_folder)
-    Maxquant().maxquant_convert(sdrf, fastafilepath, mqconfpath, matchbetweenruns, peptidefdr, proteinfdr,
+
+    Maxquant().maxquant_convert(sdrf, fastafilepath, mqconfdir, matchbetweenruns, peptidefdr, proteinfdr,
                                 tempfolder, raw_folder, numthreads, output1)
     Maxquant().maxquant_experiamental_design(sdrf, output2)
 
@@ -98,6 +103,7 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
+
 
 def main():
     cli()

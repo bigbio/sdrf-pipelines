@@ -4,7 +4,6 @@ Created on Sun Apr 19 09:46:14 2020
 
 @author: ChengXin
 """
-import os
 
 import pandas as pd
 import re
@@ -14,15 +13,16 @@ from xml.dom.minidom import Document
 from datetime import datetime
 import os
 import numpy as np
-
+import pkg_resources
 
 class Maxquant():
 
     def __init__(self) -> None:
         super().__init__()
         self.warnings = dict()
+        self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
 
-    def create_new_mods(self, mods, mqconfpath):
+    def create_new_mods(self, mods, mqconfdir):
         i = 0
         w = y = False
         all_mods = list()
@@ -41,8 +41,8 @@ class Maxquant():
         root.setAttribute('xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance")
         mod_local.appendChild(root)
 
-        mod_file = mqconfpath + "/conf/modifications.xml"
-        mod_local_file = mqconfpath + "/conf/modifications.local.xml"
+        mod_file = mqconfdir + "modifications.xml"
+        mod_local_file = mqconfdir + "modifications.local.xml"
         domTree = parse(mod_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
@@ -473,11 +473,12 @@ class Maxquant():
             domTree.writexml(fp, encoding="utf-8")
             fp.close()
 
-    def maxquant_ify_mods(self, sdrf_mods, mqconfpath):
-        mq_mods_file = mqconfpath + "/conf/modifications.xml"
-        mq_new_mods = mqconfpath + "/conf/modifications.local.xml"
+    def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
+
+        mq_mods_file = self.modfile
         mod_pattern = re.compile(r'(.*?) \(')
-        if os.path.exists(mq_new_mods):
+        if mqconfdir:
+            mq_new_mods = mqconfdir + "modifications.local.xml"
             dT = parse(mq_new_mods)
             rootN = dT.documentElement
             new_mods = rootN.getElementsByTagName("modification")
@@ -522,7 +523,7 @@ class Maxquant():
             mq_name.append(title.lower())
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
-                warning_message = "only UNIMOD modifications supported. skip" + m
+                warning_message = "only UNIMOD modifications supported. skip " + m
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
             name = re.search("NT=(.+?)(;|$)", m).group(1)
@@ -548,16 +549,19 @@ class Maxquant():
                 else:
                     aa = ta.split(",")  # multiply target site e.g., S,T,Y
             if name.startswith('Label'):
-                if ta[0] == 'K' and name == 'Label:13C(6)15N(2)':
+                if aa[0] == 'K' and name == 'Label:13C(6)15N(2)':
                     oms_mods.append("Lys8")
-                elif ta[0] == 'K' and name == 'Label:13C(6)':
+                elif aa[0] == 'K' and name == 'Label:13C(6)':
                     oms_mods.append("Lys6")
-                elif ta[0] == 'K' and name == 'Label:2H(4)':
+                elif aa[0] == 'K' and name == 'Label:2H(4)':
                     oms_mods.append("Lys4")
-                elif ta[0] == 'R' and name == 'Label:13C(6)15N(4)':
+                elif aa[0] == 'R' and name == 'Label:13C(6)15N(4)':
                     oms_mods.append("Arg10")
-                elif ta[0] == 'R' and name == 'Label:13C(6)':
+                elif aa[0] == 'R' and name == 'Label:13C(6)':
                     oms_mods.append("Arg6")
+                else:
+                    warning_message = "modifications is not supported in MaxQuant. skip " + m
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
             if name.lower().startswith("tmt"):
@@ -610,23 +614,32 @@ class Maxquant():
                         break
                 if tag == 1:
                     oms_mods.append(mq_title[index])
-                else:
+
+                elif mqconfdir:
                     if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                         if aa == new_site[new_title[new_name.index(name.lower())]]:
                             index = new_name.index(name.lower())
                             oms_mods.append(new_title[index])
-            else:
+                else:
+                    warning_message = "modifications is not supported in MaxQuant. skip " + m
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+
+            elif mqconfdir:
                 if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                     if aa == new_site[new_title[new_name.index(name.lower())]]:
                         index = new_name.index(name.lower())
                         oms_mods.append(new_title[index])
+            else:
+                warning_message = "modifications is not supported in MaxQuant. skip " + m
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
         return ",".join(oms_mods)
 
-    def maxquant_convert(self, sdrf_file, fastaFilePath, mqconfpath, matchBetweenRuns, peptideFDR, proteinFDR,
+    def maxquant_convert(self, sdrf_file, fastaFilePath, mqconfdir, matchBetweenRuns, peptideFDR, proteinFDR,
                          tempFolder,
                          raw_Folder, numThreads, output_path):
         print('PROCESSING: ' + sdrf_file + '"')
+
         sdrf = pd.read_csv(sdrf_file, sep='\t')
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
@@ -657,7 +670,8 @@ class Maxquant():
         file2technical_rep = dict()
         file2instrument = dict()
 
-        self.create_new_mods(sdrf[mod_cols], mqconfpath)
+        if mqconfdir:
+            self.create_new_mods(sdrf[mod_cols], mqconfdir)
 
         for index, row in sdrf.iterrows():
             all_enzy = list(row[enzy_cols])
@@ -676,15 +690,17 @@ class Maxquant():
 
             fixed_mods_string = ""
             if fixed_mods is not None:
-                fixed_mods_string = self.maxquant_ify_mods(fixed_mods, mqconfpath)
+                fixed_mods_string = self.maxquant_ify_mods(fixed_mods, mqconfdir)
 
             variable_mods_string = ""
             if var_mods is not None:
-                variable_mods_string = self.maxquant_ify_mods(var_mods, mqconfpath)
+                variable_mods_string = self.maxquant_ify_mods(var_mods, mqconfdir)
 
             file2mods[raw] = (fixed_mods_string, variable_mods_string)
             source_name = row['source name']
+
             file2source[raw] = source_name
+
             if source_name not in source_name_list:
                 source_name_list.append(source_name)
 
@@ -697,23 +713,33 @@ class Maxquant():
                     file2pctol[raw] = pc_tmp[0]
                     file2pctolunit[raw] = pc_tmp[1]
                 else:
-                    warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                    warning_message = "Invalid precursor mass tolerance set. Assuming 4.5 ppm."
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    file2pctol[raw] = "10"
+                    file2pctol[raw] = "4.5"
                     file2pctolunit[raw] = "ppm"
             else:
-                warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
+                warning_message = "No precursor mass tolerance set. Assuming 4.5 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                file2pctol[raw] = "10"
+                file2pctol[raw] = "4.5"
                 file2pctolunit[raw] = "ppm"
 
             if 'comment[fragment mass tolerance]' in row:
                 f_tol_str = row['comment[fragment mass tolerance]']
                 f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str or "Da" in f_tol_str:
+                if "ppm" in f_tol_str:
                     f_tmp = f_tol_str.split(" ")
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
+                    if "Da" in file2pctolunit[raw]:
+                        file2pctol[raw] = "4.5"
+                        file2pctolunit[raw] = "ppm"
+                elif "Da" in f_tol_str:
+                    f_tmp = f_tol_str.split(" ")
+                    file2fragtol[raw] = f_tmp[0]
+                    file2fragtolunit[raw] = f_tmp[1]
+                    if "ppm" in file2pctolunit[raw]:
+                        file2pctol[raw] = "0.01"
+                        file2pctolunit[raw] = "Da"
                 else:
                     warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -883,7 +909,7 @@ class Maxquant():
                 label_arr = np.array(list(set([tuple(t) for t in arr])))
                 file2silac_shape[raw] = label_arr.shape
                 label_arr.sort()
-                if label_arr.shape[0] == 2:   # Support two or three silac labels
+                if label_arr.shape[0] == 2:  # Support two or three silac labels
                     r1 = r2 = 0
                     for i in range(label_arr.shape[1]):
                         r1 = r1 + int(re.search(r'(\d+)', label_arr[0][i]).group(1))
@@ -969,7 +995,7 @@ class Maxquant():
 
         # create default textnode:Empty
         Empty_text = doc.createTextNode('')
-        # 创建一个根节点
+        # create a root node
         root = doc.createElement('MaxQuantParams')
         root.setAttribute('xmlns:xsd', "http://www.w3.org/2001/XMLSchema")
         root.setAttribute('xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance")
@@ -1462,9 +1488,10 @@ class Maxquant():
         # technical replicates belong to different experiments otherwise, the intensities would be combined
         filePaths = doc.createElement('filePaths')
         experiments = doc.createElement('experiments')
+        raw_path = self.convert_path(raw_Folder)
         for key, value in file2source.items():
             string = doc.createElement('string')
-            string.appendChild(doc.createTextNode(raw_Folder + '\\' + key))
+            string.appendChild(doc.createTextNode(raw_path + key))
             filePaths.appendChild(string)
             string = doc.createElement('string')
             string.appendChild(doc.createTextNode(value + '_Tr_' + file2technical_rep[key]))
@@ -1500,7 +1527,8 @@ class Maxquant():
         referenceChannel = doc.createElement('referenceChannel')
 
         for key1, instr_val in file2instrument.items():
-            value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1])
+            value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) \
+                     + str(file2fragtol)
 
             if tag == 0 and tmp == []:
                 int_node = doc.createElement('int')
@@ -1509,9 +1537,10 @@ class Maxquant():
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in \
                         file2label[key1] or 'Lys6' in file2label[key1]:
                     parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
-                                           file2silac_shape[key1]]
+                                           file2silac_shape[key1], file2pctol[key1], file2fragtol[key1]]
                 else:
-                    parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1]]
+                    parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
+                                           file2pctol[key1], file2fragtol[key1]]
 
             elif {instr_val: value2} in tmp:
                 int_node = doc.createElement('int')
@@ -1527,10 +1556,11 @@ class Maxquant():
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in file2label[key1] \
                         or 'Lys6' in file2label[key1]:
                     parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
-                                                file2enzyme[key1], file2silac_shape[key1]]
+                                                file2enzyme[key1], file2silac_shape[key1],
+                                                file2pctol[key1], file2fragtol[key1]]
                 else:
                     parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
-                                                file2enzyme[key1]]
+                                                file2enzyme[key1], file2pctol[key1], file2fragtol[key1]]
 
             paramGroupIndices.appendChild(int_node)
 
@@ -1874,9 +1904,13 @@ class Maxquant():
             doMassFiltering = doc.createElement('doMassFiltering')
             doMassFiltering.appendChild(doc.createTextNode('True'))
             firstSearchTol = doc.createElement('firstSearchTol')
-            firstSearchTol.appendChild(doc.createTextNode('20'))
             mainSearchTol = doc.createElement('mainSearchTol')
-            mainSearchTol.appendChild(doc.createTextNode('4.5'))
+            if len(j) == 6:
+                firstSearchTol.appendChild(doc.createTextNode(str(j[4])))
+                mainSearchTol.appendChild(doc.createTextNode(str(j[5])))
+            else:
+                firstSearchTol.appendChild(doc.createTextNode(str(j[5])))
+                mainSearchTol.appendChild(doc.createTextNode(str(j[6])))
             searchTolInPpm = doc.createElement('searchTolInPpm')
             searchTolInPpm.appendChild(doc.createTextNode('True'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
@@ -2298,3 +2332,8 @@ class Maxquant():
             f.write('\n' + data_file + '\t' + fraction + '\t' + experiment + '\t')
         f.close()
         print('SUCCESS Generate maxquant experimental design file')
+
+    def convert_path(self, path: str):
+        seps = r'\/'
+        sep_other = seps.replace(os.sep, '')
+        return path.replace(sep_other, os.sep) if sep_other in path else path
