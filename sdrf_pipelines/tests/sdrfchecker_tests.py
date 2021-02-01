@@ -10,7 +10,7 @@ def test_validate_srdf():
   :return:
   """
   runner = CliRunner()
-  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/sdrf.tsv', '--check_ms'])
+  result = runner.invoke(cli, ['validate-sdrf', '--sdrf_file', 'testdata/PXD000288.sdrf.tsv', '--check_ms'])
 
   print(result.output)
   assert 'ERROR' not in result.output
@@ -21,7 +21,7 @@ def test_convert_openms():
     :return:
     """
   runner = CliRunner()
-  result = runner.invoke(cli, ['convert-openms', '-t2', '-l', '-s','testdata/sdrf.tsv'])
+  result = runner.invoke(cli, ['convert-openms', '-t2', '-l', '-s', 'testdata/sdrf.tsv'])
   print('convert to openms' + result.output)
   assert 'ERROR' not in result.output
 

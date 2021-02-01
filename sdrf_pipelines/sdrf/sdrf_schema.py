@@ -131,7 +131,7 @@ class OntologyTerm(_SeriesValidation):
 
 
 class SDRFSchema(Schema):
-    _special_columns = {'sourcename', 'assayname', 'materialtype'}
+    _special_columns = {'sourcename', 'assayname', 'materialtype', 'technologytype'}
     _column_template = r'^(characteristics|comment|factor value)\s*\[([^\]]+)\](?:\.\d+)?$'
 
     def __init__(self, columns: typing.Iterable[SDRFColumn], ordered: bool = False, min_columns: int = 0):
@@ -314,11 +314,13 @@ cell_lines_schema = SDRFSchema([
              optional_type=False)
 ], min_columns=7)
 
-
 mass_spectrometry_schema = SDRFSchema([
     SDRFColumn('assay name', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
+    SDRFColumn('technology type', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+             allow_empty=True,
+             optional_type=True),
     SDRFColumn('comment[fraction identifier]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
              allow_empty=True,
              optional_type=False),
