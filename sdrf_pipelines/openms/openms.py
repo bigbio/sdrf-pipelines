@@ -15,9 +15,12 @@ class FileToColumnEntries:
     file2fragtolunit = dict()
     file2diss = dict()
     file2enzyme = dict()
-    file2fraction = dict()
-    file2label = dict()
     file2source = dict()
+    # TODO not sure why this is needed
+    file2label = dict()
+    # TODO the following lines will be very difficult with labels. Usually a combination of file&label defines the factor
+    #  I saw that you try to keep lists or combined strings here, but maybe hashing a tuple would be easier here.
+    file2fraction = dict()
     file2combined_factors = dict()
     file2technical_rep = dict()
 
@@ -39,6 +42,10 @@ class OpenMS:
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131': 10}
         self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
                          'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
+        # TODO What about iTRAQ?
+
+        # TODO How does this work? In OpenMS there are no such modifications. You can have different "isotope mods"
+        #  for light, medium and heavy. E.g. Label:13C(2)15N(2) (K) as light or Dimethyl:2H(2)13C (K) as light
         self.silac3 = {'silac light': 1, 'silac medium': 2, 'silac heavy': 3}
         self.silac2 = {'silac light': 1, 'silac heavy': 2}
 
@@ -55,7 +62,7 @@ class OpenMS:
 
             accession = re.search("AC=(.+?)(;|$)", m).group(1)
             ptm = self._unimod_database.get_by_accession(accession)
-            if ptm != None:
+            if ptm is not None:
                 name = ptm.get_name()
 
             # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
@@ -65,6 +72,7 @@ class OpenMS:
                 pp = re.search("PP=(.+?)(;|$)", m).group(
                     1)  # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
 
+            ta = ""
             if re.search("TA=(.+?)(;|$)", m) is None:  # TODO: missing in sdrf.
                 warning_message = "Warning no TA= specified. Setting to N-term or C-term if possible."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -143,7 +151,7 @@ class OpenMS:
 
         f2c = FileToColumnEntries()
         for row_index, row in sdrf.iterrows():
-            ## extract mods
+            # extract mods
             all_mods = list(row[mod_cols])
             # print(all_mods)
             var_mods = [m for m in all_mods if
@@ -243,9 +251,10 @@ class OpenMS:
             else:
                 f2c.file2fraction[raw] = "1"
 
+            ## TODO try to avoid try catch here. Can't you just check the number of captured groups?
             try:
                 label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
-            except Exception as e:
+            except Exception:
                 if 'TMT' in row['comment[label]']:
                     labels = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                     label = ';'.join(labels)
@@ -263,14 +272,14 @@ class OpenMS:
                 # every combination of factor values present in the data
                 combined_factors = self.combine_factors_to_conditions(characteristics_cols, factor_cols, row)
             else:
-                # take only only entries of splitting columns to generate the conditions
+                # take only entries of splitting columns to generate the conditions
                 combined_factors = "|".join(list(row[split_by_columns]))
 
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
 
             if raw in f2c.file2combined_factors.keys():
-                f2c.file2combined_factors[raw] = f2c.file2combined_factors[raw] + ';' + combined_factors
+                f2c.file2combined_factors[raw] = f2c.file2combined_factors[raw] + '|' + combined_factors
             else:
                 f2c.file2combined_factors[raw] = combined_factors
 
@@ -545,6 +554,7 @@ class OpenMS:
             else:
                 Fraction_group[raw] = fraction_group
 
+            # TODO avoid try catch again
             try:
                 sample = re.search(sample_identifier_re, source_name).group(1)
 
@@ -553,12 +563,13 @@ class OpenMS:
                 MSstatsBioReplicate = sample
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
-            except Exception as e:
+            except Exception:
                 warning_message = "No sample number identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
                 if source_name in sample_id_map.keys():
+                    # TODO why do you sometimes build the dicts based on filename and sometimes based on source??
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
@@ -568,12 +579,21 @@ class OpenMS:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
 
+            # TODO dangerous, what if a factor is called NONE? Like for Treatment = NONE?
+            #  Why not use REAL lists instead of weird combined strings that have to be split again? Then you can use
+            #  the None object.
             if 'NONE' in file2combined_factors[raw]:
-                # no factor defined use sample as condition
+                # no factor defined -> use sample as condition
                 condition = sample
             else:
+                # TODO this wont work if the labels have ";" in themselves (which is almost ALWAYS the case
+                #  according to the standard).
+                #  Use lists! Not strings. Or better make the dict unique by using (file,label) as key
                 condition = file2combined_factors[raw].split(';')[combined_fac_index[raw]]
                 combined_fac_index[raw] = combined_fac_index[raw] + 1
+
+            # TODO this wont work if the labels have ";" in themselves. Use lists! Not strings.
+            #  What do you want to do here?
             label = file2label[raw].split(';')
             if "label free sample" in label:
                 label = "1"
@@ -589,6 +609,9 @@ class OpenMS:
                 else:
                     choice = self.tmt6plex
                 label = str(choice[label[label_index[raw]]])
+                # TODO if at all, this only works if the labels for the same file are consecutive in the SDRF and always
+                #  in the same order as specified in the initial labels dictionary. Very Dangerous!
+                #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
             elif 'SILAC' in file2label[raw]:
                 if len(label) == 3:
@@ -662,6 +685,10 @@ class OpenMS:
 
                 # add TMT modification as fixed modification
                 if 'TMT' not in f2c.file2mods[raw][0] and 'TMT' not in f2c.file2mods[raw][1]:
+                # TODO what is this? what does it do? The variable is unused!
+                #  Remember that different TMT labellings use the same modification
+                #  as label since the isobaric tags have the same mass.
+                #  E.g. TMT6, 10 and 11 all use the TMT6 mass tag as modification. TMT16 is TMTpro
                     tmt_fix_mod = ''
             elif "label free sample" in f2c.file2label[raw]:
                 label = "label free sample"

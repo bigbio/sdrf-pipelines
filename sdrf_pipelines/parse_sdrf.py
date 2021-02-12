@@ -24,7 +24,7 @@ def cli():
 @click.option('--sdrf', '-s', help='SDRF file')
 @click.option('--raw', '-r', help='Keep filenames in experimental design output as raw.')
 @click.option('--legacy/--modern', "-l/-m", default=False,
-              help='legacy=Create artifical sample column not needed in OpenMS 2.6.')
+              help='legacy=Create artificial sample column not needed in OpenMS 2.6.')
 @click.option('--onetable/--twotables', "-t1/-t2", default=False, help='Create one-table or two-tables format.')
 @click.option('--verbose/--quiet', "-v/-q", default=False, help='Output debug information.')
 @click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
