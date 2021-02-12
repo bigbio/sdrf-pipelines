@@ -213,8 +213,13 @@ class OpenMS:
                 f2c.file2fragtolunit[raw] = "ppm"
 
             if 'comment[dissociation method]' in row:
-                diss_method = re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']).group(1)
-                f2c.file2diss[raw] = diss_method.upper()
+                if re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']) is not None:
+                    diss_method = re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']).group(1)
+                    f2c.file2diss[raw] = diss_method.upper()
+                else:
+                    warning_message = "No dissociation method provided. Assuming HCD."
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    f2c.file2diss[raw] = 'HCD'
             else:
                 warning_message = "No dissociation method provided. Assuming HCD."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -252,20 +257,19 @@ class OpenMS:
                 f2c.file2fraction[raw] = "1"
 
             ## TODO try to avoid try catch here. Can't you just check the number of captured groups?
-            try:
+            if re.search("NT=(.+?)(;|$)", row['comment[label]']) is not None:
                 label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
-            except Exception:
+                f2c.file2label[raw] = [label]
+            else:
                 if 'TMT' in row['comment[label]']:
-                    labels = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
-                    label = ';'.join(labels)
+                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                 elif 'SILAC' in row['comment[label]']:
-                    labels = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
-                    label = ';'.join(labels)
+                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                 elif 'label free sample' in row['comment[label]']:
-                    label = 'label free sample'
+                    label = ['label free sample']
                 else:
-                    label = ''  # TODO For else
-            f2c.file2label[raw] = label
+                    label = ['']  # TODO For else
+                f2c.file2label[raw] = label
 
             if not split_by_columns:
                 # extract factors (or characteristics if factors are missing), and generate one condition for
@@ -278,10 +282,7 @@ class OpenMS:
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
 
-            if raw in f2c.file2combined_factors.keys():
-                f2c.file2combined_factors[raw] = f2c.file2combined_factors[raw] + '|' + combined_factors
-            else:
-                f2c.file2combined_factors[raw] = combined_factors
+            f2c.file2combined_factors[raw + row['comment[label]']] = combined_factors
 
             # print("Combined factors: " + str(combined_factors))
 
@@ -336,7 +337,7 @@ class OpenMS:
             if combined_factors == "":
                 warning_message = "No factors specified. Adding dummy factor used as condition."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                combined_factors = "NONE"
+                combined_factors = None
             else:
                 warning_message = "No factors specified. Adding non-redundant characteristics as factor. Will be used " \
                                   "as condition. "
@@ -389,9 +390,9 @@ class OpenMS:
                     Fraction_group[raw] = fraction_group
             else:
                 Fraction_group[raw] = fraction_group
-            try:
+            if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
-            except Exception as e:
+            else:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
@@ -403,10 +404,10 @@ class OpenMS:
                     sample = sample_id
                     sample_id += 1
 
-            label = file2label[raw].split(';')
+            label = file2label[raw]
             if "label free sample" in label:
                 label = "1"
-            elif "TMT" in file2label[raw]:
+            elif "TMT" in ','.join(file2label[raw]):
                 if len(label) > 11 or 'TMT134N' in label or 'TMT133C' in label or 'TMT133N' \
                         in label or 'TMT132C' in label or 'TMT132N' in label:
                     choice = self.tmt16plex
@@ -418,7 +419,7 @@ class OpenMS:
                     choice = self.tmt6plex
                 label = str(choice[label[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
-            elif 'SILAC' in file2label[raw]:
+            elif 'SILAC' in ','.join(file2label[raw]):
                 if len(label) == 3:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
@@ -430,17 +431,17 @@ class OpenMS:
             else:
                 out = raw
 
-            f.write(Fraction_group[raw] + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
+            f.write(
+                Fraction_group[raw] + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
 
         # sample table
         f.write("\n")
-        if 'tmt' in file2label[sdrf["comment[data file]"].tolist()[0]].lower():
+        if 'tmt' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
         f.write("\t".join(openms_sample_header) + "\n")
         sample_row_written = list()
-        combined_fac_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         mixture_identifier = 1
         mixture_raw_tag = {}
         mixture_sample_tag = {}
@@ -449,7 +450,7 @@ class OpenMS:
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
-            try:
+            if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
 
                 # MSstats BioReplicate column needs to be different for samples from different conditions.
@@ -457,7 +458,7 @@ class OpenMS:
                 MSstatsBioReplicate = sample
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
-            except Exception as e:
+            else:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
@@ -467,14 +468,11 @@ class OpenMS:
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
-
-            if 'NONE' in file2combined_factors[raw]:
+            if file2combined_factors[raw + row['comment[label]']] is None:
                 # no factor defined use sample as condition
-                condition = sample
+                condition = source_name
             else:
-                condition = file2combined_factors[raw].split(';')[combined_fac_index[raw]]
-                combined_fac_index[raw] = combined_fac_index[raw] + 1
-
+                condition = file2combined_factors[raw + row['comment[label]']]
             if len(openms_sample_header) == 4:
                 if raw not in mixture_raw_tag.keys():
                     if sample not in mixture_sample_tag.keys():
@@ -505,7 +503,7 @@ class OpenMS:
                                         file2fraction):
         f = open(output_filename, "w+")
         raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
-        if 'tmt' in file2label[sdrf["comment[data file]"].tolist()[0]].lower():
+        if 'tmt' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]):
             if legacy:
                 open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
                                                       "Label", "Sample", "MSstats_Condition",
@@ -525,7 +523,6 @@ class OpenMS:
                                                       "MSstats_BioReplicate"]
 
         f.write("\t".join(open_ms_experimental_design_header) + "\n")
-        combined_fac_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
         Fraction_group = {}
@@ -554,8 +551,7 @@ class OpenMS:
             else:
                 Fraction_group[raw] = fraction_group
 
-            # TODO avoid try catch again
-            try:
+            if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
 
                 # MSstats BioReplicate column needs to be different for samples from different conditions.
@@ -563,7 +559,7 @@ class OpenMS:
                 MSstatsBioReplicate = sample
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
-            except Exception:
+            else:
                 warning_message = "No sample number identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
@@ -579,26 +575,18 @@ class OpenMS:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
 
-            # TODO dangerous, what if a factor is called NONE? Like for Treatment = NONE?
-            #  Why not use REAL lists instead of weird combined strings that have to be split again? Then you can use
-            #  the None object.
-            if 'NONE' in file2combined_factors[raw]:
+            if file2combined_factors[raw + row['comment[label]']] is None:
                 # no factor defined -> use sample as condition
-                condition = sample
+                condition = source_name
             else:
-                # TODO this wont work if the labels have ";" in themselves (which is almost ALWAYS the case
-                #  according to the standard).
-                #  Use lists! Not strings. Or better make the dict unique by using (file,label) as key
-                condition = file2combined_factors[raw].split(';')[combined_fac_index[raw]]
-                combined_fac_index[raw] = combined_fac_index[raw] + 1
+                condition = file2combined_factors[raw + row['comment[label]']]
 
-            # TODO this wont work if the labels have ";" in themselves. Use lists! Not strings.
-            #  What do you want to do here?
-            label = file2label[raw].split(';')
+            # convert sdrf's label to openms's label
+            label = file2label[raw]
             if "label free sample" in label:
                 label = "1"
 
-            elif "TMT" in file2label[raw]:
+            elif "TMT" in ','.join(file2label[raw]):
                 if len(label) > 11 or 'TMT134N' in label or 'TMT133C' in label or 'TMT133N' \
                         in label or 'TMT132C' in label or 'TMT132N' in label:
                     choice = self.tmt16plex
@@ -613,7 +601,7 @@ class OpenMS:
                 #  in the same order as specified in the initial labels dictionary. Very Dangerous!
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
-            elif 'SILAC' in file2label[raw]:
+            elif 'SILAC' in ','.join(file2label[raw]):
                 if len(label) == 3:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
@@ -665,14 +653,18 @@ class OpenMS:
                                           "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
         f.write("\t".join(open_ms_search_settings_header) + "\n")
         raws = list()
+        TMT_mod = {'tmt6plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
+                   'tmt10plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
+                   'tmt11plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
+                   'tmt16plex': ['TMTpro (K)', 'TMTpro (N-term)']}
         for _0, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
             if raw in raws:
                 continue
             raws.append(raw)
-            labels = f2c.file2label[raw].split(';')
-            if 'TMT' in f2c.file2label[raw]:
+            labels = f2c.file2label[raw]
+            if 'TMT' in ','.join(labels):
                 if len(labels) > 11 or 'TMT134N' in labels or 'TMT133C' in labels or 'TMT133N' \
                         in labels or 'TMT132C' in labels or 'TMT132N' in labels:
                     label = 'tmt16plex'
@@ -682,17 +674,17 @@ class OpenMS:
                     label = 'tmt10plex'
                 else:
                     label = 'tmt6plex'
-
-                # add TMT modification as fixed modification
+                # add default TMT modification when sdrf with label not contains TMT modification
                 if 'TMT' not in f2c.file2mods[raw][0] and 'TMT' not in f2c.file2mods[raw][1]:
-                # TODO what is this? what does it do? The variable is unused!
-                #  Remember that different TMT labellings use the same modification
-                #  as label since the isobaric tags have the same mass.
-                #  E.g. TMT6, 10 and 11 all use the TMT6 mass tag as modification. TMT16 is TMTpro
-                    tmt_fix_mod = ''
-            elif "label free sample" in f2c.file2label[raw]:
+                    tmt_fix_mod = TMT_mod[label]
+                    if f2c.file2mods[raw][0]:
+                        f2c.file2mods[raw] = (','.join(f2c.file2mods[raw][0].split(',').extend(tmt_fix_mod)),
+                                              f2c.file2mods[raw][1])
+                    else:
+                        f2c.file2mods[raw] = (','.join(tmt_fix_mod), f2c.file2mods[raw][1])
+            elif "label free sample" in labels:
                 label = "label free sample"
-            elif "silac" in f2c.file2label[raw]:
+            elif "silac" in labels:
                 label = "SILAC"
             else:
                 pass  # TODO For else
