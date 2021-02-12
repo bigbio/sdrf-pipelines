@@ -204,7 +204,8 @@ class SDRFSchema(Schema):
             return LogicError(error_message, error_type=logging.ERROR)
         return None
 
-    def validate_columns_order(self, panda_sdrf):
+    @staticmethod
+    def validate_columns_order(panda_sdrf):
         error_columns_order = []
         if 'assay name' in list(panda_sdrf):
             cnames = list(panda_sdrf)
