@@ -3,6 +3,10 @@
 import click
 import logging
 import sys
+import re
+import os
+import csv
+import pandas as pd
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
@@ -100,9 +104,44 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
     sys.exit(bool(errors))
 
 
+@click.command('split-sdrf', short_help='Command to split the sdrf file')
+@click.option('--sdrf_file', '-s', help='SDRF file to be splited', required=True)
+@click.option('--attribute', '-a', help='property to split, Multiple attributes are separated by commas', required=True)
+@click.option('--prefix', '-p', help='file prefix to be added to the sdrf file name')
+@click.pass_context
+def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
+    pattern = re.compile(r'\]\.\d+\t')
+    df = pd.read_csv(sdrf_file, sep='\t', skip_blank_lines=False)
+    attributes = attribute.split(',')
+    d = dict(tuple(df.groupby(attributes)))
+    for key in d:
+        dataframe = d[key]
+        file_name = os.path.split(sdrf_file)[-1]
+        Path = os.path.split(sdrf_file)[0] + '/'
+        if prefix is None:
+            if len(file_name.split('.')) > 2:
+                prefix = '.'.join(file_name.split('.')[:-2])
+            else:
+                prefix = file_name.split('.')[0]
+        if isinstance(key, tuple):
+            new_file = prefix + "-" + '-'.join(key).replace(' ', '_') + '.sdrf.tsv'
+        else:
+            new_file = prefix + "-" + key.replace(' ', '_') + '.sdrf.tsv'
+        dataframe.to_csv(Path + new_file, sep='\t', quoting=csv.QUOTE_NONE, index=False)
+
+        # Handling duplicate column names
+        with open(Path + new_file, 'r+') as f:
+            data = f.read()
+        data = pattern.sub(']\t', data)
+        f = open(Path + new_file, 'w')
+        f.write(data)
+        f.close()
+
+
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
+cli.add_command(split_sdrf)
 
 
 def main():
