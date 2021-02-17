@@ -1,0 +1,39 @@
+Fraction_Group	Fraction	Spectra_Filepath	Label	Sample
+1	1	UPS1_12500amol_R1.mzML	1	1
+2	1	UPS1_12500amol_R2.mzML	1	1
+3	1	UPS1_12500amol_R3.mzML	1	1
+4	1	UPS1_125amol_R1.mzML	1	2
+5	1	UPS1_125amol_R2.mzML	1	2
+6	1	UPS1_125amol_R3.mzML	1	2
+7	1	UPS1_25000amol_R1.mzML	1	3
+8	1	UPS1_25000amol_R2.mzML	1	3
+9	1	UPS1_25000amol_R3.mzML	1	3
+10	1	UPS1_2500amol_R1.mzML	1	4
+11	1	UPS1_2500amol_R2.mzML	1	4
+12	1	UPS1_2500amol_R3.mzML	1	4
+13	1	UPS1_250amol_R1.mzML	1	5
+14	1	UPS1_250amol_R2.mzML	1	5
+15	1	UPS1_250amol_R3.mzML	1	5
+16	1	UPS1_50000amol_R1.mzML	1	6
+17	1	UPS1_50000amol_R2.mzML	1	6
+18	1	UPS1_50000amol_R3.mzML	1	6
+19	1	UPS1_5000amol_R1.mzML	1	7
+20	1	UPS1_5000amol_R2.mzML	1	7
+21	1	UPS1_5000amol_R3.mzML	1	7
+22	1	UPS1_500amol_R1.mzML	1	8
+23	1	UPS1_500amol_R2.mzML	1	8
+24	1	UPS1_500amol_R3.mzML	1	8
+25	1	UPS1_50amol_R1.mzML	1	9
+26	1	UPS1_50amol_R2.mzML	1	9
+27	1	UPS1_50amol_R3.mzML	1	9
+
+Sample	MSstats_Condition	MSstats_BioReplicate
+1	CT=mixture;QY=12500 amol;CN=UPS1;CV=Standards Research Group	1
+2	CT=mixture;QY=125 amol;CN=UPS1;CV=Standards Research Group	2
+3	CT=mixture;QY=25000 amol;CN=UPS1;CV=Standards Research Group	3
+4	CT=mixture;QY=2500 amol;CN=UPS1;CV=Standards Research Group	4
+5	CT=mixture;QY=250 amol;CN=UPS1;CV=Standards Research Group	5
+6	CT=mixture;QY=50000 amol;CN=UPS1;CV=Standards Research Group	6
+7	CT=mixture;QY=5000 amol;CN=UPS1;CV=Standards Research Group	7
+8	CT=mixture;QY=500 amol;CN=UPS1;CV=Standards Research Group	8
+9	CT=mixture;QY=50 amol;CN=UPS1;CV=Standards Research Group	9
