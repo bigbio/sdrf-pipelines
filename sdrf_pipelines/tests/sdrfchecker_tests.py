@@ -6,7 +6,6 @@ from sdrf_pipelines.zooma.zooma import Zooma, SlimOlsClient
 
 def test_validate_srdf():
   """
-  Test the default behaviour of the vcf-to-proteindb tool
   :return:
   """
   runner = CliRunner()
@@ -17,11 +16,10 @@ def test_validate_srdf():
 
 def test_convert_openms():
   """
-    Test the default behaviour of the vcf-to-proteindb tool
     :return:
     """
   runner = CliRunner()
-  result = runner.invoke(cli, ['convert-openms', '-t2', '-l', '-s', 'testdata/sdrf.tsv'])
+  result = runner.invoke(cli, ['convert-openms', '-t2', 'l', '-s', 'testdata/sdrf.tsv'])
   print('convert to openms' + result.output)
   assert 'ERROR' not in result.output
 
