@@ -132,11 +132,10 @@ class OpenMS:
                     c.startswith('comment[modification parameters')]  # columns with modification parameters
 
         if not split_by_columns:
-            # get factor columns (except constant ones)
+
             factor_cols = [c for ind, c in enumerate(sdrf) if
                            c.startswith('factor value[') and len(sdrf[c].unique()) >= 1]
 
-            # get characteristics columns (except constant ones)
             characteristics_cols = [c for ind, c in enumerate(sdrf) if
                                     c.startswith('characteristics[') and len(sdrf[c].unique()) >= 1]
             # and remove characteristics columns already present as factor
