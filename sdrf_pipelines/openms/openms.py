@@ -138,7 +138,7 @@ class OpenMS:
 
             # get characteristics columns (except constant ones)
             characteristics_cols = [c for ind, c in enumerate(sdrf) if
-                                    c.startswith('characteristics[') and len(sdrf[c].unique()) > 1]
+                                    c.startswith('characteristics[') and len(sdrf[c].unique()) >= 1]
             # and remove characteristics columns already present as factor
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
             print('Factor columns: ' + str(factor_cols))
