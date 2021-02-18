@@ -215,7 +215,7 @@ class SDRFSchema(Schema):
                 if ('comment' in column or 'technology type' in column) and cnames.index(column) < index:
                     error_message = 'The column ' + column + 'cannot be before the assay name'
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if ('characteristics' in column or 'material type' in column) and cnames.index(column) > index:
+                if ('characteristics' in column or ('material type' in column and 'factor value' not in column)) and cnames.index(column) > index:
                     error_message = 'The column ' + column + 'cannot be after the assay name'
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
                 if 'factor value' in column and not factor_tag:
