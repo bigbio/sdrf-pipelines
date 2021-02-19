@@ -42,6 +42,11 @@ class OpenMS:
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131': 10}
         self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
                          'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
+        self.enzymes = {"Glutamyl endopeptidase":"glutamyl endopeptidase",
+                        "Trypsin/p":"Trypsin/P",
+                        "Lys-c":"Lys-C",
+                        "Lys-n":"Lys-N", "Arg-c":"Arg-C", "Asp-n":"Asp-N", "Pepsina":"PepsinA"}
+
         # TODO What about iTRAQ?
 
         # TODO How does this work? In OpenMS there are no such modifications. You can have different "isotope mods"
@@ -241,9 +246,13 @@ class OpenMS:
                 source_name2n_reps[source_name] = int(f2c.file2technical_rep[raw])
 
             enzyme = re.search("NT=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1)
+
             enzyme = enzyme.capitalize()
-            if "Trypsin/p" in enzyme:  # workaround
-                enzyme = "Trypsin/P"
+            # This is to check if the openMS map of enzymes
+            if enzyme in self.enzymes:
+              enzyme = self.enzymes[enzyme]
+
+
             f2c.file2enzyme[raw] = enzyme
 
             if 'comment[fraction identifier]' in row:
