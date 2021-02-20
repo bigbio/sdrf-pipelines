@@ -132,13 +132,12 @@ class OpenMS:
                     c.startswith('comment[modification parameters')]  # columns with modification parameters
 
         if not split_by_columns:
-            # get factor columns (except constant ones)
-            factor_cols = [c for ind, c in enumerate(sdrf) if
-                           c.startswith('factor value[') and len(sdrf[c].unique()) > 1]
 
-            # get characteristics columns (except constant ones)
+            factor_cols = [c for ind, c in enumerate(sdrf) if
+                           c.startswith('factor value[') and len(sdrf[c].unique()) >= 1]
+
             characteristics_cols = [c for ind, c in enumerate(sdrf) if
-                                    c.startswith('characteristics[') and len(sdrf[c].unique()) > 1]
+                                    c.startswith('characteristics[') and len(sdrf[c].unique()) >= 1]
             # and remove characteristics columns already present as factor
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
             print('Factor columns: ' + str(factor_cols))
@@ -358,7 +357,7 @@ class OpenMS:
     def reportWarnings(self, sdrf_file):
         if len(self.warnings) != 0:
             for k, v in self.warnings.items():
-                print('WARNING: "' + k + '" occured ' + str(v) + ' times.')
+                print('WARNING: "' + k + '" occurred ' + str(v) + ' times.')
         print("SUCCESS (WARNINGS=" + str(len(self.warnings)) + "): " + sdrf_file)
 
     def writeTwoTableExperimentalDesign(self, output_filename, sdrf, file2technical_rep, source_name_list,
