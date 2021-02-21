@@ -50,7 +50,8 @@ class OpenMS:
                         "Chymotrypsin/p":"Chymotrypsin/P","Cnbr":"CNBr",
                         "V8-de":"V8-DE", "V8-e":"V8-E",
                         "Elastase-trypsin-chymotrypsin":"elastase-trypsin-chymotrypsin",
-                        "Pepsina":"PepsinA"}
+                        "Pepsina":"PepsinA",
+                        "Unspecific cleavage":"unspecific cleavage"}
 
         # TODO What about iTRAQ?
 
