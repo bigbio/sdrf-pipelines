@@ -42,10 +42,15 @@ class OpenMS:
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131': 10}
         self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
                          'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
+        # Hardcode enzymes from OpenMS
         self.enzymes = {"Glutamyl endopeptidase":"glutamyl endopeptidase",
                         "Trypsin/p":"Trypsin/P",
-                        "Lys-c":"Lys-C",
-                        "Lys-n":"Lys-N", "Arg-c":"Arg-C", "Asp-n":"Asp-N", "Pepsina":"PepsinA"}
+                        "Lys-c":"Lys-C","Lys-n":"Lys-N","Arg-c":"Arg-C","Arg-c/p":"Arg-C/P",
+                        "Asp-n":"Asp-N","Asp-n/b":"Asp-N/B","Asp-n_ambic":"Asp-N_ambic",
+                        "Chymotrypsin/p":"Chymotrypsin/P","Cnbr":"CNBr",
+                        "V8-de":"V8-DE", "V8-e":"V8-E",
+                        "Elastase-trypsin-chymotrypsin":"elastase-trypsin-chymotrypsin",
+                        "Pepsina":"PepsinA"}
 
         # TODO What about iTRAQ?
 
