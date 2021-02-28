@@ -135,6 +135,9 @@ class OpenMS:
 
         # load sdrf file
         sdrf = pd.read_table(sdrf_file)
+        if sdrf.isnull().values.any():
+            raise Exception("Encountered empty cells while reading SDRF."
+                            " Please check your file, e.g. for too many column headers or empty fields")
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
