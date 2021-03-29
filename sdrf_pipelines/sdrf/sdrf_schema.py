@@ -170,7 +170,7 @@ class SDRFSchema(Schema):
 
         error_names = self.validate_column_names(panda_sdrf)
         if error_names:
-            errors.append(error_names)
+            errors.extend(error_names)
 
         errors.extend(self.check_recommendations(panda_sdrf))
 
@@ -179,6 +179,7 @@ class SDRFSchema(Schema):
     def validate_column_names(self, panda_sdrf):
         errors = []
         spaces = []
+        logerror = []
         for cname in panda_sdrf.columns:
             if cname != cname.strip():
                 spaces.append(cname)
@@ -188,10 +189,17 @@ class SDRFSchema(Schema):
             m = re.match(self._column_template, cname)
             if not m:
                 errors.append(cname)
+            if m.group().startswith('factor value'):
+                if m.group().replace('factor value', 'comment') not in panda_sdrf.columns and \
+                        m.group().replace('factor value', 'characteristics') not in panda_sdrf.columns:
+                    error_message = 'The ' + cname + ' column should also be in the characteristics or comment'
+                    logerror.append(LogicError(error_message, error_type=logging.ERROR))
+
         if errors + spaces:
-            return LogicError('Invalid columns present: ' + ', '.join(errors) +
-                              ', '.join(e + ' (leading or trailing whitespace)' for e in spaces),
-                              error_type=logging.ERROR)
+            logerror.append(LogicError('Invalid columns present: ' + ', '.join(errors) +
+                                       ', '.join(e + ' (leading or trailing whitespace)' for e in spaces),
+                                       error_type=logging.ERROR))
+        return logerror
 
     def validate_mandatory_columns(self, panda_sdrf):
         error_mandatory = []
@@ -215,7 +223,8 @@ class SDRFSchema(Schema):
                 if ('comment' in column or 'technology type' in column) and cnames.index(column) < index:
                     error_message = 'The column ' + column + 'cannot be before the assay name'
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if ('characteristics' in column or ('material type' in column and 'factor value' not in column)) and cnames.index(column) > index:
+                if ('characteristics' in column or (
+                        'material type' in column and 'factor value' not in column)) and cnames.index(column) > index:
                     error_message = 'The column ' + column + 'cannot be after the assay name'
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
                 if 'factor value' in column and not factor_tag:
