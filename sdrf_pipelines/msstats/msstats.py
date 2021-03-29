@@ -6,7 +6,11 @@ import re
 
 
 class Msstats():
+
     def __init__(self) -> None:
+        """
+        convert sdrf to msstats annotation file (label free sample)
+        """
         self.warnings = dict()
 
     # Consider unlabeled analysis for now
@@ -35,7 +39,7 @@ class Msstats():
                            c.startswith('factor value[')]
         else:
             factor_cols = split_by_columns
-        for row_index, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             if not split_by_columns:
                 combined_factors = self.combine_factors_to_conditions(factor_cols, row)
             else:
