@@ -8,7 +8,7 @@ import re
 class Msstats():
 
     def __init__(self) -> None:
-        """convert sdrf to msstats annotation file (label free sample)"""
+        """convert sdrf to msstats annotation file (label free sample)."""
         self.warnings = dict()
 
     # Consider unlabeled analysis for now
