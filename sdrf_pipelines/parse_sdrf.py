@@ -9,6 +9,7 @@ import csv
 import pandas as pd
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.maxquant.maxquant import Maxquant
+from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY, ALL_TEMPLATES, DEFAULT_TEMPLATE
 from sdrf_pipelines.utils.exceptions import AppConfigException
@@ -138,10 +139,23 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
         f.close()
 
 
+@click.command('convert-msstats',
+               short_help='convert sdrf to msstats annotation file')
+@click.option('--sdrf', '-s', help='SDRF file', required=True)
+@click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
+@click.option('--outpath', "-o", help='annotation out file path', required=True)
+@click.option('--OpenSWATHtoMSstats', "-swath", help='annotation out file path', default=False)
+@click.option('--MaxQtoMSstats', "-mq", help='annotation out file path', default=False)
+@click.pass_context
+def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, OpenSWATHtoMSstats, MaxQtoMSstats):
+    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, OpenSWATHtoMSstats, MaxQtoMSstats)
+
+
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
 cli.add_command(split_sdrf)
+cli.add_command(msstats_from_sdrf)
 
 
 def main():
