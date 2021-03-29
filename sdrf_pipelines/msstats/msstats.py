@@ -8,9 +8,7 @@ import re
 class Msstats():
 
     def __init__(self) -> None:
-        """
-        convert sdrf to msstats annotation file (label free sample)
-        """
+        """convert sdrf to msstats annotation file (label free sample)"""
         self.warnings = dict()
 
     # Consider unlabeled analysis for now
@@ -63,7 +61,7 @@ class Msstats():
             sdrf['sort_index'] = indexs
             sdrf = sdrf.sort_values(by="sort_index", ascending=True)
             sample = []
-            for row_index, row in sdrf.iterrows():
+            for _, row in sdrf.iterrows():
                 biorep = row['characteristics[biological replicate]']
                 if biorep.lower() == 'not available' or biorep.lower() == 'not applicable':
                     biorep = '1'
