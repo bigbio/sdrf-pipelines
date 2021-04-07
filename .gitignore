@@ -6,3 +6,5 @@ build/
 /experimental_design.tsv
 /openms.tsv
 __pycache__
+*venv/
+.vscode
