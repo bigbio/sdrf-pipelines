@@ -704,8 +704,7 @@ class OpenMS:
             elif "silac" in labels:
                 label = "SILAC"
             else:
-                # TODO: Add proper error handling
-                pass  # TODO For else
+                raise Exception("Failed to find any supported labels. Supported labels are 'silac', 'label free sample', and tmt labels in the format 'TMT131C'")
 
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +

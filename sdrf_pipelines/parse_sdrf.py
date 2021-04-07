@@ -38,7 +38,11 @@ def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, ve
                      conditionsfromcolumns: str):
     if sdrf is None:
         help()
-    OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
+    
+    try:
+        OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
+    except Exception as e:
+        print("Error: " + str(e))
 
 
 @click.command('convert-maxquant',
