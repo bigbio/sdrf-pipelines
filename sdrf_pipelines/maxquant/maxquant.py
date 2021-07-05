@@ -1546,10 +1546,12 @@ class Maxquant():
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in \
                         file2label[key1] or 'Lys6' in file2label[key1]:
                     parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
-                                           file2silac_shape[key1], file2pctol[key1], file2fragtol[key1]]
+                                           file2silac_shape[key1], file2pctol[key1], file2fragtol[key1],
+                                           file2pctolunit[key1], file2fragtolunit[key1]]
                 else:
                     parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
-                                           file2pctol[key1], file2fragtol[key1]]
+                                           file2pctol[key1], file2fragtol[key1], file2pctolunit[key1],
+                                           [file2fragtolunit[key1]]]
 
             elif {instr_val: value2} in tmp:
                 int_node = doc.createElement('int')
@@ -1566,10 +1568,12 @@ class Maxquant():
                         or 'Lys6' in file2label[key1]:
                     parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
                                                 file2enzyme[key1], file2silac_shape[key1],
-                                                file2pctol[key1], file2fragtol[key1]]
+                                                file2pctol[key1], file2fragtol[key1], file2pctolunit[key1],
+                                                file2fragtolunit[key1]]
                 else:
                     parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
-                                                file2enzyme[key1], file2pctol[key1], file2fragtol[key1]]
+                                                file2enzyme[key1], file2pctol[key1], file2fragtol[key1],
+                                                file2pctolunit[key1], file2fragtolunit[key1]]
 
             paramGroupIndices.appendChild(int_node)
 
@@ -1914,14 +1918,24 @@ class Maxquant():
             doMassFiltering.appendChild(doc.createTextNode('True'))
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
-            if len(j) == 6:
+            if len(j) == 8:
                 firstSearchTol.appendChild(doc.createTextNode(str(j[5])))
                 mainSearchTol.appendChild(doc.createTextNode(str(j[4])))
+                if j[6] == 'ppm':
+                    searchTolInPpm = doc.createElement('searchTolInPpm')
+                    searchTolInPpm.appendChild(doc.createTextNode('True'))
+                else:
+                    searchTolInPpm = doc.createElement('searchTolInPpm')
+                    searchTolInPpm.appendChild(doc.createTextNode('False'))
             else:
                 firstSearchTol.appendChild(doc.createTextNode(str(j[6])))
                 mainSearchTol.appendChild(doc.createTextNode(str(j[5])))
-            searchTolInPpm = doc.createElement('searchTolInPpm')
-            searchTolInPpm.appendChild(doc.createTextNode('True'))
+                if j[7] == 'ppm':
+                    searchTolInPpm = doc.createElement('searchTolInPpm')
+                    searchTolInPpm.appendChild(doc.createTextNode('True'))
+                else:
+                    searchTolInPpm = doc.createElement('searchTolInPpm')
+                    searchTolInPpm.appendChild(doc.createTextNode('False'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
             isotopeMatchTol.appendChild(doc.createTextNode('2'))
             isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
