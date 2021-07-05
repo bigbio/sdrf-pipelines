@@ -15,6 +15,7 @@ import os
 import numpy as np
 import pkg_resources
 
+
 class Maxquant():
 
     def __init__(self) -> None:
@@ -730,7 +731,12 @@ class Maxquant():
                     f_tmp = f_tol_str.split(" ")
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
+
+                    # TODO how to set different tolerence unit
                     if "Da" in file2pctolunit[raw]:
+                        warning_message = "mass tolerance unit different between pc and frag. Assuming precursor 4.5 " \
+                                          "ppm. "
+                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "4.5"
                         file2pctolunit[raw] = "ppm"
                 elif "Da" in f_tol_str:
@@ -738,6 +744,9 @@ class Maxquant():
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
                     if "ppm" in file2pctolunit[raw]:
+                        warning_message = "mass tolerance unit different between pc and frag. Assuming precursor 0.01" \
+                                          " Da."
+                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "0.01"
                         file2pctolunit[raw] = "Da"
                 else:
@@ -1906,11 +1915,11 @@ class Maxquant():
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
             if len(j) == 6:
-                firstSearchTol.appendChild(doc.createTextNode(str(j[4])))
-                mainSearchTol.appendChild(doc.createTextNode(str(j[5])))
-            else:
                 firstSearchTol.appendChild(doc.createTextNode(str(j[5])))
-                mainSearchTol.appendChild(doc.createTextNode(str(j[6])))
+                mainSearchTol.appendChild(doc.createTextNode(str(j[4])))
+            else:
+                firstSearchTol.appendChild(doc.createTextNode(str(j[6])))
+                mainSearchTol.appendChild(doc.createTextNode(str(j[5])))
             searchTolInPpm = doc.createElement('searchTolInPpm')
             searchTolInPpm.appendChild(doc.createTextNode('True'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
@@ -2004,7 +2013,7 @@ class Maxquant():
             peakRefinement.appendChild(doc.createTextNode('False'))
             isobaricSumOverWindow = doc.createElement('isobaricSumOverWindow')
             isobaricSumOverWindow.appendChild(doc.createTextNode('True'))
-            isobaricWeightExponent = doc.createElement('tisobaricWeightExponent')
+            isobaricWeightExponent = doc.createElement('isobaricWeightExponent')
             isobaricWeightExponent.appendChild(doc.createTextNode('0.75'))
             diaLibraryType = doc.createElement('diaLibraryType')
             diaLibraryType.appendChild(doc.createTextNode('0'))
