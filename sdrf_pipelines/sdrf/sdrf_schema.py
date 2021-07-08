@@ -191,7 +191,8 @@ class SDRFSchema(Schema):
                 errors.append(cname)
             if m.group().startswith('factor value'):
                 if m.group().replace('factor value', 'comment') not in panda_sdrf.columns and \
-                        m.group().replace('factor value', 'characteristics') not in panda_sdrf.columns:
+                        m.group().replace('factor value', 'characteristics') not in panda_sdrf.columns \
+                  and m.group() not in panda_sdrf.columns:
                     error_message = 'The ' + cname + ' column should also be in the characteristics or comment'
                     logerror.append(LogicError(error_message, error_type=logging.ERROR))
 
