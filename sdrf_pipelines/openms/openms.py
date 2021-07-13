@@ -32,8 +32,8 @@ class OpenMS:
         self._unimod_database = UnimodDatabase()
         self.tmt16plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
-                          'TMT131C': 11, 'TMT132N': 12, 'TMT132C': 13, 'TMT133N': 14, 'TMT134N': 15,
-                          'TMT134C': 16}
+                          'TMT131C': 11, 'TMT132N': 12, 'TMT132C': 13, 'TMT133N': 14, 'TMT133C': 15,
+                          'TMT134N': 16}
         self.tmt11plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
                           'TMT131C': 11}
@@ -711,7 +711,8 @@ class OpenMS:
             elif "silac" in labels:
                 label = "SILAC"
             else:
-                pass  # TODO For else
+                raise Exception("Failed to find any supported labels. Supported labels are 'silac', 'label free "
+                                "sample', and tmt labels in the format 'TMT131C'")
 
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
