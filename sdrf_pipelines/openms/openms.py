@@ -16,7 +16,6 @@ class FileToColumnEntries:
     file2diss = dict()
     file2enzyme = dict()
     file2source = dict()
-    # TODO not sure why this is needed
     file2label = dict()
     # TODO the following lines will be very difficult with labels. Usually a combination of file&label defines the factor
     #  I saw that you try to keep lists or combined strings here, but maybe hashing a tuple would be easier here.
@@ -33,8 +32,8 @@ class OpenMS:
         self._unimod_database = UnimodDatabase()
         self.tmt16plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
-                          'TMT131C': 11, 'TMT132N': 12, 'TMT132C': 13, 'TMT133N': 14, 'TMT134N': 15,
-                          'TMT134C': 16}
+                          'TMT131C': 11, 'TMT132N': 12, 'TMT132C': 13, 'TMT133N': 14, 'TMT133C': 15,
+                          'TMT134N': 16}
         self.tmt11plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
                           'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
                           'TMT131C': 11}
@@ -43,19 +42,18 @@ class OpenMS:
         self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
                          'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
         # Hardcode enzymes from OpenMS
-        self.enzymes = {"Glutamyl endopeptidase":"glutamyl endopeptidase",
-                        "Trypsin/p":"Trypsin/P",
-                        "Lys-c":"Lys-C","Lys-n":"Lys-N","Arg-c":"Arg-C","Arg-c/p":"Arg-C/P",
-                        "Asp-n":"Asp-N","Asp-n/b":"Asp-N/B","Asp-n_ambic":"Asp-N_ambic",
-                        "Chymotrypsin/p":"Chymotrypsin/P","Cnbr":"CNBr",
-                        "V8-de":"V8-DE", "V8-e":"V8-E",
-                        "Elastase-trypsin-chymotrypsin":"elastase-trypsin-chymotrypsin",
-                        "Pepsina":"PepsinA",
-                        "Unspecific cleavage":"unspecific cleavage", "No cleavage":"no cleavage"}
+        self.enzymes = {"Glutamyl endopeptidase": "glutamyl endopeptidase",
+                        "Trypsin/p": "Trypsin/P",
+                        "Lys-c": "Lys-C", "Lys-n": "Lys-N", "Arg-c": "Arg-C", "Arg-c/p": "Arg-C/P",
+                        "Asp-n": "Asp-N", "Asp-n/b": "Asp-N/B", "Asp-n_ambic": "Asp-N_ambic",
+                        "Chymotrypsin/p": "Chymotrypsin/P", "Cnbr": "CNBr",
+                        "V8-de": "V8-DE", "V8-e": "V8-E",
+                        "Elastase-trypsin-chymotrypsin": "elastase-trypsin-chymotrypsin",
+                        "Pepsina": "PepsinA",
+                        "Unspecific cleavage": "unspecific cleavage", "No cleavage": "no cleavage"}
 
         # TODO What about iTRAQ?
 
-        # TODO How does this work? In OpenMS there are no such modifications. You can have different "isotope mods"
         #  for light, medium and heavy. E.g. Label:13C(2)15N(2) (K) as light or Dimethyl:2H(2)13C (K) as light
         self.silac3 = {'silac light': 1, 'silac medium': 2, 'silac heavy': 3}
         self.silac2 = {'silac light': 1, 'silac heavy': 2}
@@ -259,8 +257,7 @@ class OpenMS:
             enzyme = enzyme.capitalize()
             # This is to check if the openMS map of enzymes
             if enzyme in self.enzymes:
-              enzyme = self.enzymes[enzyme]
-
+                enzyme = self.enzymes[enzyme]
 
             f2c.file2enzyme[raw] = enzyme
 
@@ -273,7 +270,6 @@ class OpenMS:
             else:
                 f2c.file2fraction[raw] = "1"
 
-            ## TODO try to avoid try catch here. Can't you just check the number of captured groups?
             if re.search("NT=(.+?)(;|$)", row['comment[label]']) is not None:
                 label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
                 f2c.file2label[raw] = [label]
@@ -390,6 +386,7 @@ class OpenMS:
         Fraction_group = {}
         sample_id_map = {}
         sample_id = 1
+        pre_frac_group = 1
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -401,12 +398,18 @@ class OpenMS:
             for i in range(source_name_index):
                 offset = offset + int(source_name2n_reps[source_name_list[i]])
 
-            fraction_group = str(offset + int(replicate))
+            fraction_group = offset + int(replicate)
             if raw in Fraction_group.keys():
                 if fraction_group < Fraction_group[raw]:
                     Fraction_group[raw] = fraction_group
             else:
                 Fraction_group[raw] = fraction_group
+
+            # make fraction group consecutive
+            if Fraction_group[raw] > pre_frac_group + 1:
+                Fraction_group[raw] = pre_frac_group + 1
+            pre_frac_group = Fraction_group[raw]
+
             if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
             else:
@@ -449,7 +452,7 @@ class OpenMS:
                 out = raw
 
             f.write(
-                Fraction_group[raw] + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
+                str(Fraction_group[raw]) + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
 
         # sample table
         f.write("\n")
@@ -549,6 +552,7 @@ class OpenMS:
         BioReplicate = []
         sample_id_map = {}
         sample_id = 1
+        pre_frac_group = 1
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -560,13 +564,18 @@ class OpenMS:
             for i in range(source_name_index):
                 offset = offset + int(source_name2n_reps[source_name_list[i]])
 
-            fraction_group = str(offset + int(replicate))
+            fraction_group = offset + int(replicate)
 
             if raw in Fraction_group.keys():
                 if fraction_group < Fraction_group[raw]:
                     Fraction_group[raw] = fraction_group
             else:
                 Fraction_group[raw] = fraction_group
+
+            # make fraction group consecutive
+            if Fraction_group[raw] > pre_frac_group + 1:
+                Fraction_group[raw] = pre_frac_group + 1
+            pre_frac_group = Fraction_group[raw]
 
             if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
@@ -582,7 +591,6 @@ class OpenMS:
 
                 # Solve non-sample id expression models
                 if source_name in sample_id_map.keys():
-                    # TODO why do you sometimes build the dicts based on filename and sometimes based on source??
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
@@ -614,8 +622,7 @@ class OpenMS:
                 else:
                     choice = self.tmt6plex
                 label = str(choice[label[label_index[raw]]])
-                # TODO if at all, this only works if the labels for the same file are consecutive in the SDRF and always
-                #  in the same order as specified in the initial labels dictionary. Very Dangerous!
+
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
             elif 'SILAC' in ','.join(file2label[raw]):
@@ -644,20 +651,20 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if legacy:
-                    f.write(Fraction_group[raw] + "\t" + file2fraction[
+                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
                         raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition
                             + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
                 else:
-                    f.write(Fraction_group[raw] + "\t" + file2fraction[
+                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
                         raw] + "\t" + out + "\t" + label + "\t" + condition + "\t"
                             + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
             else:
                 if legacy:
-                    f.write(Fraction_group[raw] + "\t" + file2fraction[
+                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
                         raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition + "\t" +
                             MSstatsBioReplicate + "\n")
                 else:
-                    f.write(Fraction_group[raw] + "\t" + file2fraction[
+                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
                         raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" +
                             MSstatsBioReplicate + "\n")
         f.close()
@@ -695,8 +702,8 @@ class OpenMS:
                 if 'TMT' not in f2c.file2mods[raw][0] and 'TMT' not in f2c.file2mods[raw][1]:
                     tmt_fix_mod = TMT_mod[label]
                     if f2c.file2mods[raw][0]:
-                        f2c.file2mods[raw] = (','.join(f2c.file2mods[raw][0].split(',').extend(tmt_fix_mod)),
-                                              f2c.file2mods[raw][1])
+                        FixedMod = ','.join(f2c.file2mods[raw][0].split(',') + tmt_fix_mod)
+                        f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
                     else:
                         f2c.file2mods[raw] = (','.join(tmt_fix_mod), f2c.file2mods[raw][1])
             elif "label free sample" in labels:
@@ -704,7 +711,8 @@ class OpenMS:
             elif "silac" in labels:
                 label = "SILAC"
             else:
-                pass  # TODO For else
+                raise Exception("Failed to find any supported labels. Supported labels are 'silac', 'label free "
+                                "sample', and tmt labels in the format 'TMT131C'")
 
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
