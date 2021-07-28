@@ -387,6 +387,7 @@ class OpenMS:
         sample_id_map = {}
         sample_id = 1
         pre_frac_group = 1
+        raw_frac = {}
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -399,16 +400,24 @@ class OpenMS:
                 offset = offset + int(source_name2n_reps[source_name_list[i]])
 
             fraction_group = offset + int(replicate)
-            if raw in Fraction_group.keys():
-                if fraction_group < Fraction_group[raw]:
-                    Fraction_group[raw] = fraction_group
-            else:
-                Fraction_group[raw] = fraction_group
 
-            # make fraction group consecutive
-            if Fraction_group[raw] > pre_frac_group + 1:
-                Fraction_group[raw] = pre_frac_group + 1
-            pre_frac_group = Fraction_group[raw]
+            if fraction_group not in raw_frac:
+                raw_frac[fraction_group] = [raw]
+
+                if raw in Fraction_group.keys():
+                    if fraction_group < Fraction_group[raw]:
+                        Fraction_group[raw] = fraction_group
+                else:
+                    Fraction_group[raw] = fraction_group
+
+                # make fraction group consecutive
+                if Fraction_group[raw] > pre_frac_group + 1:
+                    Fraction_group[raw] = pre_frac_group + 1
+                pre_frac_group = Fraction_group[raw]
+
+            else:
+                raw_frac[fraction_group].append(raw)
+                Fraction_group[raw] = Fraction_group[raw_frac[fraction_group][0]]
 
             if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
@@ -553,6 +562,7 @@ class OpenMS:
         sample_id_map = {}
         sample_id = 1
         pre_frac_group = 1
+        raw_frac = {}
         for _0, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
@@ -566,16 +576,23 @@ class OpenMS:
 
             fraction_group = offset + int(replicate)
 
-            if raw in Fraction_group.keys():
-                if fraction_group < Fraction_group[raw]:
-                    Fraction_group[raw] = fraction_group
-            else:
-                Fraction_group[raw] = fraction_group
+            if fraction_group not in raw_frac:
+                raw_frac[fraction_group] = [raw]
 
-            # make fraction group consecutive
-            if Fraction_group[raw] > pre_frac_group + 1:
-                Fraction_group[raw] = pre_frac_group + 1
-            pre_frac_group = Fraction_group[raw]
+                if raw in Fraction_group.keys():
+                    if fraction_group < Fraction_group[raw]:
+                        Fraction_group[raw] = fraction_group
+                else:
+                    Fraction_group[raw] = fraction_group
+
+                # make fraction group consecutive
+                if Fraction_group[raw] > pre_frac_group + 1:
+                    Fraction_group[raw] = pre_frac_group + 1
+                pre_frac_group = Fraction_group[raw]
+
+            else:
+                raw_frac[fraction_group].append(raw)
+                Fraction_group[raw] = Fraction_group[raw_frac[fraction_group][0]]
 
             if re.search(sample_identifier_re, source_name) is not None:
                 sample = re.search(sample_identifier_re, source_name).group(1)
