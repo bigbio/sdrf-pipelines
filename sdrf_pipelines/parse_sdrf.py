@@ -147,11 +147,11 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
 @click.option('--sdrf', '-s', help='SDRF file', required=True)
 @click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
 @click.option('--outpath', "-o", help='annotation out file path', required=True)
-@click.option('--OpenSWATHtoMSstats', "-swath", help='annotation out file path', default=False)
-@click.option('--MaxQtoMSstats', "-mq", help='annotation out file path', default=False)
+@click.option('--openswathtomsstats', "-swath", help='from openswathtomsstats output to msstats', default=False)
+@click.option('--maxqtomsstats', "-mq", help='from maxquant output to msstats', default=False)
 @click.pass_context
-def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, OpenSWATHtoMSstats, MaxQtoMSstats):
-    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, OpenSWATHtoMSstats, MaxQtoMSstats)
+def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats):
+    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats)
 
 
 cli.add_command(validate_sdrf)
