@@ -144,6 +144,18 @@ The maxquant experimental design file contains name,Fraction,Experiement and PTM
 | 130402_08.raw | 1 | sample 1_Tr_1 |     |
 | 130412_08.raw | 1 | sample 2_Tr_1 |     |
 
+## Convert to MSstats annotation file: Usage
+
+```bash
+parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
+```
+
+- -s  : SDRF file
+- -c  : Create conditions from provided (e.g., factor) columns as used by MSstats
+- -o  : annotation out file path
+- -swath  : from openswathtomsstats output to msstats default false
+- -mq  : from maxquant output to msstats default false
+
 # Citation
 
 Perez-Riverol, Yasset, and European Bioinformatics Community for Mass Spectrometry. "Toward a Sample Metadata Standard in Public Proteomics Repositories." Journal of Proteome Research 19.10 (2020): 3906-3909. [Manuscript](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.0c00376)
