@@ -152,19 +152,29 @@ class OlsClient:
     if children_of is not None and len(children_of) > 0:
       params['childrenOf'] = _concat_str_or_list(children_of)
 
-    req = self.session.get(self.ontology_search, params=params)
-    logger.debug("Request to OLS search API: %s - %s", req.status_code, name)
-    req.raise_for_status()
-    if req.json()['response']['numFound']:
-      return req.json()['response']['docs']
-    else:
-      if exact:
-        logger.debug('OLS exact search returned empty '
-                     'response for %s', name)
-      else:
-        logger.debug('OLS search returned empty '
-                     'response for %s', name)
-      return None
+    retry_num = 0
+
+    while (retry_num < 10):
+      try:
+        req = self.session.get(self.ontology_search, params=params)
+        logger.debug("Request to OLS search API: %s - %s", req.status_code, name)
+
+        req.raise_for_status()
+        if req.json()['response']['numFound']:
+          return req.json()['response']['docs']
+        else:
+          if exact:
+            logger.debug('OLS exact search returned empty '
+                         'response for %s', name)
+          else:
+            logger.debug('OLS search returned empty '
+                         'response for %s', name)
+        return None
+      except:
+        retry_num = retry_num + 1
+        logger.debug('OLS error searching the following term -- %s iteration %s', req.url, retry_num)
+
+    return None
 
   def suggest(self, name, ontology=None):
     """Suggest terms from an optional list of ontologies
