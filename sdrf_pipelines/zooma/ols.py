@@ -153,9 +153,8 @@ class OlsClient:
       params['childrenOf'] = _concat_str_or_list(children_of)
 
     retry_num = 0
-    success = False
 
-    while (retry_num < 10 and not success):
+    while (retry_num < 10):
       try:
         req = self.session.get(self.ontology_search, params=params)
         logger.debug("Request to OLS search API: %s - %s", req.status_code, name)
