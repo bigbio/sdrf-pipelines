@@ -13,7 +13,7 @@ setup(
   long_description_content_type="text/markdown",
   long_description=long_description,
   license="'Apache 2.0",
-  data_files=[("", ["LICENSE", "sdrf_pipelines/openms/unimod.xml"])],
+  data_files=[("", ["LICENSE", "sdrf_pipelines/openms/unimod.xml", "sdrf_pipelines/maxquant/param2sdrf.yml"])],
   package_data={'': ['*.xml'], },
   url="https://github.com/bigbio/sdrf-pipelines",
   packages=find_packages(),

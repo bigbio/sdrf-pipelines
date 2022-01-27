@@ -11,6 +11,7 @@ import time
 from xml.dom.minidom import parse
 from xml.dom.minidom import Document
 from datetime import datetime
+import yaml
 import os
 import numpy as np
 import pkg_resources
@@ -22,6 +23,8 @@ class Maxquant():
         super().__init__()
         self.warnings = dict()
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
+        self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
+        print(self.datparamfile)
 
     def create_new_mods(self, mods, mqconfdir):
         i = 0
@@ -645,6 +648,14 @@ class Maxquant():
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
+        with open(self.datparamfile) as file:
+            param_mapping = yaml.load(file, Loader=yaml.FullLoader)
+            mapping = param_mapping["parameters"]
+        datparams = dict()
+        for i in mapping:
+            datparams[i["sdrf"]] = i["name"]
+
+
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [c for ind, c in enumerate(sdrf) if
                     c.startswith('comment[modification parameters')]  # columns with modification parameters
@@ -670,6 +681,11 @@ class Maxquant():
         source_name2n_reps = dict()
         file2technical_rep = dict()
         file2instrument = dict()
+        # New parameters from extended SDRF (including data analysis parameters)
+        file2params = dict()
+        for p in datparams.values():
+            file2params[p] = dict()
+
 
         if mqconfdir:
             self.create_new_mods(sdrf[mod_cols], mqconfdir)
@@ -760,6 +776,7 @@ class Maxquant():
                 file2fragtol[raw] = "20"
                 file2fragtolunit[raw] = "ppm"
 
+            # STILL NOT IMPLEMENTED!
             if 'comment[dissociation method]' in row:
                 if row['comment[dissociation method]'] == 'not available':
                     file2diss[raw] = 'HCD'
@@ -780,6 +797,7 @@ class Maxquant():
             else:
                 file2technical_rep[raw] = "1"
 
+                
             # store highest replicate number for this source name
             if source_name in source_name2n_reps:
                 source_name2n_reps[source_name] = max(int(source_name2n_reps[source_name]),
@@ -999,6 +1017,15 @@ class Maxquant():
 
                 file2label[raw] = lt
 
+            # Reading data analysis parameters
+            for p in datparams.keys():
+                comment_p = 'comment[' + p + ']'
+                if comment_p in row:
+                   file2params[datparams[p]][raw] = row[comment_p]
+                
+
+                
+                
         # create maxquant parameters xml file
         doc = Document()
 
@@ -1144,7 +1171,14 @@ class Maxquant():
         root.appendChild(secondPeptide)
 
         matchBetweenRuns_node = doc.createElement('matchBetweenRuns')
-        matchBetweenRuns_node.appendChild(doc.createTextNode(matchBetweenRuns))
+        if (len(file2params["match_between_runs"]) > 0):
+           first = list(file2params["match_between_runs"].values())[0]
+           matchBetweenRuns_node.appendChild(doc.createTextNode(first))
+           if(len(set(file2params["match_between_runs"].values())) > 1):
+                warning_message = "multiple values for match between runs, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            matchBetweenRuns_node.appendChild(doc.createTextNode(matchBetweenRuns))
         root.appendChild(matchBetweenRuns_node)
 
         matchUnidentifiedFeatures = doc.createElement('matchUnidentifiedFeatures')
@@ -1259,23 +1293,62 @@ class Maxquant():
         root.appendChild(intensityPredictionsFile)
 
         minPepLen = doc.createElement('minPepLen')
-        minPepLen.appendChild(doc.createTextNode('7'))
+        tparam = file2params["min_peptide_length"]
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           minPepLen.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter minimum peptide length, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            minPepLen.appendChild(doc.createTextNode('7'))  
         root.appendChild(minPepLen)
+
 
         psmFdrCrosslink = doc.createElement('psmFdrCrosslink')
         psmFdrCrosslink.appendChild(doc.createTextNode('0.01'))
         root.appendChild(psmFdrCrosslink)
 
         peptideFdr = doc.createElement('peptideFdr')
-        peptideFdr.appendChild(doc.createTextNode(str(peptideFDR)))
+        tparam = file2params["fdr_peptide"]
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           warning_message = "overwriting pepptide FDR using the value in the sdrf file"
+           self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+           peptideFdr.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter Peptide FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            peptideFdr.appendChild(doc.createTextNode(str(peptideFDR)))
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement('proteinFdr')
-        proteinFdr.appendChild(doc.createTextNode(str(proteinFDR)))
+        tparam = file2params["fdr_protein"] 
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           warning_message = "overwriting protein FDR using the value in the sdrf file"
+           self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+           proteinFdr.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter Protein FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            proteinFdr.appendChild(doc.createTextNode(str(proteinFDR)))
         root.appendChild(proteinFdr)
 
         siteFdr = doc.createElement('siteFdr')
-        siteFdr.appendChild(doc.createTextNode('0.01'))
+        tparam = file2params["fdr_psm"] 
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           warning_message = "overwriting PSM FDR using the value in the sdrf file"
+           self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+           siteFdr.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter PSM FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            siteFdr.appendChild(doc.createTextNode('0.01'))
         root.appendChild(siteFdr)
 
         minPeptideLengthForUnspecificSearch = doc.createElement('minPeptideLengthForUnspecificSearch')
@@ -1291,7 +1364,15 @@ class Maxquant():
         root.appendChild(useNormRatiosForOccupancy)
 
         minPeptides = doc.createElement('minPeptides')
-        minPeptides.appendChild(doc.createTextNode('1'))
+        tparam = file2params["min_num_peptides"] 
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           minPeptides.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter minimum number of peptides, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            minPeptides.appendChild(doc.createTextNode('1'))
         root.appendChild(minPeptides)
 
         minRazorPeptides = doc.createElement('minRazorPeptides')
@@ -1362,8 +1443,23 @@ class Maxquant():
         compositionPrediction.appendChild(doc.createTextNode('0'))
         root.appendChild(compositionPrediction)
 
+
         quantMode = doc.createElement('quantMode')
-        quantMode.appendChild(doc.createTextNode('1'))
+        tparam = file2params["quantification_method"] 
+        if (len(tparam) > 0):
+           first = list(tparam.values())[0]
+           if first == "unique":
+               first = '2'
+           elif first == "shared":
+               first = '0'
+           else:
+               first = '1'
+           quantMode.appendChild(doc.createTextNode(first))
+           if(len(set(tparam.values())) > 1):
+                warning_message = "multiple values for parameter Quantification mode, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        else:
+            quantMode.appendChild(doc.createTextNode('1'))
         root.appendChild(quantMode)
 
         massDifferenceMods = doc.createElement('massDifferenceMods')
@@ -1536,23 +1632,23 @@ class Maxquant():
         referenceChannel = doc.createElement('referenceChannel')
 
         for key1, instr_val in file2instrument.items():
-            value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) \
-                     + str(file2fragtol)
-
+            value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
+            datanalysisparams = dict()
+            for p in file2params.keys():
+                if (len(file2params[p]) > 0):
+                    datanalysisparams[p] = file2params[p][key1]
+                
+            
             if tag == 0 and tmp == []:
                 int_node = doc.createElement('int')
                 int_node.appendChild(doc.createTextNode('0'))
                 tmp.append({instr_val: value2})
+                parameterGroup['0'] = {'instrument': file2instrument[key1], 'label': file2label[key1] , 'mods': file2mods[key1], 'enzyme': file2enzyme[key1], 'pctol': file2pctol[key1],
+                                       'fragtol': file2fragtol[key1],'pctolunit': file2pctolunit[key1], 'fragtolunit': file2fragtolunit[key1], 'datanalysisparams': datanalysisparams }
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in \
-                        file2label[key1] or 'Lys6' in file2label[key1]:
-                    parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
-                                           file2silac_shape[key1], file2pctol[key1], file2fragtol[key1],
-                                           file2pctolunit[key1], file2fragtolunit[key1]]
-                else:
-                    parameterGroup['0'] = [file2instrument[key1], file2label[key1], file2mods[key1], file2enzyme[key1],
-                                           file2pctol[key1], file2fragtol[key1], file2pctolunit[key1],
-                                           [file2fragtolunit[key1]]]
-
+                   file2label[key1] or 'Lys6' in file2label[key1]:
+                     parameterGroup['0']['silac_shape'] = file2silac_shape[key1]
+ 
             elif {instr_val: value2} in tmp:
                 int_node = doc.createElement('int')
                 int_text = doc.createTextNode(str(tag))
@@ -1564,16 +1660,13 @@ class Maxquant():
                 int_text = doc.createTextNode(str(tag))
                 int_node.appendChild(int_text)
                 tmp.append({instr_val: value2})
+                parameterGroup[str(tag)] = {'instrument': file2instrument[key1], 'label': file2label[key1] , 'mods': file2mods[key1], 'enzyme': file2enzyme[key1],
+                                            'pctol': file2pctol[key1], 'fragtol': file2fragtol[key1],'pctolunit': file2pctolunit[key1], 'fragtolunit': file2fragtolunit[key1], 'datparams': datparams}
+ 
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in file2label[key1] \
                         or 'Lys6' in file2label[key1]:
-                    parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
-                                                file2enzyme[key1], file2silac_shape[key1],
-                                                file2pctol[key1], file2fragtol[key1], file2pctolunit[key1],
-                                                file2fragtolunit[key1]]
-                else:
-                    parameterGroup[str(tag)] = [file2instrument[key1], file2label[key1], file2mods[key1],
-                                                file2enzyme[key1], file2pctol[key1], file2fragtol[key1],
-                                                file2pctolunit[key1], file2fragtolunit[key1]]
+                    parameterGroup[str(tag)]['silac_shape'] = file2silac_shape[key1]
+
 
             paramGroupIndices.appendChild(int_node)
 
@@ -1600,7 +1693,7 @@ class Maxquant():
         for i, j in parameterGroup.items():
             parameterGroup = doc.createElement('parameterGroup')
             msInstrument = doc.createElement('msInstrument')
-            if 'Bruker Q-TOF' == j[0]:
+            if 'Bruker Q-TOF' == j['instrument']:
                 msInstrument.appendChild(doc.createTextNode('1'))
                 maxCharge = doc.createElement('maxCharge')
                 maxCharge.appendChild(doc.createTextNode('5'))
@@ -1624,7 +1717,7 @@ class Maxquant():
                 advancedPeakSplitting.appendChild(doc.createTextNode('True'))
                 intensityThreshold = doc.createElement('intensityThreshold')
                 intensityThreshold.appendChild(doc.createTextNode('30'))
-            elif 'AB Sciex Q-TOF' == j[0]:
+            elif 'AB Sciex Q-TOF' == j["instrument"]:
                 msInstrument.appendChild(doc.createTextNode('2'))
                 maxCharge = doc.createElement('maxCharge')
                 maxCharge.appendChild(doc.createTextNode('5'))
@@ -1648,7 +1741,7 @@ class Maxquant():
                 advancedPeakSplitting.appendChild(doc.createTextNode('True'))
                 intensityThreshold = doc.createElement('intensityThreshold')
                 intensityThreshold.appendChild(doc.createTextNode('0'))
-            elif 'Agilent Q-TOF' == j[0]:
+            elif 'Agilent Q-TOF' == j["instrument"]:
                 msInstrument.appendChild(doc.createTextNode('3'))
                 maxCharge = doc.createElement('maxCharge')
                 maxCharge.appendChild(doc.createTextNode('5'))
@@ -1672,7 +1765,7 @@ class Maxquant():
                 advancedPeakSplitting.appendChild(doc.createTextNode('True'))
                 intensityThreshold = doc.createElement('intensityThreshold')
                 intensityThreshold.appendChild(doc.createTextNode('0'))
-            elif 'Bruker TIMS' == j[0]:
+            elif 'Bruker TIMS' == j["instrument"]:
                 msInstrument.appendChild(doc.createTextNode('4'))
                 maxCharge = doc.createElement('maxCharge')
                 maxCharge.appendChild(doc.createTextNode('4'))
@@ -1738,9 +1831,9 @@ class Maxquant():
             isotopeValleyFactor = doc.createElement('isotopeValleyFactor')
             isotopeValleyFactor.appendChild(doc.createTextNode('1.2'))
             labelMods = doc.createElement('labelMods')
-            if 'Lys8' in j[1] or 'Arg10' in j[1] or 'Arg6' in j[1] or 'Lys6' in j[1]:
-                for lm in range(j[4][0]):
-                    r = j[1].split(',')[lm * j[4][1]:lm * j[4][1] + lm * j[4][1]]
+            if 'Lys8' in j["label"] or 'Arg10' in j["label"] or 'Arg6' in j["label"] or 'Lys6' in j["label"]:
+                for lm in range(j["silac_shape"][0]):
+                    r = j["label"].split(',')[lm * j["silac_shape"][1]:lm * j["silac_shape"][1] + lm * j["silac_shape"][1]]
                     if 'Arg0' in r:
                         r.remove('Arg0')
                     text = ';'.join(r)
@@ -1753,7 +1846,7 @@ class Maxquant():
                 string.appendChild(doc.createTextNode(''))
                 labelMods.appendChild(string)
             lcmsRunType = doc.createElement('lcmsRunType')
-            if "TMT" in j[1] or 'iTRAQ' in j[1]:
+            if "TMT" in j["label"] or 'iTRAQ' in j["label"]:
                 lcmsRunType.appendChild(doc.createTextNode('Reporter ion MS2'))
             else:
                 lcmsRunType.appendChild(doc.createTextNode('Standard'))
@@ -1762,7 +1855,7 @@ class Maxquant():
 
             # create label subnode
             lfqMode = doc.createElement('lfqMode')
-            if j[1] == 'label free sample':
+            if j["label"] == 'label free sample':
                 lfqMode.appendChild(doc.createTextNode('1'))
             else:
                 lfqMode.appendChild(doc.createTextNode('0'))
@@ -1791,14 +1884,26 @@ class Maxquant():
             lfqMinRatioCount.appendChild(doc.createTextNode('2'))
             maxLabeledAa = doc.createElement('maxLabeledAa')
             multiplicity = doc.createElement('multiplicity')
-            if 'Lys8' in j[1] or 'Arg10' in j[1] or 'Arg6' in j[1] or 'Lys6' in j[1]:
+            if 'Lys8' in j["label"] or 'Arg10' in j["label"] or 'Arg6' in j["label"] or 'Lys6' in j["label"]:
                 maxLabeledAa.appendChild(doc.createTextNode('3'))
-                multiplicity.appendChild(doc.createTextNode(str(j[4][0])))
+                multiplicity.appendChild(doc.createTextNode(str(j["silac_shape"][0])))
             else:
                 maxLabeledAa.appendChild(doc.createTextNode('0'))
                 multiplicity.appendChild(doc.createTextNode('1'))
+
+
+
             maxNmods = doc.createElement('maxNmods')
-            maxNmods.appendChild(doc.createTextNode('5'))
+            if ("max_mods" in datanalysisparams):
+                print(len(set(datanalysisparams["max_mods"])) > 1)
+                first = datanalysisparams["max_mods"]
+                maxNmods.appendChild(doc.createTextNode(first))
+
+            else:
+                maxNmods.appendChild(doc.createTextNode('5'))
+
+
+            
             maxMissedCleavages = doc.createElement('maxMissedCleavages')
             maxMissedCleavages.appendChild(doc.createTextNode('2'))
             enzymeMode = doc.createElement('enzymeMode')
@@ -1815,8 +1920,8 @@ class Maxquant():
             variableModifications = doc.createElement('variableModifications')
             fixedM_list = []
             Variable_list = []
-            fixedM_list.extend(j[2][0].split(','))
-            Variable_list.extend(j[2][1].split(','))
+            fixedM_list.extend(j["mods"][0].split(','))
+            Variable_list.extend(j["mods"][1].split(','))
             fixedM_list = list(set(fixedM_list))
             Variable_list = list(set(Variable_list))
             for F in fixedM_list:
@@ -1832,9 +1937,9 @@ class Maxquant():
 
             # create enzymes subnode
             enzymes_node = doc.createElement('enzymes')
-            for index in range(len(j[3])):
+            for index in range(len(j["enzyme"])):
                 string = doc.createElement('string')
-                string.appendChild(doc.createTextNode(j[3][index]))
+                string.appendChild(doc.createTextNode(j["enzyme"][index]))
                 enzymes_node.appendChild(string)
             enzymesFirstSearch = doc.createElement('enzymesFirstSearch')
             enzymesFirstSearch.appendChild(doc.createTextNode(''))
@@ -1851,8 +1956,8 @@ class Maxquant():
             multiModifications = doc.createElement('multiModifications')
             multiModifications.appendChild(doc.createTextNode(''))
             isobaricLabels = doc.createElement('isobaricLabels')
-            if "TMT" in j[1]:
-                for t in j[1].split(','):
+            if "TMT" in j["label"]:
+                for t in j["label"].split(','):
                     IsobaricLabelInfo = doc.createElement('IsobaricLabelInfo')
                     internalLabel = doc.createElement('internalLabel')
                     internalLabel.appendChild(doc.createTextNode(t))
@@ -1876,8 +1981,8 @@ class Maxquant():
                     IsobaricLabelInfo.appendChild(correctionFactorP2)
                     IsobaricLabelInfo.appendChild(tmtLike)
                     isobaricLabels.appendChild(IsobaricLabelInfo)
-            elif "iTRAQ" in j[1]:
-                for t in j[1].split(','):
+            elif "iTRAQ" in j["label"]:
+                for t in j["label"].split(','):
                     IsobaricLabelInfo = doc.createElement('IsobaricLabelInfo')
                     internalLabel = doc.createElement('internalLabel')
                     internalLabel.appendChild(doc.createTextNode(t))
@@ -1918,25 +2023,16 @@ class Maxquant():
             doMassFiltering.appendChild(doc.createTextNode('True'))
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
-            if len(j) == 8:
-                firstSearchTol.appendChild(doc.createTextNode(str(j[5])))
-                mainSearchTol.appendChild(doc.createTextNode(str(j[4])))
-                if j[6] == 'ppm':
+            firstSearchTol.appendChild(doc.createTextNode(str(j["fragtol"])))
+            mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
+            if j["pctolunit"] == 'ppm':
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('True'))
-                else:
-                    searchTolInPpm = doc.createElement('searchTolInPpm')
-                    searchTolInPpm.appendChild(doc.createTextNode('False'))
             else:
-                firstSearchTol.appendChild(doc.createTextNode(str(j[6])))
-                mainSearchTol.appendChild(doc.createTextNode(str(j[5])))
-                if j[7] == 'ppm':
-                    searchTolInPpm = doc.createElement('searchTolInPpm')
-                    searchTolInPpm.appendChild(doc.createTextNode('True'))
-                else:
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('False'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
+            
             isotopeMatchTol.appendChild(doc.createTextNode('2'))
             isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
             isotopeMatchTolInPpm.appendChild(doc.createTextNode('True'))
@@ -1967,7 +2063,7 @@ class Maxquant():
             filterPif = doc.createElement('filterPif')
             reporterFraction = doc.createElement('reporterFraction')
             reporterBasePeakRatio = doc.createElement('reporterBasePeakRatio')
-            if "TMT" in j[1]:
+            if "TMT" in j["label"]:
                 reporterMassTolerance.appendChild(doc.createTextNode('0.003'))
                 reporterPif.appendChild(doc.createTextNode('0'))
                 filterPif.appendChild(doc.createTextNode('False'))
