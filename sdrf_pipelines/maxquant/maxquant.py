@@ -649,7 +649,7 @@ class Maxquant():
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
         with open(self.datparamfile) as file:
-            param_mapping = yaml.load(file, Loader=yaml.FullLoader)
+            param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
         datparams = dict()
         for i in mapping:
@@ -797,7 +797,6 @@ class Maxquant():
             else:
                 file2technical_rep[raw] = "1"
 
-                
             # store highest replicate number for this source name
             if source_name in source_name2n_reps:
                 source_name2n_reps[source_name] = max(int(source_name2n_reps[source_name]),
@@ -1301,9 +1300,8 @@ class Maxquant():
                 warning_message = "multiple values for parameter minimum peptide length, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
-            minPepLen.appendChild(doc.createTextNode('7'))  
+            minPepLen.appendChild(doc.createTextNode('7'))
         root.appendChild(minPepLen)
-
 
         psmFdrCrosslink = doc.createElement('psmFdrCrosslink')
         psmFdrCrosslink.appendChild(doc.createTextNode('0.01'))
@@ -1324,7 +1322,7 @@ class Maxquant():
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement('proteinFdr')
-        tparam = file2params["fdr_protein"] 
+        tparam = file2params["fdr_protein"]
         if (len(tparam) > 0):
            first = list(tparam.values())[0]
            warning_message = "overwriting protein FDR using the value in the sdrf file"
@@ -1338,7 +1336,7 @@ class Maxquant():
         root.appendChild(proteinFdr)
 
         siteFdr = doc.createElement('siteFdr')
-        tparam = file2params["fdr_psm"] 
+        tparam = file2params["fdr_psm"]
         if (len(tparam) > 0):
            first = list(tparam.values())[0]
            warning_message = "overwriting PSM FDR using the value in the sdrf file"
@@ -1364,7 +1362,7 @@ class Maxquant():
         root.appendChild(useNormRatiosForOccupancy)
 
         minPeptides = doc.createElement('minPeptides')
-        tparam = file2params["min_num_peptides"] 
+        tparam = file2params["min_num_peptides"]
         if (len(tparam) > 0):
            first = list(tparam.values())[0]
            minPeptides.appendChild(doc.createTextNode(first))
@@ -1445,7 +1443,7 @@ class Maxquant():
 
 
         quantMode = doc.createElement('quantMode')
-        tparam = file2params["quantification_method"] 
+        tparam = file2params["quantification_method"]
         if (len(tparam) > 0):
            first = list(tparam.values())[0]
            if first == "unique":

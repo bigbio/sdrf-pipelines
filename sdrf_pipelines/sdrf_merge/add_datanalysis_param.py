@@ -1,9 +1,9 @@
 import pandas as pd
 import re
 import yaml
-import sdrf_pipelines
+#import sdrf_pipelines
 import os.path
-from sdrf_pipelines.zooma.zooma import Zooma, OlsClient
+from sdrf_pipelines.zooma.zooma import OlsClient
 from sdrf_pipelines.openms.unimod import UnimodDatabase
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 
@@ -20,13 +20,13 @@ mod_columns = pd.DataFrame()
 overwritten = set()
 
 with open(r'param2sdrf.yml') as file:
-   param_mapping = yaml.load(file, Loader=yaml.FullLoader)
+   param_mapping = yaml.safe_load(file)
    mapping = param_mapping["parameters"]
 
 
 ## READ PARAMETERS FOR RUNNING WORKFLOW
 with open(r'params.yml') as file:
-   tparams_in = yaml.load(file, Loader=yaml.FullLoader)
+   tparams_in = yaml.safe_load(file)
    params_in = tparams_in["params"]
    rawfiles = tparams_in["rawfiles"]
    fastafile = tparams_in["fastafile"]
@@ -49,13 +49,12 @@ if has_sdrf :
       ttt = [x for x in mod_columns.columns if any(mod_columns[x].str.contains("MT=variable")) ]
       mod_columns.drop(ttt, axis=1, inplace=True)
       overwritten.add("variable_mods")
-   
 
 else:
    ## THROW ERROR FOR MISSING SDRF
    exit("ERROR: No SDRF file given. Add an at least minimal version\nFor more details, see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-proteomics")
 
-   
+
 ## FIRST STANDARD PARAMETERS
 # FOR GIVEN PARAMETERS
 # CHECK WHETHER COLUMN IN SDRF TO PUT WARNING AND OVERWRITE
@@ -83,32 +82,32 @@ for p in mapping:
 
    # for each type: check consistency
    #print(type(pvalue))
-   if ptype == "boolean" :
+   if ptype == "boolean":
        if not isinstance(pvalue, bool) :
          exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
-   if ptype == "str" :
+   if ptype == "str":
        if not isinstance(pvalue, str) :
          exit("ERROR: " + pname + " needs to be a string!!")
-   if ptype == "integer" : 
+   if ptype == "integer":
        if not isinstance(pvalue, int) :
          exit("ERROR: " + pname + " needs to be a string!!")
-   if ptype == "float" : 
-       if not isinstance(pvalue, (float, int)) :
+   if ptype == "float":
+       if not isinstance(pvalue, (float, int)):
          exit("ERROR: " + pname + " needs to be a numeric value!!")
-   if ptype == "class" :
+   if ptype == "class":
       not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
       if not_matching != [] :
          exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
          
       
    # Mass tolerances: do they include Da or ppm exclusively?
-   if pname == "fragment_mass_tolerance" or pname == "precursor_mass_tolerance" :
-      unit = pvalue.split(" ")[1] 
+   if pname == "fragment_mass_tolerance" or pname == "precursor_mass_tolerance":
+      unit = pvalue.split(" ")[1]
       if unit != "Da" and unit != "ppm" :
         exit("ERROR: " + pname + " allows only units of \"Da\" and \"ppm\", separated by space from the value!!\nWe found " + unit)
 
    ## ENZYME AND MODIFICATIONS: LOOK UP ONTOLOGY VALUES
-   if pname == "enzyme" :
+   if pname == "enzyme":
     ols_out = olsclient.search(pvalue, ontology="MS", exact=True)
     if ols_out == None or len(ols_out) > 1 :
        exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms")
@@ -128,7 +127,7 @@ for p in mapping:
          if found == [] :
             exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you used space between the comma separated modifications")
          modtype = "fixed"
-         if (pname == "variable_mods") : modtype = "variable"            
+         if (pname == "variable_mods") : modtype = "variable"
          if re.match("[A-Z]",modpos) :
             mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
          elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"] :
@@ -141,7 +140,7 @@ for p in mapping:
 
 
    ## Now finally writing the value
-   else : 
+   else :
      sdrf_content[psdrf] = pvalue
          
 
@@ -160,7 +159,7 @@ colnames = list(sdrf_content.columns)  + ["comment[modification parameters]"] * 
 sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1)
 
 print("--- Writing sdrf file into sdrf_local.tsv ---")
-sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False) 
+sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False)
 
 ## Verify with sdrf-parser
 check_sdrf = SdrfDataFrame()
