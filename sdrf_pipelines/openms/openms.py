@@ -17,8 +17,6 @@ class FileToColumnEntries:
     file2enzyme = dict()
     file2source = dict()
     file2label = dict()
-    # TODO the following lines will be very difficult with labels. Usually a combination of file&label defines the factor
-    #  I saw that you try to keep lists or combined strings here, but maybe hashing a tuple would be easier here.
     file2fraction = dict()
     file2combined_factors = dict()
     file2technical_rep = dict()
@@ -52,7 +50,10 @@ class OpenMS:
                         "Pepsina": "PepsinA",
                         "Unspecific cleavage": "unspecific cleavage", "No cleavage": "no cleavage"}
 
-        # TODO What about iTRAQ?
+        # for itraq label
+        self.itraq4plex = {'itraq114': 1, 'itraq115': 2, 'itraq116': 3, 'itraq117': 4}
+        self.itraq8plex = {'itraq113': 1, 'itraq114': 2, 'itraq115': 3, 'itraq116': 4, 'itraq117': 5,
+                           'itraq118': 6, 'itraq119': 7, 'itraq121': 8}
 
         #  for light, medium and heavy. E.g. Label:13C(2)15N(2) (K) as light or Dimethyl:2H(2)13C (K) as light
         self.silac3 = {'silac light': 1, 'silac medium': 2, 'silac heavy': 3}
@@ -280,8 +281,10 @@ class OpenMS:
                     label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                 elif 'label free sample' in row['comment[label]']:
                     label = ['label free sample']
+                elif 'ITRAQ' in row['comment[label]']:
+                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
                 else:
-                    label = ['']  # TODO For else
+                    raise Exception("Label " + str(row['comment[label]']) + " is not recognized")
                 f2c.file2label[raw] = label
 
             if not split_by_columns:
@@ -453,19 +456,26 @@ class OpenMS:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
-            else:
-                pass  # TODO for else
+            elif 'ITRAQ' in ','.join(file2label[raw]):
+                if len(label) > 4 or 'ITRAQ113' in label or 'ITRAQ118' in label or 'ITRAQ119' in label \
+                        or 'ITRAQ121' in label:
+                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                else:
+                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                label_index[raw] = label_index[raw] + 1
             if not keep_raw:
                 out = raw_ext_regex.sub(".mzML", raw)
             else:
                 out = raw
 
             f.write(
-                str(Fraction_group[raw]) + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\n")
+                str(Fraction_group[raw]) + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(
+                    sample) + "\n")
 
         # sample table
         f.write("\n")
-        if 'tmt' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
+        if 'tmt' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])) \
+                or 'itraq' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
@@ -532,7 +542,8 @@ class OpenMS:
                                         file2fraction):
         f = open(output_filename, "w+")
         raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
-        if 'tmt' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]):
+        if 'tmt' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) \
+                or 'itraq' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]):
             if legacy:
                 open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
                                                       "Label", "Sample", "MSstats_Condition",
@@ -647,8 +658,15 @@ class OpenMS:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
-            else:
-                pass  # TODO for else
+                label_index[raw] = label_index[raw] + 1
+            elif 'ITRAQ' in ','.join(file2label[raw]):
+                if len(label) > 4 or 'ITRAQ113' in label or 'ITRAQ118' in label or 'ITRAQ119' in label \
+                        or 'ITRAQ121' in label:
+                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                else:
+                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                label_index[raw] = label_index[raw] + 1
+
             if not keep_raw:
                 out = raw_ext_regex.sub(".mzML", raw)
             else:
@@ -698,6 +716,9 @@ class OpenMS:
                    'tmt10plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
                    'tmt11plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
                    'tmt16plex': ['TMTpro (K)', 'TMTpro (N-term)']}
+        ITRAQ_mod = {'itraq4plex': ['iTRAQ4plex (K)', 'iTRAQ4plex (N-term)'],
+                     'itraq8plex': ['iTRAQ8plex (K)', 'iTRAQ8plex (N-term)']
+                     }
         for _0, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
@@ -725,11 +746,26 @@ class OpenMS:
                         f2c.file2mods[raw] = (','.join(tmt_fix_mod), f2c.file2mods[raw][1])
             elif "label free sample" in labels:
                 label = "label free sample"
-            elif "silac" in labels:
+            elif "silac" in ','.join(labels):
                 label = "SILAC"
+            elif "ITRAQ" in ','.join(labels):
+                if len(labels) > 4 or 'ITRAQ113' in labels or 'ITRAQ118' in labels or 'ITRAQ119' in labels \
+                        or 'ITRAQ121' in labels:
+                    label = 'itraq8plex'
+                else:
+                    label = 'itraq4plex'
+                # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
+                if 'ITRAQ' not in f2c.file2mods[raw][0] and 'ITRAQ' not in f2c.file2mods[raw][1]:
+                    itraq_fix_mod = ITRAQ_mod[label]
+                    if f2c.file2mods[raw][0]:
+                        FixedMod = ','.join(f2c.file2mods[raw][0].split(',') + itraq_fix_mod)
+                        f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
+                    else:
+                        f2c.file2mods[raw] = (','.join(itraq_fix_mod), f2c.file2mods[raw][1])
+
             else:
                 raise Exception("Failed to find any supported labels. Supported labels are 'silac', 'label free "
-                                "sample', and tmt labels in the format 'TMT131C'")
+                                "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'")
 
             f.write(
                 URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
