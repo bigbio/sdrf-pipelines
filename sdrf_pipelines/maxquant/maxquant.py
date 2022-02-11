@@ -1021,10 +1021,10 @@ class Maxquant():
                 comment_p = 'comment[' + p + ']'
                 if comment_p in row:
                    file2params[datparams[p]][raw] = row[comment_p]
-                
 
-                
-                
+
+
+
         # create maxquant parameters xml file
         doc = Document()
 

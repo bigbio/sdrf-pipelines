@@ -48,8 +48,7 @@ if has_sdrf :
    if "variable_mods" in params_in.keys():
       ttt = [x for x in mod_columns.columns if any(mod_columns[x].str.contains("MT=variable")) ]
       mod_columns.drop(ttt, axis=1, inplace=True)
-      overwritten.add("variable_mods")
-
+      overwritten.add("variable_mods")  
 else:
    ## THROW ERROR FOR MISSING SDRF
    exit("ERROR: No SDRF file given. Add an at least minimal version\nFor more details, see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-proteomics")
@@ -65,7 +64,7 @@ for p in mapping:
    print("---- Parameter: " + pname + ": ----")
    if(pname in list(params_in.keys())) :
       print("Found in parameter file")
-      pvalue = params_in[pname]
+        pvalue = params_in[pname]
    else:
       print("Setting to default: " + p["default"])
       pvalue = p["default"]
@@ -80,60 +79,60 @@ for p in mapping:
       print("WARNING: Overwriting values in sdrf file with " + pvalue)
       overwritten.add(pname)
 
-   # for each type: check consistency
-   #print(type(pvalue))
-   if ptype == "boolean":
-       if not isinstance(pvalue, bool) :
-         exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
-   if ptype == "str":
-       if not isinstance(pvalue, str) :
-         exit("ERROR: " + pname + " needs to be a string!!")
-   if ptype == "integer":
-       if not isinstance(pvalue, int) :
-         exit("ERROR: " + pname + " needs to be a string!!")
-   if ptype == "float":
-       if not isinstance(pvalue, (float, int)):
-         exit("ERROR: " + pname + " needs to be a numeric value!!")
-   if ptype == "class":
-      not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
-      if not_matching != [] :
-         exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
-         
-      
-   # Mass tolerances: do they include Da or ppm exclusively?
-   if pname == "fragment_mass_tolerance" or pname == "precursor_mass_tolerance":
-      unit = pvalue.split(" ")[1]
-      if unit != "Da" and unit != "ppm" :
-        exit("ERROR: " + pname + " allows only units of \"Da\" and \"ppm\", separated by space from the value!!\nWe found " + unit)
+     # for each type: check consistency
+     #print(type(pvalue))
+     if ptype == "boolean":
+         if not isinstance(pvalue, bool) :
+           exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
+     elif ptype == "str":
+         if not isinstance(pvalue, str) :
+           exit("ERROR: " + pname + " needs to be a string!!")
+     elif ptype == "integer":
+           if not isinstance(pvalue, int) :
+           exit("ERROR: " + pname + " needs to be a string!!")
+     elif ptype == "float":
+         if not isinstance(pvalue, (float, int)):
+           exit("ERROR: " + pname + " needs to be a numeric value!!")
+     elif ptype == "class":
+        not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
+        if not_matching != [] :
+           exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
 
-   ## ENZYME AND MODIFICATIONS: LOOK UP ONTOLOGY VALUES
-   if pname == "enzyme":
-    ols_out = olsclient.search(pvalue, ontology="MS", exact=True)
-    if ols_out == None or len(ols_out) > 1 :
-       exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms")
-    pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
+
+     # Mass tolerances: do they include Da or ppm exclusively?
+     if pname == "fragment_mass_tolerance" or pname == "precursor_mass_tolerance":
+        unit = pvalue.split(" ")[1]
+        if unit != "Da" and unit != "ppm" :
+          exit("ERROR: " + pname + " allows only units of \"Da\" and \"ppm\", separated by space from the value!!\nWe found " + unit)
+
+     ## ENZYME AND MODIFICATIONS: LOOK UP ONTOLOGY VALUES
+     elif pname == "enzyme":
+       ols_out = olsclient.search(pvalue, ontology="MS", exact=True)
+       if ols_out == None or len(ols_out) > 1 :
+         exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms")
+      pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
 
        
    ## Modifications: look up in Unimod
-   if pname == "fixed_mods" or pname == "variable_mods" :
-      mods = pvalue.split(",")
-      for m in mods :
-         tmod = m.split(" of ")
-         if len(tmod) < 2:
-            exit("ERROR: Something wrong with the modification entry " + m + ". It should be PSI_MS_NAME of RESIDUE. Note that it should be single residues")
-         modname = tmod[0]
-         modpos = tmod[1]
-         found = [x for x in unimod.modifications if modname == x.get_name()]
-         if found == [] :
-            exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you used space between the comma separated modifications")
-         modtype = "fixed"
-         if (pname == "variable_mods") : modtype = "variable"
-         if re.match("[A-Z]",modpos) :
-            mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
-         elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"] :
-            mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
-         else :
-            exit("ERROR: Wrong residue given: " + modpos + ". Should be either one upper case letter or any of \"Protein N-term\", \"Protein C-term\", \"Any N-term\", \"Any C-term\"")
+     elif pname == "fixed_mods" or pname == "variable_mods" :
+        mods = pvalue.split(",")
+        for m in mods :
+           tmod = m.split(" of ")
+           if len(tmod) < 2:
+              exit("ERROR: Something wrong with the modification entry " + m + ". It should be PSI_MS_NAME of RESIDUE. Note that it should be single residues")
+           modname = tmod[0]
+           modpos = tmod[1]
+           found = [x for x in unimod.modifications if modname == x.get_name()]
+           if found == [] :
+              exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you used space between the comma separated modifications")
+           modtype = "fixed"
+           if (pname == "variable_mods") : modtype = "variable"
+           if re.match("[A-Z]",modpos) :
+              mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
+           elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"] :
+              mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
+           else :
+              exit("ERROR: Wrong residue given: " + modpos + ". Should be either one upper case letter or any of \"Protein N-term\", \"Protein C-term\", \"Any N-term\", \"Any C-term\"")
 
 
 #print(found_list[0].get_name())
