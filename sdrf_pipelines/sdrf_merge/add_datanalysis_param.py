@@ -64,7 +64,7 @@ for p in mapping:
    print("---- Parameter: " + pname + ": ----")
    if(pname in list(params_in.keys())) :
       print("Found in parameter file")
-        pvalue = params_in[pname]
+      pvalue = params_in[pname]
    else:
       print("Setting to default: " + p["default"])
       pvalue = p["default"]
@@ -74,10 +74,10 @@ for p in mapping:
 
 
    if (psdrf) in sdrf_content.keys() :
-      if (len(set(sdrf_content[psdrf])) > 1) :
+     if (len(set(sdrf_content[psdrf])) > 1) :
          exit("ERROR: multiple values for parameter " + pname + " in sdrf file\n We recommend separating the file into parts with the same data analysis parameters")
-      print("WARNING: Overwriting values in sdrf file with " + pvalue)
-      overwritten.add(pname)
+     print("WARNING: Overwriting values in sdrf file with " + pvalue)
+     overwritten.add(pname)
 
      # for each type: check consistency
      #print(type(pvalue))
@@ -88,15 +88,15 @@ for p in mapping:
          if not isinstance(pvalue, str) :
            exit("ERROR: " + pname + " needs to be a string!!")
      elif ptype == "integer":
-           if not isinstance(pvalue, int) :
+         if not isinstance(pvalue, int) :
            exit("ERROR: " + pname + " needs to be a string!!")
      elif ptype == "float":
          if not isinstance(pvalue, (float, int)):
            exit("ERROR: " + pname + " needs to be a numeric value!!")
      elif ptype == "class":
-        not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
-        if not_matching != [] :
-           exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
+         not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
+         if not_matching != [] :
+            exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
 
 
      # Mass tolerances: do they include Da or ppm exclusively?
@@ -110,7 +110,7 @@ for p in mapping:
        ols_out = olsclient.search(pvalue, ontology="MS", exact=True)
        if ols_out == None or len(ols_out) > 1 :
          exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms")
-      pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
+       pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
 
        
    ## Modifications: look up in Unimod
