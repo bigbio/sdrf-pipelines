@@ -1635,8 +1635,8 @@ class Maxquant():
             for p in file2params.keys():
                 if (len(file2params[p]) > 0):
                     datanalysisparams[p] = file2params[p][key1]
-                
-            
+
+
             if tag == 0 and tmp == []:
                 int_node = doc.createElement('int')
                 int_node.appendChild(doc.createTextNode('0'))

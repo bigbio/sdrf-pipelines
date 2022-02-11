@@ -48,7 +48,7 @@ if has_sdrf :
    if "variable_mods" in params_in.keys():
       ttt = [x for x in mod_columns.columns if any(mod_columns[x].str.contains("MT=variable")) ]
       mod_columns.drop(ttt, axis=1, inplace=True)
-      overwritten.add("variable_mods")  
+      overwritten.add("variable_mods")
 else:
    ## THROW ERROR FOR MISSING SDRF
    exit("ERROR: No SDRF file given. Add an at least minimal version\nFor more details, see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-proteomics")
@@ -70,8 +70,6 @@ for p in mapping:
       pvalue = p["default"]
 
    psdrf = "comment[" + p["sdrf"] + "]"
-
-
 
    if (psdrf) in sdrf_content.keys() :
      if (len(set(sdrf_content[psdrf])) > 1) :
@@ -112,8 +110,7 @@ for p in mapping:
          exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms")
        pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
 
-       
-   ## Modifications: look up in Unimod
+     ## Modifications: look up in Unimod
      elif pname == "fixed_mods" or pname == "variable_mods" :
         mods = pvalue.split(",")
         for m in mods :
