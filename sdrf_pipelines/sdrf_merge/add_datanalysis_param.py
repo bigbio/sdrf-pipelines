@@ -138,9 +138,9 @@ for p in mapping:
    ## Now finally writing the value
    else :
      sdrf_content[psdrf] = pvalue
-         
 
-   
+
+
 
 ## OVERWRITE RAW FILES IF GIVEN TO DIRECT TO THE CORRECT LOCATION?
 

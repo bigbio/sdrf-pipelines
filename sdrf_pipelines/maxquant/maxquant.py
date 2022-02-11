@@ -1646,7 +1646,7 @@ class Maxquant():
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in \
                    file2label[key1] or 'Lys6' in file2label[key1]:
                      parameterGroup['0']['silac_shape'] = file2silac_shape[key1]
- 
+
             elif {instr_val: value2} in tmp:
                 int_node = doc.createElement('int')
                 int_text = doc.createTextNode(str(tag))
@@ -1660,7 +1660,7 @@ class Maxquant():
                 tmp.append({instr_val: value2})
                 parameterGroup[str(tag)] = {'instrument': file2instrument[key1], 'label': file2label[key1] , 'mods': file2mods[key1], 'enzyme': file2enzyme[key1],
                                             'pctol': file2pctol[key1], 'fragtol': file2fragtol[key1],'pctolunit': file2pctolunit[key1], 'fragtolunit': file2fragtolunit[key1], 'datparams': datparams}
- 
+
                 if 'Lys8' in file2label[key1] or 'Arg10' in file2label[key1] or 'Arg6' in file2label[key1] \
                         or 'Lys6' in file2label[key1]:
                     parameterGroup[str(tag)]['silac_shape'] = file2silac_shape[key1]
@@ -1901,7 +1901,7 @@ class Maxquant():
                 maxNmods.appendChild(doc.createTextNode('5'))
 
 
-            
+
             maxMissedCleavages = doc.createElement('maxMissedCleavages')
             maxMissedCleavages.appendChild(doc.createTextNode('2'))
             enzymeMode = doc.createElement('enzymeMode')
@@ -2030,7 +2030,7 @@ class Maxquant():
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('False'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
-            
+
             isotopeMatchTol.appendChild(doc.createTextNode('2'))
             isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
             isotopeMatchTolInPpm.appendChild(doc.createTextNode('True'))
