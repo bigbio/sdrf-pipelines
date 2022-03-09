@@ -707,7 +707,7 @@ class OpenMS:
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
         f = open(output_filename, "w+")
         open_ms_search_settings_header = ["URI", "Filename", "FixedModifications", "VariableModifications",
-                                          "Proteomics data acquisition method", "Label",
+                                          "Proteomics Data Acquisition Method", "Label",
                                           "PrecursorMassTolerance", "PrecursorMassToleranceUnit",
                                           "FragmentMassTolerance",
                                           "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
