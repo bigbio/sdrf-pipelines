@@ -706,7 +706,8 @@ class OpenMS:
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
         f = open(output_filename, "w+")
-        open_ms_search_settings_header = ["URI", "Filename", "FixedModifications", "VariableModifications", "Label",
+        open_ms_search_settings_header = ["URI", "Filename", "FixedModifications", "VariableModifications",
+                                          "Proteomics data acquisition method", "Label",
                                           "PrecursorMassTolerance", "PrecursorMassToleranceUnit",
                                           "FragmentMassTolerance",
                                           "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
@@ -722,6 +723,15 @@ class OpenMS:
         for _0, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
+            if "comment[proteomics data acquisition method]" not in row:
+                warning_message = "The comment[proteomics data acquisition method] column is missing, " \
+                                  "default Data-Dependent Acquisition"
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                acquisition_method = "Data-Dependent Acquisition"
+            else:
+                acquisition_method = row["comment[proteomics data acquisition method]"]
+                acquisition_method = acquisition_method.split(";")[0].split("=")[1]
+
             if raw in raws:
                 continue
             raws.append(raw)
@@ -768,7 +778,8 @@ class OpenMS:
                                 "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'")
 
             f.write(
-                URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" + label + "\t" +
+                URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" +
+                acquisition_method + "\t" + label + "\t" +
                 f2c.file2pctol[
                     raw] + "\t" + f2c.file2pctolunit[raw] + "\t" + f2c.file2fragtol[raw] + "\t" + f2c.file2fragtolunit[
                     raw] + "\t" +
