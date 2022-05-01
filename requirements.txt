@@ -3,4 +3,4 @@ click
 pandas_schema
 pytest
 requests
-yaml
+pyyaml
