@@ -61,7 +61,7 @@ def new_or_default(params_in, pname, p):
         print("Found in parameter file")
         pvalue = params_in[pname]
     else:
-        print("Setting to default: " + p["default"])
+        print("Setting to default: " + str(p["default"]))
         pvalue = p["default"]
     return(pvalue)
 
