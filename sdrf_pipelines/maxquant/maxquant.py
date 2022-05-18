@@ -743,28 +743,10 @@ class Maxquant():
             if 'comment[fragment mass tolerance]' in row:
                 f_tol_str = row['comment[fragment mass tolerance]']
                 f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str:
+                if "ppm" in f_tol_str or "Da" in f_tol_str:
                     f_tmp = f_tol_str.split(" ")
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
-
-                    # TODO how to set different tolerence unit
-                    if "Da" in file2pctolunit[raw]:
-                        warning_message = "mass tolerance unit different between pc and frag. Assuming precursor 4.5 " \
-                                          "ppm. "
-                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                        file2pctol[raw] = "4.5"
-                        file2pctolunit[raw] = "ppm"
-                elif "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    file2fragtol[raw] = f_tmp[0]
-                    file2fragtolunit[raw] = f_tmp[1]
-                    if "ppm" in file2pctolunit[raw]:
-                        warning_message = "mass tolerance unit different between pc and frag. Assuming precursor 0.01" \
-                                          " Da."
-                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                        file2pctol[raw] = "0.01"
-                        file2pctolunit[raw] = "Da"
                 else:
                     warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -2021,12 +2003,14 @@ class Maxquant():
             doMassFiltering.appendChild(doc.createTextNode('True'))
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
-            firstSearchTol.appendChild(doc.createTextNode(str(j["fragtol"])))
-            mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
             if j["pctolunit"] == 'ppm':
+                    firstSearchTol.appendChild(doc.createTextNode(str(50)))
+                    mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('True'))
             else:
+                    firstSearchTol.appendChild(doc.createTextNode(0.05))
+                    mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('False'))
             isotopeMatchTol = doc.createElement('isotopeMatchTol')
@@ -2283,6 +2267,11 @@ class Maxquant():
             Name = doc.createElement('Name')
             MatchTolerance = doc.createElement('MatchTolerance')
             MatchToleranceInPpm = doc.createElement('MatchToleranceInPpm')
+            MatchTolerance.appendChild(doc.createTextNode(str(j['fragtol'])))
+            if j["fragtolunit"] == 'ppm':
+                MatchToleranceInPpm.appendChild(doc.createTextNode('True'))
+            else:
+                MatchToleranceInPpm.appendChild(doc.createTextNode('False'))
             DeisotopeTolerance = doc.createElement('DeisotopeTolerance')
             DeisotopeToleranceInPpm = doc.createElement('DeisotopeToleranceInPpm')
             DeNovoTolerance = doc.createElement('DeNovoTolerance')
@@ -2298,8 +2287,6 @@ class Maxquant():
 
             if i == 0:
                 Name.appendChild(doc.createTextNode('FTMS'))
-                MatchTolerance.appendChild(doc.createTextNode('20'))
-                MatchToleranceInPpm.appendChild(doc.createTextNode('True'))
                 DeisotopeTolerance.appendChild(doc.createTextNode('7'))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode('True'))
                 DeNovoTolerance.appendChild(doc.createTextNode('10'))
@@ -2315,8 +2302,6 @@ class Maxquant():
 
             elif i == 1:
                 Name.appendChild(doc.createTextNode('ITMS'))
-                MatchTolerance.appendChild(doc.createTextNode('0.5'))
-                MatchToleranceInPpm.appendChild(doc.createTextNode('False'))
                 DeisotopeTolerance.appendChild(doc.createTextNode('0.15'))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode('False'))
                 DeNovoTolerance.appendChild(doc.createTextNode('0.25'))
@@ -2332,8 +2317,6 @@ class Maxquant():
 
             elif i == 2:
                 Name.appendChild(doc.createTextNode('TOF'))
-                MatchTolerance.appendChild(doc.createTextNode('40'))
-                MatchToleranceInPpm.appendChild(doc.createTextNode('True'))
                 DeisotopeTolerance.appendChild(doc.createTextNode('0.01'))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode('False'))
                 DeNovoTolerance.appendChild(doc.createTextNode('0.02'))
@@ -2349,8 +2332,6 @@ class Maxquant():
 
             elif i == 3:
                 Name.appendChild(doc.createTextNode('Unknown'))
-                MatchTolerance.appendChild(doc.createTextNode('20'))
-                MatchToleranceInPpm.appendChild(doc.createTextNode('True'))
                 DeisotopeTolerance.appendChild(doc.createTextNode('7'))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode('True'))
                 DeNovoTolerance.appendChild(doc.createTextNode('10'))

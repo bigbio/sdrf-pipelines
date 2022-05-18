@@ -161,7 +161,7 @@ the file into parts with the same data analysis parameters")
 
         # Now finally writing the value
         elif pname not in ["fixed_mods", "variable_mods"]:
-            print("WARNING: Overwriting " + pname + " values in sdrf file with " + pvalue)
+            print("WARNING: Overwriting " + pname + " values in sdrf file with " + str(pvalue))
             overwritten.add(pname)
             sdrf_content[psdrf] = pvalue
 
