@@ -2004,12 +2004,12 @@ class Maxquant():
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
             if j["pctolunit"] == 'ppm':
-                    firstSearchTol.appendChild(doc.createTextNode(str(50)))
+                    firstSearchTol.appendChild(doc.createTextNode(str(int(j["pctol"])+15)))
                     mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('True'))
             else:
-                    firstSearchTol.appendChild(doc.createTextNode(0.05))
+                    firstSearchTol.appendChild(doc.createTextNode(str(int(j["pctol"])+0.04)))
                     mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('False'))
