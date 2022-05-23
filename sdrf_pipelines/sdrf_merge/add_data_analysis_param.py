@@ -177,14 +177,14 @@ the file into parts with the same data analysis parameters")
 # adding modification columns
 colnames = list(sdrf_content.columns) + ["comment[modification parameters]"] * len(mod_columns.columns)
 
-sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1)
+sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1, )
 sdrf_content.columns = colnames
 
 sdrf_content.dropna(how='all', axis=1, inplace=True)
 
 print("--- Writing sdrf file into sdrf_local.tsv ---")
 # sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False)
-sdrf_content.to_csv("sdrf_local.tsv", sep="\t")
+sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
 
 # Verify with sdrf-parser
 check_sdrf = SdrfDataFrame()
