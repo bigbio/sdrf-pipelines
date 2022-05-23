@@ -177,7 +177,7 @@ the file into parts with the same data analysis parameters")
 # adding modification columns
 colnames = list(sdrf_content.columns) + ["comment[modification parameters]"] * len(mod_columns.columns)
 
-sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1, )
+sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1)
 sdrf_content.columns = colnames
 
 sdrf_content.dropna(how='all', axis=1, inplace=True)
