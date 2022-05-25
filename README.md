@@ -156,6 +156,19 @@ parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
 - -swath  : from openswathtomsstats output to msstats default false
 - -mq  : from maxquant output to msstats default false
 
+## Convert to NormalyzerDE design file: Usage
+
+```bash
+parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./testPXD000288_design.tsv
+```
+
+- -s  : SDRF file
+- -c  : Create groups from provided (e.g., factor) columns as used by NormalyzerDE, for example  -c ["characteristics[spiked compound]"] (optional)
+- -o  : NormalyzerDE design out file path
+- -oc  : Out file path for comparisons towards first group (optional)
+- -mq  : Path to MaxQuant experimental design file for mapping MQ sample names. (optional)
+
+
 # Citation
 
 Perez-Riverol, Yasset, and European Bioinformatics Community for Mass Spectrometry. "Toward a Sample Metadata Standard in Public Proteomics Repositories." Journal of Proteome Research 19.10 (2020): 3906-3909. [Manuscript](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.0c00376)

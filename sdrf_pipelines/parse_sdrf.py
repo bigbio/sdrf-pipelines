@@ -10,6 +10,7 @@ import pandas as pd
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.msstats.msstats import Msstats
+from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY, ALL_TEMPLATES, DEFAULT_TEMPLATE
 from sdrf_pipelines.utils.exceptions import AppConfigException
@@ -153,13 +154,24 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
 def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats):
     Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats)
 
+@click.command('convert-normalyzerde',
+               short_help='convert sdrf to NormalyzerDE design file')
+@click.option('--sdrf', '-s', help='SDRF file', required=True)
+@click.option('--conditionsfromcolumns', "-c", help='Create conditions from provided (e.g., factor) columns.')
+@click.option('--outpath', "-o", help='annotation out file path', required=True)
+@click.option('--outpathcomparisons', "-oc", help='out file path for comparisons', default="")
+@click.option('--maxquant_exp_design_file', "-mq", help='Path to maxquant experimental design file for mapping MQ sample names', default="")
+@click.pass_context
+def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file):
+    NormalyzerDE().convert_normalyzerde_design(sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file)
+
 
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
 cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
-
+cli.add_command(normalyzerde_from_sdrf)
 
 def main():
     cli()
