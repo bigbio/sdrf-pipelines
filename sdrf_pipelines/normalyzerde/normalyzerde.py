@@ -23,8 +23,9 @@ class NormalyzerDE():
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
         data = dict()
         condition = list()
-        Experiments = list()
+        replicates = list()
         runs = sdrf['comment[data file]'].tolist()
+        source_names = sdrf['source name'].tolist()
 
         assays = []
 
@@ -55,8 +56,9 @@ class NormalyzerDE():
             condition.append(combined_factors)
 
         group = []
-        # Shorten down condition to QY only if present.
+        # Shorten down condition to QY only if present. Also replace '-' with '_' as reserved for comparisons.
         for con in condition:
+            con = con.replace('-','_')
             if re.search('QY=.*',con) != None :
                 match = re.search('QY=(.*)',con)
                 groupnew = match[1]
@@ -101,9 +103,9 @@ class NormalyzerDE():
             value.append(MSstatsBioReplicate)
 
             if 'comment[technical replicate]' in sdrf.columns:
-                Experiments.append(row['source name'] + '_' + str(row['comment[technical replicate]']))
+                replicates.append(str(row['comment[technical replicate]']))
             else:
-                Experiments.append(row['source name'] + '_' + '1')
+                replicates.append('1')
 
         # For MaxQuant mapping
         if maxquant_exp_design_file != "":
@@ -119,6 +121,8 @@ class NormalyzerDE():
 
         data['Run'] = runs
         data['Assay'] = assays
+        data['source_name'] = source_names
+        data['technical_replicate'] = replicates
         data['group'] = group
         pd.DataFrame(data).to_csv(annotation_path, index=False, sep='\t')
 
