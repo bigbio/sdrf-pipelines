@@ -24,7 +24,6 @@ class Maxquant():
         self.warnings = dict()
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
-        print(self.datparamfile)
 
     def create_new_mods(self, mods, mqconfdir):
         i = 0
