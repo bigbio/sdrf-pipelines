@@ -48,7 +48,7 @@ class Zooma(object):
     BASE_URL = 'https://www.ebi.ac.uk/spot/zooma/v2/api/services'
 
     @staticmethod
-    def process_zumma_results(results):
+    def process_zooma_results(results):
         """
         Get a list of results from a query to Zooma and return a list
         of dictionaries containing the queryValue, confidence and ols_url
