@@ -1,12 +1,16 @@
 import logging
-import typing
 import re
+import typing
 from typing import Any
 
 import pandas as pd
-from pandas_schema import Column, Schema
-from pandas_schema.validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, _SeriesValidation, \
-    _BaseValidation, MatchesPatternValidation
+from pandas_schema import Column
+from pandas_schema import Schema
+from pandas_schema.validation import LeadingWhitespaceValidation
+from pandas_schema.validation import MatchesPatternValidation
+from pandas_schema.validation import TrailingWhitespaceValidation
+from pandas_schema.validation import _BaseValidation
+from pandas_schema.validation import _SeriesValidation
 
 from sdrf_pipelines.sdrf import sdrf
 from sdrf_pipelines.utils.exceptions import LogicError
@@ -14,19 +18,25 @@ from sdrf_pipelines.zooma.ols import OlsClient
 
 client = OlsClient()
 
-HUMAN_TEMPLATE = 'human'
-DEFAULT_TEMPLATE = 'default'
-VERTEBRATES_TEMPLATE = 'vertebrates'
-NON_VERTEBRATES_TEMPLATE = 'nonvertebrates'
-PLANTS_TEMPLATE = 'plants'
-CELL_LINES_TEMPLATE = 'cell_lines'
-MASS_SPECTROMETRY = 'mass_spectrometry'
-ALL_TEMPLATES = [DEFAULT_TEMPLATE, HUMAN_TEMPLATE, VERTEBRATES_TEMPLATE, NON_VERTEBRATES_TEMPLATE, PLANTS_TEMPLATE,
-                 CELL_LINES_TEMPLATE]
+HUMAN_TEMPLATE = "human"
+DEFAULT_TEMPLATE = "default"
+VERTEBRATES_TEMPLATE = "vertebrates"
+NON_VERTEBRATES_TEMPLATE = "nonvertebrates"
+PLANTS_TEMPLATE = "plants"
+CELL_LINES_TEMPLATE = "cell_lines"
+MASS_SPECTROMETRY = "mass_spectrometry"
+ALL_TEMPLATES = [
+    DEFAULT_TEMPLATE,
+    HUMAN_TEMPLATE,
+    VERTEBRATES_TEMPLATE,
+    NON_VERTEBRATES_TEMPLATE,
+    PLANTS_TEMPLATE,
+    CELL_LINES_TEMPLATE,
+]
 
-TERM_NAME = 'NT'
-NOT_AVAILABLE = 'not available'
-NOT_APPLICABLE = 'not applicable'
+TERM_NAME = "NT"
+NOT_AVAILABLE = "not available"
+NOT_APPLICABLE = "not applicable"
 
 
 def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
@@ -41,7 +51,7 @@ def ontology_term_parser(cell_value: str = None):
     """
     term = {}
     values = cell_value.split(";")
-    if len(values) == 1 and '=' not in values[0]:
+    if len(values) == 1 and "=" not in values[0]:
         term[TERM_NAME] = values[0].lower()
     else:
         for name in values:
@@ -51,10 +61,14 @@ def ontology_term_parser(cell_value: str = None):
 
 
 class SDRFColumn(Column):
-
-    def __init__(self, name: str, validations: typing.Iterable['_BaseValidation'] = [],
-                 optional_validations: typing.Iterable['_BaseValidation'] = [],
-                 allow_empty=False, optional_type=True):
+    def __init__(
+        self,
+        name: str,
+        validations: typing.Iterable["_BaseValidation"] = [],
+        optional_validations: typing.Iterable["_BaseValidation"] = [],
+        allow_empty=False,
+        optional_type=True,
+    ):
         super().__init__(name, validations, allow_empty)
         self.optional_validations = optional_validations
         self._optional = optional_type
@@ -120,7 +134,7 @@ class OntologyTerm(_SeriesValidation):
                     ontology_terms = client.search(term[TERM_NAME], exact="true")
 
             if ontology_terms is not None:
-                query_labels = [o['label'].lower() for o in ontology_terms]
+                query_labels = [o["label"].lower() for o in ontology_terms]
                 for label in query_labels:
                     labels.append(label)
         if self._not_available:
@@ -131,8 +145,8 @@ class OntologyTerm(_SeriesValidation):
 
 
 class SDRFSchema(Schema):
-    _special_columns = {'sourcename', 'assayname', 'materialtype', 'technologytype'}
-    _column_template = r'^(characteristics|comment|factor value)\s*\[([^\]]+)\](?:\.\d+)?$'
+    _special_columns = {"sourcename", "assayname", "materialtype", "technologytype"}
+    _column_template = r"^(characteristics|comment|factor value)\s*\[([^\]]+)\](?:\.\d+)?$"
 
     def __init__(self, columns: typing.Iterable[SDRFColumn], ordered: bool = False, min_columns: int = 0):
         super().__init__(columns, ordered)
@@ -148,8 +162,11 @@ class SDRFSchema(Schema):
 
         # Check minimum number of columns
         if check_minimum_columns(panda_sdrf, self._min_columns):
-            error_message = 'The number of columns in the SDRF ({}) is smaller than the number of mandatory fields ({})'.format(
-                len(panda_sdrf.get_sdrf_columns()), self._min_columns)
+            error_message = (
+                "The number of columns in the SDRF ({}) is smaller than the number of mandatory fields ({})".format(
+                    len(panda_sdrf.get_sdrf_columns()), self._min_columns
+                )
+            )
             errors.append(LogicError(error_message, error_type=logging.WARN))
 
         # Check the mandatory fields
@@ -184,22 +201,29 @@ class SDRFSchema(Schema):
             if cname != cname.strip():
                 spaces.append(cname)
                 continue
-            if cname.replace(' ', '') in self._special_columns:
+            if cname.replace(" ", "") in self._special_columns:
                 continue
             m = re.match(self._column_template, cname)
             if not m:
                 errors.append(cname)
-            if m.group().startswith('factor value'):
-                if m.group().replace('factor value', 'comment') not in panda_sdrf.columns and \
-                        m.group().replace('factor value', 'characteristics') not in panda_sdrf.columns \
-                  and m.group() not in panda_sdrf.columns:
-                    error_message = 'The ' + cname + ' column should also be in the characteristics or comment'
+            if m.group().startswith("factor value"):
+                if (
+                    m.group().replace("factor value", "comment") not in panda_sdrf.columns
+                    and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
+                    and m.group() not in panda_sdrf.columns
+                ):
+                    error_message = "The " + cname + " column should also be in the characteristics or comment"
                     logerror.append(LogicError(error_message, error_type=logging.ERROR))
 
         if errors + spaces:
-            logerror.append(LogicError('Invalid columns present: ' + ', '.join(errors) +
-                                       ', '.join(e + ' (leading or trailing whitespace)' for e in spaces),
-                                       error_type=logging.ERROR))
+            logerror.append(
+                LogicError(
+                    "Invalid columns present: "
+                    + ", ".join(errors)
+                    + ", ".join(e + " (leading or trailing whitespace)" for e in spaces),
+                    error_type=logging.ERROR,
+                )
+            )
         return logerror
 
     def validate_mandatory_columns(self, panda_sdrf):
@@ -208,41 +232,42 @@ class SDRFSchema(Schema):
             if column._optional is False and column.name not in panda_sdrf.get_sdrf_columns():
                 error_mandatory.append(column.name)
         if len(error_mandatory):
-            error_message = 'The following columns are mandatory and not present in the SDRF: {}'.format(
-                ", ".join(error_mandatory))
+            error_message = "The following columns are mandatory and not present in the SDRF: {}".format(
+                ", ".join(error_mandatory)
+            )
             return LogicError(error_message, error_type=logging.ERROR)
         return None
 
     @staticmethod
     def validate_columns_order(panda_sdrf):
         error_columns_order = []
-        if 'assay name' in list(panda_sdrf):
+        if "assay name" in list(panda_sdrf):
             cnames = list(panda_sdrf)
-            index = cnames.index('assay name')
+            index = cnames.index("assay name")
             factor_tag = False
             for column in cnames:
-                if ('comment' in column or 'technology type' in column) and cnames.index(column) < index:
-                    error_message = 'The column ' + column + 'cannot be before the assay name'
+                if ("comment" in column or "technology type" in column) and cnames.index(column) < index:
+                    error_message = "The column " + column + "cannot be before the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if ('characteristics' in column or (
-                        'material type' in column and 'factor value' not in column)) and cnames.index(column) > index:
-                    error_message = 'The column ' + column + 'cannot be after the assay name'
+                if (
+                    "characteristics" in column or ("material type" in column and "factor value" not in column)
+                ) and cnames.index(column) > index:
+                    error_message = "The column " + column + "cannot be after the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if 'factor value' in column and not factor_tag:
+                if "factor value" in column and not factor_tag:
                     factor_index = cnames.index(column)
                     factor_tag = True
             if factor_tag:
                 temp = []
                 error = []
                 for column in cnames[factor_index:]:
-                    if 'comment' in column or 'characteristics' in column:
+                    if "comment" in column or "characteristics" in column:
                         error.extend(temp)
                         temp = []
-                    elif 'factor value' in column:
+                    elif "factor value" in column:
                         temp.append(column)
                 if len(error):
-                    error_message = 'The following factor column should be last: {}'.format(
-                        ", ".join(error))
+                    error_message = "The following factor column should be last: {}".format(", ".join(error))
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
             if error_columns_order:
                 return error_columns_order
@@ -255,7 +280,7 @@ class SDRFSchema(Schema):
 
         for column in columns_to_pair:
             if column.name not in panda_sdrf and column._optional is False:
-                message = 'The column {} is not present in the SDRF'.format(column.name)
+                message = "The column {} is not present in the SDRF".format(column.name)
                 errors.append(LogicError(message, error_type=logging.ERROR))
             elif column.name in panda_sdrf:
                 column_pairs.append((panda_sdrf[column.name], column))
@@ -276,131 +301,255 @@ class SDRFSchema(Schema):
         return sorted(warnings, key=lambda e: e.row)
 
 
-default_schema = SDRFSchema([
-    SDRFColumn('source name', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[organism part]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[disease]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[organism]',
-               [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                OntologyTerm("ncbitaxon", not_applicable=True)],
-               allow_empty=False,
-               optional_type=False),
-    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=False,
-               optional_type=False),
-    SDRFColumn('characteristics[biological replicate]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('assay name',
-               [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=False,
-               optional_type=False),
-    SDRFColumn('comment[technical replicate]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[fraction identifier]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[data file]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False)
+default_schema = SDRFSchema(
+    [
+        SDRFColumn(
+            "source name",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[organism part]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[disease]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[organism]",
+            [
+                LeadingWhitespaceValidation(),
+                TrailingWhitespaceValidation(),
+                OntologyTerm("ncbitaxon", not_applicable=True),
+            ],
+            allow_empty=False,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[cell type]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=False,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[biological replicate]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "assay name",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=False,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[technical replicate]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[fraction identifier]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[data file]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+    ],
+    min_columns=7,
+)
 
-], min_columns=7)
+human_schema = SDRFSchema(
+    [
+        SDRFColumn(
+            "characteristics[cell type]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[ancestry category]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[age]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            [
+                MatchesPatternValidation(
+                    r"(?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)", case=False
+                )
+            ],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[sex]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[developmental stage]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "characteristics[individual]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+    ],
+    min_columns=7,
+)
 
-human_schema = SDRFSchema([
-    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[ancestry category]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[age]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               [MatchesPatternValidation(r'(?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)',
-                                         case=False)],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[sex]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[developmental stage]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('characteristics[individual]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True)
-], min_columns=7)
+vertebrates_chema = SDRFSchema(
+    [
+        SDRFColumn(
+            "characteristics[developmental stage]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        )
+    ],
+    min_columns=7,
+)
 
-vertebrates_chema = SDRFSchema([
-    SDRFColumn('characteristics[developmental stage]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False)
-], min_columns=7)
+nonvertebrates_chema = SDRFSchema(
+    [
+        SDRFColumn(
+            "characteristics[developmental stage]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "characteristics[strain/breed]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+    ],
+    min_columns=7,
+)
 
-nonvertebrates_chema = SDRFSchema([
-    SDRFColumn('characteristics[developmental stage]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('characteristics[strain/breed]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True)],
-    min_columns=7)
+plants_chema = SDRFSchema(
+    [
+        SDRFColumn(
+            "characteristics[developmental stage]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "characteristics[strain/breed]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+    ],
+    min_columns=7,
+)
 
-plants_chema = SDRFSchema([
-    SDRFColumn('characteristics[developmental stage]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('characteristics[strain/breed]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True)
-], min_columns=7)
+cell_lines_schema = SDRFSchema(
+    [
+        SDRFColumn(
+            "characteristics[cell type]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "characteristics[cell line]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+    ],
+    min_columns=7,
+)
 
-cell_lines_schema = SDRFSchema([
-    SDRFColumn('characteristics[cell type]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('characteristics[cell line]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False)
-], min_columns=7)
-
-mass_spectrometry_schema = SDRFSchema([
-    SDRFColumn('assay name', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('technology type', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('comment[fraction identifier]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[label]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("pride")],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[technical replicate]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[instrument]',
-               [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms")],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[modification parameters]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                                                    OntologyTerm(ontology_name="unimod", not_available=True)],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('comment[cleavage agent details]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(),
-                                                   OntologyTerm("ms", not_applicable=True)],
-               allow_empty=True,
-               optional_type=False),
-    SDRFColumn('comment[fragment mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True),
-    SDRFColumn('comment[precursor mass tolerance]', [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-               allow_empty=True,
-               optional_type=True)
-], min_columns=7)
+mass_spectrometry_schema = SDRFSchema(
+    [
+        SDRFColumn(
+            "assay name",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "technology type",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "comment[fraction identifier]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[label]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("pride")],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[technical replicate]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[instrument]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms")],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[modification parameters]",
+            [
+                LeadingWhitespaceValidation(),
+                TrailingWhitespaceValidation(),
+                OntologyTerm(ontology_name="unimod", not_available=True),
+            ],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "comment[cleavage agent details]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms", not_applicable=True)],
+            allow_empty=True,
+            optional_type=False,
+        ),
+        SDRFColumn(
+            "comment[fragment mass tolerance]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+        SDRFColumn(
+            "comment[precursor mass tolerance]",
+            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
+            allow_empty=True,
+            optional_type=True,
+        ),
+    ],
+    min_columns=7,
+)
