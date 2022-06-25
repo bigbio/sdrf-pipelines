@@ -162,11 +162,11 @@ parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
 parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./testPXD000288_design.tsv
 ```
 
--  -s  : SDRF file
--  -c  : Create groups from provided (e.g., factor) columns as used by NormalyzerDE, for example '-c ["characteristics[spiked compound]"]' (optional)
--  -o  : NormalyzerDE design out file path
--  -oc  : Out file path for comparisons towards first group (optional)
--  -mq  : Path to MaxQuant experimental design file for mapping MQ sample names. (optional)
+- -s  : SDRF file
+- -c  : Create groups from provided (e.g., factor) columns as used by NormalyzerDE, for example `-c ["characteristics[spiked compound]"]` (optional)
+- -o  : NormalyzerDE design out file path
+- -oc  : Out file path for comparisons towards first group (optional)
+- -mq  : Path to MaxQuant experimental design file for mapping MQ sample names. (optional)
 
 
 # Citation
