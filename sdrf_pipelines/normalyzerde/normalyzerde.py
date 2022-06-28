@@ -14,7 +14,7 @@ class NormalyzerDE():
 
     def __init__(self) -> None:
         """Convert sdrf to normalyzerde design file (label free quantification assumed)."""
-        self.warnings = dict()
+        self.warnings = {}
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file):
@@ -70,11 +70,47 @@ class NormalyzerDE():
 
         sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
         # get BioReplicate
-        BioReplicate = []
         sample_id_map = {}
         sample_id = 1
-        value = []
 
+
+        replicates = self.get_replicates(self, sdrf, sample_identifier_re, sample_id_map, sample_id)
+
+        # For MaxQuant mapping
+        if maxquant_exp_design_file != "":
+            mq_design = pd.read_csv(maxquant_exp_design_file, sep='\t')
+            mq_assays = mq_design['Name'].tolist()
+            mq_experiments = mq_design['Experiment'].tolist()
+            new_samples = []
+            for assay in assays:
+               new_samples.append(mq_experiments[mq_assays.index(assay)].replace(' ','.'))
+            data['sample'] = new_samples
+        else:
+            data['sample'] = assays
+
+        data['Run'] = runs
+        data['Assay'] = assays
+        data['source_name'] = source_names
+        data['technical_replicate'] = replicates
+        data['group'] = group
+        pd.DataFrame(data).to_csv(annotation_path, index=False, sep='\t')
+
+        # Write out comparisons toward first factor
+        if comparisons_path != "":
+            comparisons = []
+            uniquefactors = sorted(set(group))
+            firstfactor = group[0]
+            for factor in uniquefactors:
+                if factor != firstfactor :
+                    comparisons.append(factor+'-'+firstfactor)
+            with open(comparisons_path, 'w') as target:
+              writer = csv.writer(target, delimiter=',')
+              writer.writerow(comparisons)
+
+    def get_replicates(self, sdrf, sample_identifier_re, sample_id_map, sample_id):
+        replicates = []
+        value = []
+        BioReplicate = []
         for _, row in sdrf.iterrows():
             source_name = row["source name"]
 
@@ -107,36 +143,8 @@ class NormalyzerDE():
             else:
                 replicates.append('1')
 
-        # For MaxQuant mapping
-        if maxquant_exp_design_file != "":
-            mq_design = pd.read_csv(maxquant_exp_design_file, sep='\t')
-            mq_assays = mq_design['Name'].tolist()
-            mq_experiments = mq_design['Experiment'].tolist()
-            new_samples = []
-            for assay in assays:
-               new_samples.append(mq_experiments[mq_assays.index(assay)].replace(' ','.'))
-            data['sample'] = new_samples
-        else:
-            data['sample'] = assays
-
-        data['Run'] = runs
-        data['Assay'] = assays
-        data['source_name'] = source_names
-        data['technical_replicate'] = replicates
-        data['group'] = group
-        pd.DataFrame(data).to_csv(annotation_path, index=False, sep='\t')
-
-        # Write out comparisons toward first factor
-        if comparisons_path != "":
-            comparisons = []
-            uniquefactors = sorted(set(group))
-            firstfactor = group[0]
-            for factor in uniquefactors:
-                if factor != firstfactor :
-                    comparisons.append(factor+'-'+firstfactor)
-            with open(comparisons_path, 'w') as target:
-              writer = csv.writer(target, delimiter=',')
-              writer.writerow(comparisons)
+        return replicates
+        
 
     def combine_factors_to_conditions(self, factor_cols, row):
         all_factors = list(row[factor_cols])

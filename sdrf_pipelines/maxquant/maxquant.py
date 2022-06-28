@@ -5,7 +5,7 @@ Created on Sun Apr 19 09:46:14 2020
 @author: ChengXin
 """
 
-from operator import lt
+#from operator import lt
 import pandas as pd
 import re
 import time
@@ -26,6 +26,54 @@ class Maxquant():
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
 
+
+    def guess_tmt(label, lt, label_list):
+        if len(label_list) == 11:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT11plex-Lys" + i.replace('TMT', '')
+                else:
+                    lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+        elif len(label_list) > 8:
+            for i in label_list:
+                if i == label_list[-1]:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '')
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                else:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+
+        elif len(label_list) > 6:
+            for i in label_list:
+                if i == label_list[-1]:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT8plex-Lys" + i.replace('TMT', '')
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                else:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT8plex-Lys" + i.replace('TMT', '') + ","
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+        elif len(label_list) > 2:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip()
+                else:
+                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip() + ","
+        else:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT2plex-Lys" + i.replace('TMT', '')
+                else:
+                    lt = lt + "TMT2plex-Lys" + i.replace('TMT', '') + ","
+        return lt
+
+
     def extractTMT_info(label, raw, file2mods):
         lt = ''
         label_list = sorted(label)
@@ -39,53 +87,8 @@ class Maxquant():
                 else:
                     lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
         else:
-            if len(label_list) == 11:
-                for i in label_list:
-                    if i == label_list[-1]:
-                        lt = lt + "TMT11plex-Lys" + i.replace('TMT', '')
-                    else:
-                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
-            elif len(label_list) > 8:
-                for i in label_list:
-                    if i == label_list[-1]:
-                        if "N" in i or "C" in i:
-                            lt = lt + "TMT10plex-Lys" + i.replace('TMT', '')
-                        else:
-                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
-                    else:
-                        if "N" in i or "C" in i:
-                            lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
-                        else:
-                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
-
-            elif len(label_list) > 6:
-                for i in label_list:
-                    if i == label_list[-1]:
-                        if "N" in i or "C" in i:
-                            lt = lt + "TMT8plex-Lys" + i.replace('TMT', '')
-                        else:
-                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
-                    else:
-                        if "N" in i or "C" in i:
-                            lt = lt + "TMT8plex-Lys" + i.replace('TMT', '') + ","
-                        else:
-                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
-            elif len(label_list) > 2:
-                for i in label_list:
-                    if i == label_list[-1]:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip()
-                    else:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip() + ","
-            else:
-                for i in label_list:
-                    if i == label_list[-1]:
-                        lt = lt + "TMT2plex-Lys" + i.replace('TMT', '')
-                    else:
-                        lt = lt + "TMT2plex-Lys" + i.replace('TMT', '') + ","
+            lt = label.guess_tmt(lt, label_list)
         return lt
-
-
-
 
     def create_new_mods(self, mods, mqconfdir):
         i = 0

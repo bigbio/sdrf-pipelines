@@ -74,7 +74,7 @@ def maxquant_from_sdrf(ctx, sdrf: str, fastafilepath: str, mqconfdir: str, match
 
     Maxquant().maxquant_convert(sdrf, fastafilepath, mqconfdir, matchbetweenruns, peptidefdr, proteinfdr,
                                 tempfolder, raw_folder, numthreads, output1)
-    Maxquant().maxquant_experiamental_design(sdrf, output2)
+    Maxquant().maxquant_experimental_design(sdrf, output2)
 
 
 @click.command('validate-sdrf', short_help='Command to validate the sdrf file')
