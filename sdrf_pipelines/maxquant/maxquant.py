@@ -879,7 +879,7 @@ class Maxquant():
             elif row['comment[label]'].lower() == 'label free sample':
                 file2label[raw] = 'label free sample'
             elif row['comment[label]'].startswith("TMT"):
-                file2label[raw] = extractTMT_info(list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]']), raw, file2mods)
+                file2label[raw] = self.extractTMT_info(list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]']), raw, file2mods)
 
             elif row['comment[label]'].startswith("SILAC"):
                 arr = sdrf[sdrf['comment[data file]'] == raw][[col for col in label_cols]].values
