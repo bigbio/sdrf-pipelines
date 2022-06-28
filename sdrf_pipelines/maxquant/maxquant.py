@@ -5,6 +5,7 @@ Created on Sun Apr 19 09:46:14 2020
 @author: ChengXin
 """
 
+from operator import lt
 import pandas as pd
 import re
 import time
@@ -21,18 +22,79 @@ class Maxquant():
 
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = dict()
+        self.warnings = {}
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
+
+    def extractTMT_info(label, raw, file2mods):
+        lt = ''
+        label_list = sorted(label)
+        label_head = [re.search(r'TMT(\d+)plex-', i).group(1) for i in file2mods[raw] if "TMT" in i]
+
+        if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
+            label_head = "TMT" + label_head[0] + "plex"
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + label_head + "-Lys" + i.replace('TMT', '')
+                else:
+                    lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
+        else:
+            if len(label_list) == 11:
+                for i in label_list:
+                    if i == label_list[-1]:
+                        lt = lt + "TMT11plex-Lys" + i.replace('TMT', '')
+                    else:
+                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+            elif len(label_list) > 8:
+                for i in label_list:
+                    if i == label_list[-1]:
+                        if "N" in i or "C" in i:
+                            lt = lt + "TMT10plex-Lys" + i.replace('TMT', '')
+                        else:
+                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                    else:
+                        if "N" in i or "C" in i:
+                            lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+                        else:
+                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+
+            elif len(label_list) > 6:
+                for i in label_list:
+                    if i == label_list[-1]:
+                        if "N" in i or "C" in i:
+                            lt = lt + "TMT8plex-Lys" + i.replace('TMT', '')
+                        else:
+                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                    else:
+                        if "N" in i or "C" in i:
+                            lt = lt + "TMT8plex-Lys" + i.replace('TMT', '') + ","
+                        else:
+                            lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+            elif len(label_list) > 2:
+                for i in label_list:
+                    if i == label_list[-1]:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip()
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip() + ","
+            else:
+                for i in label_list:
+                    if i == label_list[-1]:
+                        lt = lt + "TMT2plex-Lys" + i.replace('TMT', '')
+                    else:
+                        lt = lt + "TMT2plex-Lys" + i.replace('TMT', '') + ","
+        return lt
+
+
+
 
     def create_new_mods(self, mods, mqconfdir):
         i = 0
         w = y = False
-        all_mods = list()
-        mq_name = list()
-        mq_position = list()
-        mq_site = dict()
-        mq_title = list()
+        all_mods = []
+        mq_name = []
+        mq_position = []
+        mq_site = {}
+        mq_title = []
         while i < mods.shape[1]:
             all_mods.extend([j for j in list(set(mods.iloc[:, i])) if "NT" in j])
             i += 1
@@ -58,7 +120,7 @@ class Maxquant():
             mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
 
             nodes_site = modification.getElementsByTagName("modification_site")
-            temp = list()
+            temp = []
             for node in nodes_site:
                 temp.append(node.getAttribute("site"))
             mq_site[title] = temp
@@ -172,7 +234,7 @@ class Maxquant():
                 root.appendChild(modification)
                 continue
 
-            elif name.lower().startswith("itraq"):
+            if name.lower().startswith("itraq"):
                 w = True
                 name = name.strip()
                 warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement manuanly some parameters"
@@ -237,7 +299,7 @@ class Maxquant():
                 root.appendChild(modification)
                 continue
 
-            elif "->" in name or "13C6-15N4" == name:
+            if "->" in name or "13C6-15N4" == name:
                 pass
             else:
                 name = name.capitalize()
@@ -485,16 +547,16 @@ class Maxquant():
             dT = parse(mq_new_mods)
             rootN = dT.documentElement
             new_mods = rootN.getElementsByTagName("modification")
-            new_title = list()
-            new_position = list()
-            new_name = list()
-            new_site = dict()
+            new_title = []
+            new_position = []
+            new_name = []
+            new_site = {}
             for modification in new_mods:
                 title = str(modification.getAttribute("title"))
                 new_title.append(title)
                 new_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
                 nodes_site = modification.getElementsByTagName("modification_site")
-                temp = list()
+                temp = []
                 for node in nodes_site:
                     temp.append(node.getAttribute("site"))
                 new_site[title] = temp
@@ -507,17 +569,17 @@ class Maxquant():
         domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
-        oms_mods = list()
-        mq_title = list()
-        mq_position = list()
-        mq_name = list()
-        mq_site = dict()
+        oms_mods = []
+        mq_title = []
+        mq_position = []
+        mq_name = []
+        mq_site = {}
         for modification in modifications:
             title = str(modification.getAttribute("title"))
             mq_title.append(title)
             mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
             nodes_site = modification.getElementsByTagName("modification_site")
-            temp = list()
+            temp = []
             for node in nodes_site:
                 temp.append(node.getAttribute("site"))
             mq_site[title] = temp
@@ -583,7 +645,7 @@ class Maxquant():
                 oms_mods.append(name)
                 continue
 
-            elif name.lower().startswith("itraq"):
+            if name.lower().startswith("itraq"):
                 name = name.strip()
                 if "-" in aa:
                     if pp == "anycterm":
@@ -600,7 +662,7 @@ class Maxquant():
                 oms_mods.append(name)
                 continue
 
-            elif "->" in name:
+            if "->" in name:
                 pass
             else:
                 name = name.capitalize()
@@ -650,7 +712,7 @@ class Maxquant():
         with open(self.datparamfile) as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
-        datparams = dict()
+        datparams = {}
         for i in mapping:
             datparams[i["sdrf"]] = i["name"]
 
@@ -665,25 +727,25 @@ class Maxquant():
         enzy_cols = [c for ind, c in enumerate(sdrf) if
                      c.startswith('comment[cleavage agent details]')]
 
-        file2mods = dict()
-        file2pctol = dict()
-        file2pctolunit = dict()
-        file2fragtol = dict()
-        file2fragtolunit = dict()
-        file2diss = dict()
-        file2enzyme = dict()
-        file2fraction = dict()
-        file2label = dict()
-        file2silac_shape = dict()
-        file2source = dict()
-        source_name_list = list()
-        source_name2n_reps = dict()
-        file2technical_rep = dict()
-        file2instrument = dict()
+        file2mods = {}
+        file2pctol = {}
+        file2pctolunit = {}
+        file2fragtol = {}
+        file2fragtolunit = {}
+        file2diss = {}
+        file2enzyme = {}
+        file2fraction = {}
+        file2label = {}
+        file2silac_shape = {}
+        file2source = {}
+        source_name_list = []
+        source_name2n_reps = {}
+        file2technical_rep = {}
+        file2instrument = {}
         # New parameters from extended SDRF (including data analysis parameters)
-        file2params = dict()
+        file2params = {}
         for p in datparams.values():
-            file2params[p] = dict()
+            file2params[p] = {}
 
 
         if mqconfdir:
@@ -814,64 +876,10 @@ class Maxquant():
                 file2label[raw] = label
             elif row['comment[label]'].lower() == 'ibaq':
                 file2label[raw] = 'iBAQ'
+            elif row['comment[label]'].lower() == 'label free sample':
+                file2label[raw] = 'label free sample'
             elif row['comment[label]'].startswith("TMT"):
-                lt = ''
-                label_list = sorted(list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]']))
-                label_head = [re.search(r'TMT(\d+)plex-', i).group(1) for i in file2mods[raw] if "TMT" in i]
-
-                if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
-                    label_head = "TMT" + label_head[0] + "plex"
-                    for i in label_list:
-                        if i == label_list[-1]:
-                            lt = lt + label_head + "-Lys" + i.replace('TMT', '')
-                        else:
-                            lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
-                else:
-                    if len(label_list) == 11:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT11plex-Lys" + i.replace('TMT', '')
-                            else:
-                                lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
-                    elif len(label_list) > 8:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT10plex-Lys" + i.replace('TMT', '')
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
-                            else:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
-
-                    elif len(label_list) > 6:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT8plex-Lys" + i.replace('TMT', '')
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
-                            else:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT8plex-Lys" + i.replace('TMT', '') + ","
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
-                    elif len(label_list) > 2:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip()
-                            else:
-                                lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip() + ","
-                    else:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT2plex-Lys" + i.replace('TMT', '')
-                            else:
-                                lt = lt + "TMT2plex-Lys" + i.replace('TMT', '') + ","
-
-                file2label[raw] = lt
+                file2label[raw] = extractTMT_info(list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]']), raw, file2mods)
 
             elif row['comment[label]'].startswith("SILAC"):
                 arr = sdrf[sdrf['comment[data file]'] == raw][[col for col in label_cols]].values
@@ -994,6 +1002,7 @@ class Maxquant():
                                 lt = lt + "iTRAQ8plex-Lys" + i.replace('iTRAQ', '').replace('reagent ', '')
                             else:
                                 lt = lt + "iTRAQ8plex-Lys" + i.replace('iTRAQ', '').replace('reagent ', '') + ","
+
 
                 file2label[raw] = lt
 
@@ -1612,7 +1621,7 @@ class Maxquant():
 
         for key1, instr_val in file2instrument.items():
             value2 = str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
-            datanalysisparams = dict()
+            datanalysisparams = {}
             for p in file2params.keys():
                 if (len(file2params[p]) > 0):
                     datanalysisparams[p] = file2params[p][key1]
@@ -2003,12 +2012,12 @@ class Maxquant():
             firstSearchTol = doc.createElement('firstSearchTol')
             mainSearchTol = doc.createElement('mainSearchTol')
             if j["pctolunit"] == 'ppm':
-                    firstSearchTol.appendChild(doc.createTextNode(str(int(j["pctol"])+15)))
+                    firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"])+15)))
                     mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('True'))
             else:
-                    firstSearchTol.appendChild(doc.createTextNode(str(int(j["pctol"])+0.04)))
+                    firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"])+0.04)))
                     mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                     searchTolInPpm = doc.createElement('searchTolInPpm')
                     searchTolInPpm.appendChild(doc.createTextNode('False'))

@@ -21,9 +21,9 @@ class NormalyzerDE():
         sdrf = pd.read_csv(sdrf_file, sep='\t')
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
-        data = dict()
-        condition = list()
-        replicates = list()
+        data = {}
+        condition = []
+        replicates = []
         runs = sdrf['comment[data file]'].tolist()
         source_names = sdrf['source name'].tolist()
 
