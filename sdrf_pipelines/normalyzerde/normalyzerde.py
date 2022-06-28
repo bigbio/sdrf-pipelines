@@ -107,7 +107,7 @@ class NormalyzerDE():
               writer = csv.writer(target, delimiter=',')
               writer.writerow(comparisons)
 
-    def get_replicates(self, sdrf, sample_identifier_re, sample_id_map, sample_id):
+    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map, sample_id=1):
         replicates = []
         value = []
         BioReplicate = []
@@ -144,7 +144,7 @@ class NormalyzerDE():
                 replicates.append('1')
 
         return replicates
-        
+
 
     def combine_factors_to_conditions(self, factor_cols, row):
         all_factors = list(row[factor_cols])

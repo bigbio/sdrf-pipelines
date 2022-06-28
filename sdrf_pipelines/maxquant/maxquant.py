@@ -74,10 +74,10 @@ class Maxquant():
         return lt
 
 
-    def extractTMT_info(label, raw, file2mods):
+    def extractTMT_info(self, label="TMT2", mods=None):
         lt = ''
         label_list = sorted(label)
-        label_head = [re.search(r'TMT(\d+)plex-', i).group(1) for i in file2mods[raw] if "TMT" in i]
+        label_head = [re.search(r'TMT(\d+)plex-', i).group(1) for i in mods if "TMT" in i]
 
         if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
             label_head = "TMT" + label_head[0] + "plex"
@@ -87,7 +87,7 @@ class Maxquant():
                 else:
                     lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
         else:
-            lt = label.guess_tmt(lt, label_list)
+            lt = self.guess_tmt(lt, label_list)
         return lt
 
     def create_new_mods(self, mods, mqconfdir):
@@ -882,7 +882,8 @@ class Maxquant():
             elif row['comment[label]'].lower() == 'label free sample':
                 file2label[raw] = 'label free sample'
             elif row['comment[label]'].startswith("TMT"):
-                file2label[raw] = self.extractTMT_info(list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]']), raw, file2mods)
+                labels = list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]'])
+                file2label[raw] = self.extractTMT_info(self, labels, file2mods[raw])
 
             elif row['comment[label]'].startswith("SILAC"):
                 arr = sdrf[sdrf['comment[data file]'] == raw][[col for col in label_cols]].values
