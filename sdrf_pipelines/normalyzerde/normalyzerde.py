@@ -107,7 +107,7 @@ class NormalyzerDE():
               writer = csv.writer(target, delimiter=',')
               writer.writerow(comparisons)
 
-    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map, sample_id=1):
+    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map=[], sample_id=1):
         replicates = []
         value = []
         BioReplicate = []
