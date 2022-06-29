@@ -163,19 +163,19 @@ class DataAnalysisParams():
    def check_values(self, p, pname, ptype, pvalue):
        # for each type: check consistency
          #print(type(pvalue))
-                if ptype == "boolean":
+      if ptype == "boolean":
             if not isinstance(pvalue, bool) :
                 exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
-       elif ptype == "str":
+      elif ptype == "str":
             if not isinstance(pvalue, str) :
                 exit("ERROR: " + pname + " needs to be a string!!")
-       elif ptype == "integer":
+      elif ptype == "integer":
             if not isinstance(pvalue, int) :
                 exit("ERROR: " + pname + " needs to be an integer!!")
-       elif ptype == "float":
+      elif ptype == "float":
             if not isinstance(pvalue, (float, int)):
                 exit("ERROR: " + pname + " needs to be a numeric value!!")
-       elif ptype == "class":
+      elif ptype == "class":
             not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
             if not_matching != [] :
                 exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" + ' '.join(not_matching) + " did not match")
