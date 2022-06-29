@@ -20,7 +20,6 @@ class DataAnalysisParams():
       ## Accessing ontologies and CVs
       unimod = UnimodDatabase()
       olsclient = OlsClient()
-      #print(ols_out)
 
       # modifications have the same column name, not working with pandas
       # therefore separated
