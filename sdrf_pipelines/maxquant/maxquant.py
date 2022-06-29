@@ -27,7 +27,7 @@ class Maxquant():
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
 
 
-    def guess_tmt(self, lt, label_list):
+    def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
