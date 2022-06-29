@@ -27,7 +27,10 @@ class Maxquant():
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
 
 
-    def guess_tmt(label, lt, label_list):
+    def guess_tmt(self, lt, label_list):
+        warning_message = "guessing TMT from number of different labels"
+        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+
         if len(label_list) == 11:
             for i in label_list:
                 if i == label_list[-1]:
@@ -87,7 +90,7 @@ class Maxquant():
                 else:
                     lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
         else:
-            lt = self.guess_tmt(lt, label_list)
+            lt = self.guess_tmt(self, lt, label_list)
         return lt
 
     def create_new_mods(self, mods, mqconfdir):
@@ -2415,7 +2418,7 @@ class Maxquant():
         print("SUCCESS Convert " + sdrf_file + " to Maxquant parameter file")
 
     # create maxquant experimental design file
-    def maxquant_experiamental_design(self, sdrf_file, output):
+    def maxquant_experimental_design(self, sdrf_file, output):
         sdrf = pd.read_csv(sdrf_file, sep='\t')
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)

@@ -37,7 +37,6 @@ class DataAnalysisParams():
       with open(r'params.yml') as file:
          tparams_in = yaml.safe_load(file)
          params_in = tparams_in["params"]
-         rawfiles = tparams_in["rawfiles"]
          fastafile = tparams_in["fastafile"]
 
 
@@ -104,24 +103,7 @@ class DataAnalysisParams():
 
          ## Modifications: look up in Unimod
          elif pname == "fixed_mods" or pname == "variable_mods" :
-            mods = pvalue.split(",")
-            for m in mods :
-               tmod = m.split(" of ")
-               if len(tmod) < 2:
-                  exit("ERROR: Something wrong with the modification entry " + m + ". It should be PSI_MS_NAME of RESIDUE. Note that it should be single residues")
-               modname = tmod[0]
-               modpos = tmod[1]
-               found = [x for x in unimod.modifications if modname == x.get_name()]
-               if found == [] :
-                  exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you used space between the comma separated modifications")
-               modtype = "fixed"
-               if (pname == "variable_mods") : modtype = "variable"
-               if re.match("[A-Z]",modpos) :
-                  mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
-               elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"] :
-                  mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
-               else :
-                  exit("ERROR: Wrong residue given: " + modpos + ". Should be either one upper case letter or any of \"Protein N-term\", \"Protein C-term\", \"Any N-term\", \"Any C-term\"")
+            mod_columns = self.look_up_mods(unimod, mod_columns, pname, pvalue)
 
 
       #print(found_list[0].get_name())
@@ -159,6 +141,27 @@ class DataAnalysisParams():
       print("--- The following parameters have been overwritten in the sdrf file: ---")
       for p in overwritten :
          print(p)
+
+   def look_up_mods(self, unimod, mod_columns, pname, pvalue):
+      mods = pvalue.split(",")
+      for m in mods :
+          tmod = m.split(" of ")
+          if len(tmod) < 2:
+             exit("ERROR: Something wrong with the modification entry " + m + ". It should be PSI_MS_NAME of RESIDUE. Note that it should be single residues")
+          modname = tmod[0]
+          modpos = tmod[1]
+          found = [x for x in unimod.modifications if modname == x.get_name()]
+          if found == [] :
+             exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you used space between the comma separated modifications")
+          modtype = "fixed"
+          if (pname == "variable_mods") : modtype = "variable"
+          if re.match("[A-Z]",modpos) :
+             mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
+          elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"] :
+             mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
+          else :
+             exit("ERROR: Wrong residue given: " + modpos + ". Should be either one upper case letter or any of \"Protein N-term\", \"Protein C-term\", \"Any N-term\", \"Any C-term\"")
+      return mod_columns
 
    def check_values(self, p, pname, ptype, pvalue):
        # for each type: check consistency
