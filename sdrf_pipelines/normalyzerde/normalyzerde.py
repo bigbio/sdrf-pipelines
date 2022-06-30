@@ -74,7 +74,7 @@ class NormalyzerDE():
         sample_id = 1
 
 
-        replicates = self.get_replicates(self, sdrf, sample_identifier_re, sample_id_map, sample_id)
+        replicates = self.get_replicates(sdrf, sample_identifier_re, sample_id_map, sample_id)
 
         # For MaxQuant mapping
         if maxquant_exp_design_file != "":

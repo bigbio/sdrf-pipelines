@@ -37,7 +37,7 @@ class DataAnalysisParams():
       with open(r'params.yml') as file:
          tparams_in = yaml.safe_load(file)
          params_in = tparams_in["params"]
-         fastafile = tparams_in["fastafile"]
+         #fastafile = tparams_in["fastafile"]
 
 
 
