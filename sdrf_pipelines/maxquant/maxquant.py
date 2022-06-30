@@ -90,7 +90,7 @@ class Maxquant():
                 else:
                     lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
         else:
-            lt = self.guess_tmt(self, lt, label_list)
+            lt = self.guess_tmt(lt, label_list)
         return lt
 
     def create_new_mods(self, mods, mqconfdir):
@@ -886,7 +886,7 @@ class Maxquant():
                 file2label[raw] = 'label free sample'
             elif row['comment[label]'].startswith("TMT"):
                 labels = list(sdrf[sdrf['comment[data file]'] == raw]['comment[label]'])
-                file2label[raw] = self.extractTMT_info(self, labels, file2mods[raw])
+                file2label[raw] = self.extractTMT_info(labels, file2mods[raw])
 
             elif row['comment[label]'].startswith("SILAC"):
                 arr = sdrf[sdrf['comment[data file]'] == raw][[col for col in label_cols]].values
