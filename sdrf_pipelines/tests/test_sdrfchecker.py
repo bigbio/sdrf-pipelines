@@ -34,9 +34,9 @@ def test_bioontologies():
     print(ols_terms)
 
     ols_client = SlimOlsClient()
-    for a in ols_terms:
-        terms = ols_client.get_term_from_url(a["ols_url"], ontology="ncbitaxon")
-        [print(x) for x in terms]
+    for ols_term in ols_terms:
+        terms = ols_client.get_term_from_url(ols_term["ols_url"], ontology="ncbitaxon")
+        print(*terms, sep="\n")
 
     keyword = "Lung adenocarcinoma"
     client = Zooma()
