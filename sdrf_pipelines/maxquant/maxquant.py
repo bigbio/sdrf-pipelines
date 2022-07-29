@@ -138,10 +138,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -204,10 +204,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -282,7 +282,7 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[indexes[0]].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[indexes[0]].setAttribute("user", "root")
 
@@ -302,7 +302,7 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[ta_index].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[ta_index].setAttribute("user", "root")
 
@@ -328,11 +328,11 @@ class Maxquant:
                         else:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modification.setAttribute(
-                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                         )
                         modification.setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute("user", "root")
                         modification.setAttribute("reporterCorrectionM2", "0")
@@ -387,10 +387,10 @@ class Maxquant:
                     else:
                         offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                     modification.setAttribute(
-                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                     )
                     modification.setAttribute(
-                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                     )
                     modification.setAttribute("user", "root")
                     modification.setAttribute("reporterCorrectionM2", "0")
@@ -442,10 +442,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -769,7 +769,7 @@ class Maxquant:
                     # TODO how to set different tolerence unit
                     if "Da" in file2pctolunit[raw]:
                         warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 4.5 " "ppm. "
+                            "mass tolerance unit different between pc and frag. Assuming precursor 4.5 ppm. "
                         )
                         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "4.5"
@@ -780,7 +780,7 @@ class Maxquant:
                     file2fragtolunit[raw] = f_tmp[1]
                     if "ppm" in file2pctolunit[raw]:
                         warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 0.01" " Da."
+                            "mass tolerance unit different between pc and frag. Assuming precursor 0.01 Da."
                         )
                         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "0.01"

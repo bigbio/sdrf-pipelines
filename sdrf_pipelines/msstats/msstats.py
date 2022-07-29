@@ -103,7 +103,7 @@ class Msstats:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
-            warning_message = "No factors specified. Adding Source Name as factor. Will be used " "as condition. "
+            warning_message = "No factors specified. Adding Source Name as factor. Will be used as condition. "
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             combined_factors = row["source name"]
         return combined_factors
