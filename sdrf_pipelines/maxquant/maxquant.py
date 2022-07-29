@@ -592,7 +592,7 @@ class Maxquant:
                 oms_mods.append(name)
                 continue
 
-            elif name.lower().startswith("itraq"):
+            if name.lower().startswith("itraq"):
                 name = name.strip()
                 if "-" in aa:
                     if pp == "anycterm":
@@ -609,9 +609,7 @@ class Maxquant:
                 oms_mods.append(name)
                 continue
 
-            elif "->" in name:
-                pass
-            else:
+            if "->" not in name:
                 name = name.capitalize()
 
             if "Deamidated" == name:
@@ -912,7 +910,7 @@ class Maxquant:
                 file2label[raw] = lt
 
             elif row["comment[label]"].startswith("SILAC"):
-                arr = sdrf[sdrf["comment[data file]"] == raw][[col for col in label_cols]].values
+                arr = sdrf[sdrf["comment[data file]"] == raw][label_cols].values
                 silac_mod = file2mods[raw][1]
                 for i in range(arr.shape[0]):
                     for j in range(arr.shape[1]):

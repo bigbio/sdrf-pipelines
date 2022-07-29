@@ -146,7 +146,6 @@ class OpenMS:
                     warning_message = "Reassignment not possible. Skipping."
                     # print(warning_message + " "+ m)
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    pass
             else:
                 ta = re.search("TA=(.+?)(;|$)", m).group(1)  # target amino-acid
             aa = ta.split(",")  # multiply target site e.g., S,T,Y including potentially termini "C-term"
@@ -515,7 +514,7 @@ class OpenMS:
             if fraction_group not in raw_frac:
                 raw_frac[fraction_group] = [raw]
 
-                if raw in Fraction_group.keys():
+                if raw in Fraction_group:
                     if fraction_group < Fraction_group[raw]:
                         Fraction_group[raw] = fraction_group
                 else:

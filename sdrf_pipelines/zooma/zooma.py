@@ -4,7 +4,7 @@ from requests import HTTPError
 from sdrf_pipelines.zooma.ols import OlsClient
 
 
-class OlsTerm(object):
+class OlsTerm:
     def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
         self._iri = iri
         self._term = term
@@ -14,7 +14,7 @@ class OlsTerm(object):
         return "{} -- {} -- {}".format(self._term, self._ontology, self._iri)
 
 
-class SlimOlsClient(object):
+class SlimOlsClient:
     def __init__(self) -> None:
         super().__init__()
         self._ols_client = OlsClient()
@@ -38,7 +38,7 @@ class SlimOlsClient(object):
         return [OlsTerm(x["iri"], x["label"], x["ontology_name"]) for x in old_terms]
 
 
-class Zooma(object):
+class Zooma:
     """
     A Python binding of the Zooma REST API
     (http://data.bioontology.org/documentation)
