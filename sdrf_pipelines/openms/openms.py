@@ -9,24 +9,24 @@ from sdrf_pipelines.openms.unimod import UnimodDatabase
 
 
 class FileToColumnEntries:
-    file2mods = dict()
-    file2pctol = dict()
-    file2pctolunit = dict()
-    file2fragtol = dict()
-    file2fragtolunit = dict()
-    file2diss = dict()
-    file2enzyme = dict()
-    file2source = dict()
-    file2label = dict()
-    file2fraction = dict()
-    file2combined_factors = dict()
-    file2technical_rep = dict()
+    file2mods = {}
+    file2pctol = {}
+    file2pctolunit = {}
+    file2fragtol = {}
+    file2fragtolunit = {}
+    file2diss = {}
+    file2enzyme = {}
+    file2source = {}
+    file2label = {}
+    file2fraction = {}
+    file2combined_factors = {}
+    file2technical_rep = {}
 
 
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = dict()
+        self.warnings = {}
         self._unimod_database = UnimodDatabase()
         self.tmt16plex = {
             "TMT126": 1,
@@ -112,7 +112,7 @@ class OpenMS:
 
     # convert modifications in sdrf file to OpenMS notation
     def openms_ify_mods(self, sdrf_mods):
-        oms_mods = list()
+        oms_mods = []
 
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
@@ -221,8 +221,8 @@ class OpenMS:
         else:
             factor_cols = split_by_columns  # enforce columns as factors if names provided by user
 
-        source_name_list = list()
-        source_name2n_reps = dict()
+        source_name_list = []
+        source_name2n_reps = {}
 
         f2c = FileToColumnEntries()
         for row_index, row in sdrf.iterrows():
@@ -609,7 +609,7 @@ class OpenMS:
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
         f.write("\t".join(openms_sample_header) + "\n")
-        sample_row_written = list()
+        sample_row_written = []
         mixture_identifier = 1
         mixture_raw_tag = {}
         mixture_sample_tag = {}
@@ -947,7 +947,7 @@ class OpenMS:
             "Enzyme",
         ]
         f.write("\t".join(open_ms_search_settings_header) + "\n")
-        raws = list()
+        raws = []
         TMT_mod = {
             "tmt6plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
