@@ -30,7 +30,7 @@ def test_bioontologies():
     keyword = "human"
     client = Zooma()
     results = client.recommender(keyword, filters="ontologies:[nbcitaxon]")
-    ols_terms = client.process_zumma_results(results)
+    ols_terms = client.process_zooma_results(results)
     print(ols_terms)
 
     ols_client = SlimOlsClient()
@@ -41,7 +41,7 @@ def test_bioontologies():
     keyword = "Lung adenocarcinoma"
     client = Zooma()
     results = client.recommender(keyword)
-    ols_terms = client.process_zumma_results(results)
+    ols_terms = client.process_zooma_results(results)
     print(ols_terms)
 
 
