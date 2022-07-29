@@ -1,10 +1,10 @@
 import requests
 from requests import HTTPError
+
 from sdrf_pipelines.zooma.ols import OlsClient
 
 
 class OlsTerm(object):
-
     def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
         self._iri = iri
         self._term = term
@@ -15,7 +15,6 @@ class OlsTerm(object):
 
 
 class SlimOlsClient(object):
-
     def __init__(self) -> None:
         super().__init__()
         self._ols_client = OlsClient()
@@ -32,11 +31,11 @@ class SlimOlsClient(object):
         url += "&" + "size=" + str(page_size)
         r = requests.get(url)
         if r.status_code == 414:
-            raise HTTPError('URL do not exist in OLS')
+            raise HTTPError("URL do not exist in OLS")
         json_response = r.json()
-        old_terms = json_response['_embedded']['terms']
-        old_terms = list(filter(lambda k: ontology in k['ontology_name'], old_terms))
-        return [OlsTerm(x['iri'], x['label'], x['ontology_name']) for x in old_terms]
+        old_terms = json_response["_embedded"]["terms"]
+        old_terms = list(filter(lambda k: ontology in k["ontology_name"], old_terms))
+        return [OlsTerm(x["iri"], x["label"], x["ontology_name"]) for x in old_terms]
 
 
 class Zooma(object):
@@ -45,7 +44,7 @@ class Zooma(object):
     (http://data.bioontology.org/documentation)
     """
 
-    BASE_URL = 'https://www.ebi.ac.uk/spot/zooma/v2/api/services'
+    BASE_URL = "https://www.ebi.ac.uk/spot/zooma/v2/api/services"
 
     @staticmethod
     def process_zumma_results(results):
@@ -58,8 +57,11 @@ class Zooma(object):
 
         ontology_terms = []
         for result in results:
-            ols_term = {'queryValue': result['annotatedProperty']['propertyValue'], 'confidence': result['confidence'],
-                        'ols_url': result['_links']['olslinks'][0]['href']}
+            ols_term = {
+                "queryValue": result["annotatedProperty"]["propertyValue"],
+                "confidence": result["confidence"],
+                "ols_url": result["_links"]["olslinks"][0]["href"],
+            }
             ontology_terms.append(ols_term)
         return ontology_terms
 
@@ -72,22 +74,22 @@ class Zooma(object):
         :param kwargs: filters for ontologies
         :return:
         """
-        endpoint = '/annotate'
+        endpoint = "/annotate"
         full_url = Zooma.BASE_URL + endpoint
         payload = kwargs
-        payload['propertyValue'] = text_or_keywords
-        return self._zooma_api_request(full_url, 'get', payload)
+        payload["propertyValue"] = text_or_keywords
+        return self._zooma_api_request(full_url, "get", payload)
 
     def _zooma_api_request(self, url, method, payload={}):
 
         global r, error_message
         processed_payload = self._process_payload(payload)
-        if method == 'get':
+        if method == "get":
             r = requests.get(url, params=processed_payload)
-        elif method == 'post':
+        elif method == "post":
             r = requests.post(url, data=processed_payload)
         if r.status_code == 414:
-            raise HTTPError('Text is too long.')
+            raise HTTPError("Text is too long.")
 
         json_response = r.json()
 
@@ -96,11 +98,11 @@ class Zooma(object):
             # unsuccessful status code.
             r.raise_for_status()
         except HTTPError:
-            if 'errors' in json_response.keys():
-                error_messages = json_response['errors']
-                error_message = '\n'.join(error_messages)
-            elif 'error' in json_response.keys():
-                error_message = json_response['error']
+            if "errors" in json_response.keys():
+                error_messages = json_response["errors"]
+                error_message = "\n".join(error_messages)
+            elif "error" in json_response.keys():
+                error_message = json_response["error"]
 
             raise HTTPError(error_message)
 

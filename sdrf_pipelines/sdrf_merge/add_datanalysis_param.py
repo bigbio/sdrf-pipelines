@@ -1,10 +1,12 @@
-import pandas as pd
-import re
-import yaml
 import os.path
-from sdrf_pipelines.zooma.zooma import OlsClient
+import re
+
+import pandas as pd
+import yaml
+
 from sdrf_pipelines.openms.unimod import UnimodDatabase
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
+from sdrf_pipelines.zooma.zooma import OlsClient
 
 # Accessing ontologies and CVs
 unimod = UnimodDatabase()
@@ -21,49 +23,65 @@ def verify_content(pname, pvalue, ptype):
     if ptype in field_types.keys():
         if not isinstance(pvalue, field_types[ptype]):
             exit("ERROR: " + pname + " needs to be " + ptype + "!!")
-#    if ptype == "boolean":
-#        if not isinstance(pvalue, bool):
-#            exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
-#    elif ptype == "str":
-#        if not isinstance(pvalue, str):
-#            exit("ERROR: " + pname + " needs to be a string!!")
-#    elif ptype == "integer":
-#        if not isinstance(pvalue, int):
-#            exit("ERROR: " + pname + " needs to be a string!!")
-#    elif ptype == "float":
-#        if not isinstance(pvalue, (float, int)):
-#            exit("ERROR: " + pname + " needs to be a numeric value!!")
+    #    if ptype == "boolean":
+    #        if not isinstance(pvalue, bool):
+    #            exit("ERROR: " + pname + " needs to be either \"true\" or \"false\"!!")
+    #    elif ptype == "str":
+    #        if not isinstance(pvalue, str):
+    #            exit("ERROR: " + pname + " needs to be a string!!")
+    #    elif ptype == "integer":
+    #        if not isinstance(pvalue, int):
+    #            exit("ERROR: " + pname + " needs to be a string!!")
+    #    elif ptype == "float":
+    #        if not isinstance(pvalue, (float, int)):
+    #            exit("ERROR: " + pname + " needs to be a numeric value!!")
     elif ptype == "class":
         not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
         if not_matching != []:
-            exit("ERROR: " + pname + " needs to have one of these values: " + ' '.join(p["value"]) + "!!\n" +
-                 ' '.join(not_matching) + " did not match")
+            exit(
+                "ERROR: "
+                + pname
+                + " needs to have one of these values: "
+                + " ".join(p["value"])
+                + "!!\n"
+                + " ".join(not_matching)
+                + " did not match"
+            )
 
     # Mass tolerances: do they include Da or ppm exclusively?
     if pname == "fragment_mass_tolerance" or pname == "precursor_mass_tolerance":
         unit = pvalue.split(" ")[1]
         if unit != "Da" and unit != "ppm":
-            exit("ERROR: " + pname + " allows only units of \"Da\" and \"ppm\", separated by space from the \
-value!!\nWe found " + unit)
+            exit(
+                "ERROR: "
+                + pname
+                + ' allows only units of "Da" and "ppm", separated by space from the \
+value!!\nWe found '
+                + unit
+            )
     # ENZYME AND MODIFICATIONS: LOOK UP ONTOLOGY VALUES
     elif pname == "enzyme":
         ols_out = olsclient.search(pvalue, ontology="MS", exact=True)
         if ols_out is None:
-            exit("ERROR: enzyme " + pvalue + " not found in the MS ontology, see \
+            exit(
+                "ERROR: enzyme "
+                + pvalue
+                + " not found in the MS ontology, see \
 https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 \
-for available terms")
+for available terms"
+            )
         pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
     return pvalue
 
 
 def new_or_default(params_in, pname, p):
-    if(pname in list(params_in.keys())):
+    if pname in list(params_in.keys()):
         print("Found in parameter file")
         pvalue = params_in[pname]
     else:
         print("Setting to default: " + p["default"])
         pvalue = p["default"]
-    return(pvalue)
+    return pvalue
 
 
 # Function to load modifications
@@ -71,24 +89,38 @@ def add_ptms(mods, pname, mod_columns):
     for m in mods:
         tmod = m.split(" of ")
         if len(tmod) < 2:
-            exit("ERROR: Something wrong with the modification entry " + m + ". It should be PSI_MS_NAME of RESIDUE. \
-Note that it should be single residues")
+            exit(
+                "ERROR: Something wrong with the modification entry "
+                + m
+                + ". It should be PSI_MS_NAME of RESIDUE. \
+Note that it should be single residues"
+            )
         modname = tmod[0]
         modpos = tmod[1]
         found = [x for x in unimod.modifications if modname == x.get_name()]
         if found == []:
-            exit("ERROR: " + m + " not found in Unimod. Check the \"PSI-MS Names\" in unimod.org. Also check whether you \
-used space between the comma separated modifications")
+            exit(
+                "ERROR: "
+                + m
+                + ' not found in Unimod. Check the "PSI-MS Names" in unimod.org. Also check whether you \
+used space between the comma separated modifications'
+            )
         modtype = pname.replace("_mods", "")
         if re.match("[A-Z]", modpos):
-            mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" +\
-                 modtype + ";TA=" + modpos
+            mod_columns[len(mod_columns.columns) + 1] = (
+                "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
+            )
         elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"]:
-            mod_columns[len(mod_columns.columns)+1] = "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" +\
-                modtype + ";PP=" + modpos
+            mod_columns[len(mod_columns.columns) + 1] = (
+                "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
+            )
         else:
-            exit("ERROR: Wrong residue given: " + modpos + ". Should be either one upper case letter or any of \"Protein N-term\", \
- \"Protein C-term\", \"Any N-term\", \"Any C-term\"")
+            exit(
+                "ERROR: Wrong residue given: "
+                + modpos
+                + '. Should be either one upper case letter or any of "Protein N-term", \
+ "Protein C-term", "Any N-term", "Any C-term"'
+            )
     return mod_columns
 
 
@@ -99,13 +131,13 @@ mod_columns = pd.DataFrame()
 # For summary at the end
 overwritten = set()
 
-with open(r'param2sdrf.yml') as file:
+with open(r"param2sdrf.yml") as file:
     param_mapping = yaml.safe_load(file)
     mapping = param_mapping["parameters"]
 
 
 # READ PARAMETERS FOR RUNNING WORKFLOW
-with open(r'params.yml') as file:
+with open(r"params.yml") as file:
     tparams_in = yaml.safe_load(file)
     params_in = tparams_in["params"]
     rawfiles = tparams_in["rawfiles"]
@@ -130,8 +162,10 @@ if has_sdrf:
         overwritten.add("variable_mods")
 else:
     # THROW ERROR FOR MISSING SDRF
-    exit("ERROR: No SDRF file given. Add an at least minimal version\nFor more details, \
-see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-proteomics")
+    exit(
+        "ERROR: No SDRF file given. Add an at least minimal version\nFor more details, \
+see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-proteomics"
+    )
 
 
 # FIRST STANDARD PARAMETERS
@@ -147,9 +181,13 @@ for p in mapping:
 
     psdrf = "comment[" + p["sdrf"] + "]"
     if psdrf in sdrf_content.keys():
-        if (len(set(sdrf_content[psdrf])) > 1):
-            exit("ERROR: multiple values for parameter " + pname + " in sdrf file\n We recommend separating \
-the file into parts with the same data analysis parameters")
+        if len(set(sdrf_content[psdrf])) > 1:
+            exit(
+                "ERROR: multiple values for parameter "
+                + pname
+                + " in sdrf file\n We recommend separating \
+the file into parts with the same data analysis parameters"
+            )
 
         pvalue = verify_content(pname, pvalue, ptype)
 
@@ -180,7 +218,7 @@ colnames = list(sdrf_content.columns) + ["comment[modification parameters]"] * l
 sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1)
 sdrf_content.columns = colnames
 
-sdrf_content.dropna(how='all', axis=1, inplace=True)
+sdrf_content.dropna(how="all", axis=1, inplace=True)
 
 print("--- Writing sdrf file into sdrf_local.tsv ---")
 # sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False)
