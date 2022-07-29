@@ -102,9 +102,9 @@ class OlsClient:
         response = self.session.get(url)
         try:
             return response.json()["_embedded"]["terms"]
-        except KeyError as e:
-            logger.warning("Term was found but ancestor lookup " "returned an empty response: %s", response.json())
-            raise e
+        except KeyError as ex:
+            logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
+            raise ex
 
     def search(
         self,
@@ -185,14 +185,13 @@ class OlsClient:
         params = {"q": name}
         if ontology:
             params["ontology"] = ",".join(ontology)
-        r = self.session.get(self.ontology_suggest, params=params)
-        r.raise_for_status()
+        response = self.session.get(self.ontology_suggest, params=params)
+        response.raise_for_status()
 
-        if r.json()["response"]["numFound"]:
-            return r.json()["response"]["docs"]
-        else:
-            logger.debug("OLS suggest returned empty response for %s", name)
-            return None
+        if response.json()["response"]["numFound"]:
+            return response.json()["response"]["docs"]
+        logger.debug("OLS suggest returned empty response for %s", name)
+        return None
 
     def select(self, name, ontology=None, field_list=None):
         """Select terms,
@@ -205,11 +204,10 @@ class OlsClient:
             params["ontology"] = ",".join(ontology)
         if field_list:
             params["fieldList"] = ",".join(field_list)
-        r = self.session.get(self.ontology_select, params=params)
-        r.raise_for_status()
+        response = self.session.get(self.ontology_select, params=params)
+        response.raise_for_status()
 
-        if r.json()["response"]["numFound"]:
-            return r.json()["response"]["docs"]
-        else:
-            logger.debug("OLS select returned empty response for %s", name)
-            return None
+        if response.json()["response"]["numFound"]:
+            return response.json()["response"]["docs"]
+        logger.debug("OLS select returned empty response for %s", name)
+        return None

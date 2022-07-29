@@ -29,10 +29,10 @@ class SlimOlsClient:
         :return:
         """
         url += "&" + "size=" + str(page_size)
-        r = requests.get(url)
-        if r.status_code == 414:
+        response = requests.get(url)
+        if response.status_code == 414:
             raise HTTPError("URL do not exist in OLS")
-        json_response = r.json()
+        json_response = response.json()
         old_terms = json_response["_embedded"]["terms"]
         old_terms = list(filter(lambda k: ontology in k["ontology_name"], old_terms))
         return [OlsTerm(x["iri"], x["label"], x["ontology_name"]) for x in old_terms]

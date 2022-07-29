@@ -46,8 +46,8 @@ def openms_from_sdrf(
         help()
     try:
         OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
-    except Exception as e:
-        print("Error: " + str(e))
+    except Exception as ex:
+        print("Error: " + str(ex))
 
 
 @click.command(
