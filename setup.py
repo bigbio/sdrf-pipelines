@@ -1,5 +1,7 @@
 from __future__ import print_function
-from setuptools import setup, find_packages
+
+from setuptools import find_packages
+from setuptools import setup
 
 with open("README.md", "r", encoding="UTF-8") as fh:
     long_description = fh.read()
@@ -13,16 +15,13 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     license="'Apache 2.0",
+    data_files=[("", ["LICENSE", "sdrf_pipelines/openms/unimod.xml", "sdrf_pipelines/sdrf_merge/param2sdrf.yml"])],
+    package_data={
+        "": ["*.xml"],
+    },
     url="https://github.com/bigbio/sdrf-pipelines",
     packages=find_packages(),
-    install_requires=[
-        "click",
-        "pandas",
-        "pandas_schema",
-        "requests",
-        "pytest",
-        "pyyaml",
-    ],
+    install_requires=["click", "pandas", "pandas_schema", "requests", "pytest", "pyyaml"],
     entry_points={"console_scripts": ["parse_sdrf = sdrf_pipelines.parse_sdrf:main"]},
     platforms=["any"],
     classifiers=[
