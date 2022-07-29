@@ -17,7 +17,7 @@ import logging
 import urllib.parse
 import requests
 
-OLS = 'http://www.ebi.ac.uk/ols'
+OLS = 'https://www.ebi.ac.uk/ols'
 
 __all__ = [
   'OlsClient'
