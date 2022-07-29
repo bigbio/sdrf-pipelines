@@ -21,7 +21,7 @@ import yaml
 class Maxquant:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = dict()
+        self.warnings = {}
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
         print(self.datparamfile)
@@ -29,11 +29,11 @@ class Maxquant:
     def create_new_mods(self, mods, mqconfdir):
         i = 0
         w = y = False
-        all_mods = list()
-        mq_name = list()
-        mq_position = list()
-        mq_site = dict()
-        mq_title = list()
+        all_mods = []
+        mq_name = []
+        mq_position = []
+        mq_site = {}
+        mq_title = []
         while i < mods.shape[1]:
             all_mods.extend([j for j in list(set(mods.iloc[:, i])) if "NT" in j])
             i += 1
@@ -59,7 +59,7 @@ class Maxquant:
             mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
 
             nodes_site = modification.getElementsByTagName("modification_site")
-            temp = list()
+            temp = []
             for node in nodes_site:
                 temp.append(node.getAttribute("site"))
             mq_site[title] = temp
@@ -138,10 +138,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -204,10 +204,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -282,7 +282,7 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[indexes[0]].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[indexes[0]].setAttribute("user", "root")
 
@@ -302,7 +302,7 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[ta_index].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[ta_index].setAttribute("user", "root")
 
@@ -328,11 +328,11 @@ class Maxquant:
                         else:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modification.setAttribute(
-                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                         )
                         modification.setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute("user", "root")
                         modification.setAttribute("reporterCorrectionM2", "0")
@@ -387,10 +387,10 @@ class Maxquant:
                     else:
                         offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                     modification.setAttribute(
-                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                     )
                     modification.setAttribute(
-                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                     )
                     modification.setAttribute("user", "root")
                     modification.setAttribute("reporterCorrectionM2", "0")
@@ -442,10 +442,10 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f" "+08.00")[:-7] + offset
+                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -478,13 +478,11 @@ class Maxquant:
                 modification.appendChild(ter_type)
                 root.appendChild(modification)
         if w:
-            fp = open(mod_local_file, "w", encoding="utf-8")
-            mod_local.writexml(fp, indent="", addindent="\t", newl="\n", encoding="utf-8")
-            fp.close()
+            with open(mod_local_file, "w", encoding="utf-8") as fp:
+                mod_local.writexml(fp, indent="", addindent="\t", newl="\n", encoding="utf-8")
         if y:
-            fp = open(mod_file, "w", encoding="utf-8")
-            domTree.writexml(fp, encoding="utf-8")
-            fp.close()
+            with open(mod_file, "w", encoding="utf-8") as fp:
+                domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
 
@@ -495,16 +493,16 @@ class Maxquant:
             dT = parse(mq_new_mods)
             rootN = dT.documentElement
             new_mods = rootN.getElementsByTagName("modification")
-            new_title = list()
-            new_position = list()
-            new_name = list()
-            new_site = dict()
+            new_title = []
+            new_position = []
+            new_name = []
+            new_site = {}
             for modification in new_mods:
                 title = str(modification.getAttribute("title"))
                 new_title.append(title)
                 new_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
                 nodes_site = modification.getElementsByTagName("modification_site")
-                temp = list()
+                temp = []
                 for node in nodes_site:
                     temp.append(node.getAttribute("site"))
                 new_site[title] = temp
@@ -517,17 +515,17 @@ class Maxquant:
         domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
-        oms_mods = list()
-        mq_title = list()
-        mq_position = list()
-        mq_name = list()
-        mq_site = dict()
+        oms_mods = []
+        mq_title = []
+        mq_position = []
+        mq_name = []
+        mq_site = {}
         for modification in modifications:
             title = str(modification.getAttribute("title"))
             mq_title.append(title)
             mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
             nodes_site = modification.getElementsByTagName("modification_site")
-            temp = list()
+            temp = []
             for node in nodes_site:
                 temp.append(node.getAttribute("site"))
             mq_site[title] = temp
@@ -594,7 +592,7 @@ class Maxquant:
                 oms_mods.append(name)
                 continue
 
-            elif name.lower().startswith("itraq"):
+            if name.lower().startswith("itraq"):
                 name = name.strip()
                 if "-" in aa:
                     if pp == "anycterm":
@@ -611,9 +609,7 @@ class Maxquant:
                 oms_mods.append(name)
                 continue
 
-            elif "->" in name:
-                pass
-            else:
+            if "->" not in name:
                 name = name.capitalize()
 
             if "Deamidated" == name:
@@ -671,7 +667,7 @@ class Maxquant:
         with open(self.datparamfile) as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
-        datparams = dict()
+        datparams = {}
         for i in mapping:
             datparams[i["sdrf"]] = i["name"]
 
@@ -684,25 +680,25 @@ class Maxquant:
 
         enzy_cols = [c for ind, c in enumerate(sdrf) if c.startswith("comment[cleavage agent details]")]
 
-        file2mods = dict()
-        file2pctol = dict()
-        file2pctolunit = dict()
-        file2fragtol = dict()
-        file2fragtolunit = dict()
-        file2diss = dict()
-        file2enzyme = dict()
-        file2fraction = dict()
-        file2label = dict()
-        file2silac_shape = dict()
-        file2source = dict()
-        source_name_list = list()
-        source_name2n_reps = dict()
-        file2technical_rep = dict()
-        file2instrument = dict()
+        file2mods = {}
+        file2pctol = {}
+        file2pctolunit = {}
+        file2fragtol = {}
+        file2fragtolunit = {}
+        file2diss = {}
+        file2enzyme = {}
+        file2fraction = {}
+        file2label = {}
+        file2silac_shape = {}
+        file2source = {}
+        source_name_list = []
+        source_name2n_reps = {}
+        file2technical_rep = {}
+        file2instrument = {}
         # New parameters from extended SDRF (including data analysis parameters)
-        file2params = dict()
+        file2params = {}
         for p in datparams.values():
-            file2params[p] = dict()
+            file2params[p] = {}
 
         if mqconfdir:
             self.create_new_mods(sdrf[mod_cols], mqconfdir)
@@ -769,7 +765,7 @@ class Maxquant:
                     # TODO how to set different tolerence unit
                     if "Da" in file2pctolunit[raw]:
                         warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 4.5 " "ppm. "
+                            "mass tolerance unit different between pc and frag. Assuming precursor 4.5 ppm. "
                         )
                         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "4.5"
@@ -780,7 +776,7 @@ class Maxquant:
                     file2fragtolunit[raw] = f_tmp[1]
                     if "ppm" in file2pctolunit[raw]:
                         warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 0.01" " Da."
+                            "mass tolerance unit different between pc and frag. Assuming precursor 0.01 Da."
                         )
                         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         file2pctol[raw] = "0.01"
@@ -914,7 +910,7 @@ class Maxquant:
                 file2label[raw] = lt
 
             elif row["comment[label]"].startswith("SILAC"):
-                arr = sdrf[sdrf["comment[data file]"] == raw][[col for col in label_cols]].values
+                arr = sdrf[sdrf["comment[data file]"] == raw][label_cols].values
                 silac_mod = file2mods[raw][1]
                 for i in range(arr.shape[0]):
                     for j in range(arr.shape[1]):
@@ -1650,7 +1646,7 @@ class Maxquant:
             value2 = (
                 str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
             )
-            datanalysisparams = dict()
+            datanalysisparams = {}
             for p in file2params.keys():
                 if len(file2params[p]) > 0:
                     datanalysisparams[p] = file2params[p][key1]

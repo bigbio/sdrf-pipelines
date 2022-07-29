@@ -102,9 +102,9 @@ class OlsClient:
         response = self.session.get(url)
         try:
             return response.json()["_embedded"]["terms"]
-        except KeyError as e:
-            logger.warning("Term was found but ancestor lookup " "returned an empty response: %s", response.json())
-            raise e
+        except KeyError as ex:
+            logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
+            raise ex
 
     def search(
         self,
@@ -112,7 +112,7 @@ class OlsClient:
         query_fields=None,
         ontology=None,
         field_list=None,
-        children_of: list = [],
+        children_of=None,
         exact=None,
         bytype="class",
     ):
@@ -152,7 +152,9 @@ class OlsClient:
         elif self.field_list:
             params["fieldList"] = _concat_str_or_list(self.field_list)
 
-        if children_of is not None and len(children_of) > 0:
+        if children_of is None:
+            children_of = []
+        if len(children_of) > 0:
             params["childrenOf"] = _concat_str_or_list(children_of)
 
         retry_num = 0
@@ -165,15 +167,14 @@ class OlsClient:
                 req.raise_for_status()
                 if req.json()["response"]["numFound"]:
                     return req.json()["response"]["docs"]
+                if exact:
+                    logger.debug("OLS exact search returned empty response for %s", name)
                 else:
-                    if exact:
-                        logger.debug("OLS exact search returned empty " "response for %s", name)
-                    else:
-                        logger.debug("OLS search returned empty " "response for %s", name)
+                    logger.debug("OLS search returned empty response for %s", name)
                 return None
-            except:
-                retry_num = retry_num + 1
-                logger.debug("OLS error searching the following term -- %s iteration %s", req.url, retry_num)
+            except Exception as ex:
+                retry_num += 1
+                logger.debug("OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex)
 
         return None
 
@@ -185,14 +186,13 @@ class OlsClient:
         params = {"q": name}
         if ontology:
             params["ontology"] = ",".join(ontology)
-        r = self.session.get(self.ontology_suggest, params=params)
-        r.raise_for_status()
+        response = self.session.get(self.ontology_suggest, params=params)
+        response.raise_for_status()
 
-        if r.json()["response"]["numFound"]:
-            return r.json()["response"]["docs"]
-        else:
-            logger.debug("OLS suggest returned empty response for %s", name)
-            return None
+        if response.json()["response"]["numFound"]:
+            return response.json()["response"]["docs"]
+        logger.debug("OLS suggest returned empty response for %s", name)
+        return None
 
     def select(self, name, ontology=None, field_list=None):
         """Select terms,
@@ -205,11 +205,10 @@ class OlsClient:
             params["ontology"] = ",".join(ontology)
         if field_list:
             params["fieldList"] = ",".join(field_list)
-        r = self.session.get(self.ontology_select, params=params)
-        r.raise_for_status()
+        response = self.session.get(self.ontology_select, params=params)
+        response.raise_for_status()
 
-        if r.json()["response"]["numFound"]:
-            return r.json()["response"]["docs"]
-        else:
-            logger.debug("OLS select returned empty response for %s", name)
-            return None
+        if response.json()["response"]["numFound"]:
+            return response.json()["response"]["docs"]
+        logger.debug("OLS select returned empty response for %s", name)
+        return None

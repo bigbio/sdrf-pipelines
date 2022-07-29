@@ -11,7 +11,7 @@ import pandas as pd
 class Msstats:
     def __init__(self) -> None:
         """Convert sdrf to msstats annotation file (label free sample)."""
-        self.warnings = dict()
+        self.warnings = {}
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
@@ -20,9 +20,9 @@ class Msstats:
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
-        data = dict()
-        condition = list()
-        Experiments = list()
+        data = {}
+        condition = []
+        Experiments = []
         runs = sdrf["comment[data file]"].tolist()
         data["Run"] = runs
         data["IsotopeLabelType"] = ["L"] * len(runs)
@@ -103,7 +103,7 @@ class Msstats:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
-            warning_message = "No factors specified. Adding Source Name as factor. Will be used " "as condition. "
+            warning_message = "No factors specified. Adding Source Name as factor. Will be used as condition. "
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             combined_factors = row["source name"]
         return combined_factors

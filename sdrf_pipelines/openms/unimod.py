@@ -4,13 +4,13 @@ import xml.etree.ElementTree as et
 import pkg_resources
 
 
-class PTMSite(object):
+class PTMSite:
     def __init__(self, site: str, position: str) -> None:
         self._site = site
         self._position = position
 
 
-class OntologyTerm(object):
+class OntologyTerm:
     def __init__(self, accession: str, name: str) -> None:
         self._accession = accession
         self._name = name
@@ -22,7 +22,7 @@ class OntologyTerm(object):
         return self._accession
 
 
-class PostTranslationalModification(object):
+class PostTranslationalModification:
     def __init__(self, ontology_term: OntologyTerm, delta_composition: str, sites, delta_mono_mass) -> None:
         self._ontology_term = ontology_term
         self._delta_composition = delta_composition

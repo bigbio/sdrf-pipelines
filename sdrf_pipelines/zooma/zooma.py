@@ -4,17 +4,17 @@ from requests import HTTPError
 from sdrf_pipelines.zooma.ols import OlsClient
 
 
-class OlsTerm(object):
+class OlsTerm:
     def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
         self._iri = iri
         self._term = term
         self._ontology = ontology
 
     def __str__(self) -> str:
-        return "{} -- {} -- {}".format(self._term, self._ontology, self._iri)
+        return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
-class SlimOlsClient(object):
+class SlimOlsClient:
     def __init__(self) -> None:
         super().__init__()
         self._ols_client = OlsClient()
@@ -29,16 +29,16 @@ class SlimOlsClient(object):
         :return:
         """
         url += "&" + "size=" + str(page_size)
-        r = requests.get(url)
-        if r.status_code == 414:
+        response = requests.get(url)
+        if response.status_code == 414:
             raise HTTPError("URL do not exist in OLS")
-        json_response = r.json()
+        json_response = response.json()
         old_terms = json_response["_embedded"]["terms"]
         old_terms = list(filter(lambda k: ontology in k["ontology_name"], old_terms))
         return [OlsTerm(x["iri"], x["label"], x["ontology_name"]) for x in old_terms]
 
 
-class Zooma(object):
+class Zooma:
     """
     A Python binding of the Zooma REST API
     (http://data.bioontology.org/documentation)
@@ -80,7 +80,10 @@ class Zooma(object):
         payload["propertyValue"] = text_or_keywords
         return self._zooma_api_request(full_url, "get", payload)
 
-    def _zooma_api_request(self, url, method, payload={}):
+    def _zooma_api_request(self, url, method, payload=None):
+
+        if payload is None:
+            payload = {}
 
         global r, error_message
         processed_payload = self._process_payload(payload)
