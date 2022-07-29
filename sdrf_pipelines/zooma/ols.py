@@ -14,9 +14,9 @@ TODO: handle requests.exceptions.ConnectionError when traffic is too high and AP
 """
 
 import logging
-import requests
 import urllib.parse
 
+import requests
 
 OLS = "https://www.ebi.ac.uk/ols"
 
