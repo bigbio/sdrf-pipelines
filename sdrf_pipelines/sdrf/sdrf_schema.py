@@ -64,11 +64,16 @@ class SDRFColumn(Column):
     def __init__(
         self,
         name: str,
-        validations: typing.Iterable["_BaseValidation"] = [],
-        optional_validations: typing.Iterable["_BaseValidation"] = [],
+        validations: typing.Iterable["_BaseValidation"] = None,
+        optional_validations: typing.Iterable["_BaseValidation"] = None,
         allow_empty=False,
         optional_type=True,
     ):
+        if validations is None:
+            validations = []
+        if optional_validations is None:
+            optional_validations = []
+
         super().__init__(name, validations, allow_empty)
         self.optional_validations = optional_validations
         self._optional = optional_type

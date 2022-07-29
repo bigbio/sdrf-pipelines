@@ -112,7 +112,7 @@ class OlsClient:
         query_fields=None,
         ontology=None,
         field_list=None,
-        children_of: list = [],
+        children_of=None,
         exact=None,
         bytype="class",
     ):
@@ -152,7 +152,9 @@ class OlsClient:
         elif self.field_list:
             params["fieldList"] = _concat_str_or_list(self.field_list)
 
-        if children_of is not None and len(children_of) > 0:
+        if children_of is None:
+            children_of = []
+        if len(children_of) > 0:
             params["childrenOf"] = _concat_str_or_list(children_of)
 
         retry_num = 0

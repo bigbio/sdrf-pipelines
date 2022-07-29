@@ -80,7 +80,10 @@ class Zooma:
         payload["propertyValue"] = text_or_keywords
         return self._zooma_api_request(full_url, "get", payload)
 
-    def _zooma_api_request(self, url, method, payload={}):
+    def _zooma_api_request(self, url, method, payload=None):
+
+        if payload is None:
+            payload = {}
 
         global r, error_message
         processed_payload = self._process_payload(payload)
