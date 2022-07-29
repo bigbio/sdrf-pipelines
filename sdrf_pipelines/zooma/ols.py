@@ -167,15 +167,14 @@ class OlsClient:
                 req.raise_for_status()
                 if req.json()["response"]["numFound"]:
                     return req.json()["response"]["docs"]
+                if exact:
+                    logger.debug("OLS exact search returned empty response for %s", name)
                 else:
-                    if exact:
-                        logger.debug("OLS exact search returned empty " "response for %s", name)
-                    else:
-                        logger.debug("OLS search returned empty " "response for %s", name)
+                    logger.debug("OLS search returned empty response for %s", name)
                 return None
-            except:
-                retry_num = retry_num + 1
-                logger.debug("OLS error searching the following term -- %s iteration %s", req.url, retry_num)
+            except Exception as ex:
+                retry_num += 1
+                logger.debug("OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex)
 
         return None
 
