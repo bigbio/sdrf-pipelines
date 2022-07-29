@@ -11,7 +11,7 @@ class OlsTerm:
         self._ontology = ontology
 
     def __str__(self) -> str:
-        return "{} -- {} -- {}".format(self._term, self._ontology, self._iri)
+        return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
 class SlimOlsClient:
