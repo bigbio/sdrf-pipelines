@@ -1,10 +1,11 @@
 import re
 from collections import Counter
+
+import pandas as pd
+
 from sdrf_pipelines.openms.unimod import UnimodDatabase
 
 # example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
-
-import pandas as pd
 
 
 class FileToColumnEntries:
@@ -23,41 +24,91 @@ class FileToColumnEntries:
 
 
 class OpenMS:
-
     def __init__(self) -> None:
         super().__init__()
         self.warnings = dict()
         self._unimod_database = UnimodDatabase()
-        self.tmt16plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
-                          'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
-                          'TMT131C': 11, 'TMT132N': 12, 'TMT132C': 13, 'TMT133N': 14, 'TMT133C': 15,
-                          'TMT134N': 16}
-        self.tmt11plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
-                          'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131N': 10,
-                          'TMT131C': 11}
-        self.tmt10plex = {'TMT126': 1, 'TMT127N': 2, 'TMT127C': 3, 'TMT128N': 4, 'TMT128C': 5,
-                          'TMT129N': 6, 'TMT129C': 7, 'TMT130N': 8, 'TMT130C': 9, 'TMT131': 10}
-        self.tmt6plex = {'TMT126': 1, 'TMT127': 2, 'TMT128': 3,
-                         'TMT129': 4, 'TMT130': 5, 'TMT131': 6}
+        self.tmt16plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131N": 10,
+            "TMT131C": 11,
+            "TMT132N": 12,
+            "TMT132C": 13,
+            "TMT133N": 14,
+            "TMT133C": 15,
+            "TMT134N": 16,
+        }
+        self.tmt11plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131N": 10,
+            "TMT131C": 11,
+        }
+        self.tmt10plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131": 10,
+        }
+        self.tmt6plex = {"TMT126": 1, "TMT127": 2, "TMT128": 3, "TMT129": 4, "TMT130": 5, "TMT131": 6}
         # Hardcode enzymes from OpenMS
-        self.enzymes = {"Glutamyl endopeptidase": "glutamyl endopeptidase",
-                        "Trypsin/p": "Trypsin/P",
-                        "Lys-c": "Lys-C", "Lys-n": "Lys-N", "Arg-c": "Arg-C", "Arg-c/p": "Arg-C/P",
-                        "Asp-n": "Asp-N", "Asp-n/b": "Asp-N/B", "Asp-n_ambic": "Asp-N_ambic",
-                        "Chymotrypsin/p": "Chymotrypsin/P", "Cnbr": "CNBr",
-                        "V8-de": "V8-DE", "V8-e": "V8-E",
-                        "Elastase-trypsin-chymotrypsin": "elastase-trypsin-chymotrypsin",
-                        "Pepsina": "PepsinA",
-                        "Unspecific cleavage": "unspecific cleavage", "No cleavage": "no cleavage"}
+        self.enzymes = {
+            "Glutamyl endopeptidase": "glutamyl endopeptidase",
+            "Trypsin/p": "Trypsin/P",
+            "Lys-c": "Lys-C",
+            "Lys-n": "Lys-N",
+            "Arg-c": "Arg-C",
+            "Arg-c/p": "Arg-C/P",
+            "Asp-n": "Asp-N",
+            "Asp-n/b": "Asp-N/B",
+            "Asp-n_ambic": "Asp-N_ambic",
+            "Chymotrypsin/p": "Chymotrypsin/P",
+            "Cnbr": "CNBr",
+            "V8-de": "V8-DE",
+            "V8-e": "V8-E",
+            "Elastase-trypsin-chymotrypsin": "elastase-trypsin-chymotrypsin",
+            "Pepsina": "PepsinA",
+            "Unspecific cleavage": "unspecific cleavage",
+            "No cleavage": "no cleavage",
+        }
 
         # for itraq label
-        self.itraq4plex = {'itraq114': 1, 'itraq115': 2, 'itraq116': 3, 'itraq117': 4}
-        self.itraq8plex = {'itraq113': 1, 'itraq114': 2, 'itraq115': 3, 'itraq116': 4, 'itraq117': 5,
-                           'itraq118': 6, 'itraq119': 7, 'itraq121': 8}
+        self.itraq4plex = {"itraq114": 1, "itraq115": 2, "itraq116": 3, "itraq117": 4}
+        self.itraq8plex = {
+            "itraq113": 1,
+            "itraq114": 2,
+            "itraq115": 3,
+            "itraq116": 4,
+            "itraq117": 5,
+            "itraq118": 6,
+            "itraq119": 7,
+            "itraq121": 8,
+        }
 
         #  for light, medium and heavy. E.g. Label:13C(2)15N(2) (K) as light or Dimethyl:2H(2)13C (K) as light
-        self.silac3 = {'silac light': 1, 'silac medium': 2, 'silac heavy': 3}
-        self.silac2 = {'silac light': 1, 'silac heavy': 2}
+        self.silac3 = {"silac light": 1, "silac medium": 2, "silac heavy": 3}
+        self.silac2 = {"silac light": 1, "silac heavy": 2}
 
     # convert modifications in sdrf file to OpenMS notation
     def openms_ify_mods(self, sdrf_mods):
@@ -80,7 +131,8 @@ class OpenMS:
                 pp = "Anywhere"
             else:
                 pp = re.search("PP=(.+?)(;|$)", m).group(
-                    1)  # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
+                    1
+                )  # one of [Anywhere, Protein N-term, Protein C-term, Any N-term, Any C-term
 
             ta = ""
             if re.search("TA=(.+?)(;|$)", m) is None:  # TODO: missing in sdrf.
@@ -118,43 +170,54 @@ class OpenMS:
 
         return ",".join(oms_mods)
 
-    def openms_convert(self, sdrf_file: str = None, keep_raw: bool = False, one_table: bool = False,
-                       legacy: bool = False,
-                       verbose: bool = False, split_by_columns: str = None):
+    def openms_convert(
+        self,
+        sdrf_file: str = None,
+        keep_raw: bool = False,
+        one_table: bool = False,
+        legacy: bool = False,
+        verbose: bool = False,
+        split_by_columns: str = None,
+    ):
 
-        print('PROCESSING: ' + sdrf_file + '"')
+        print("PROCESSING: " + sdrf_file + '"')
 
         # convert list passed on command line '[assay name,comment[fraction identifier]]' to python list
         if split_by_columns:
             split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
-            split_by_columns = split_by_columns.split(',')
+            split_by_columns = split_by_columns.split(",")
             for i, value in enumerate(split_by_columns):
                 split_by_columns[i] = value
-            print('User selected factor columns: ' + str(split_by_columns))
+            print("User selected factor columns: " + str(split_by_columns))
 
         # load sdrf file
         sdrf = pd.read_table(sdrf_file)
         if sdrf.isnull().values.any():
-            raise Exception("Encountered empty cells while reading SDRF."
-                            " Please check your file, e.g. for too many column headers or empty fields")
+            raise Exception(
+                "Encountered empty cells while reading SDRF."
+                " Please check your file, e.g. for too many column headers or empty fields"
+            )
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
         # map filename to tuple of [fixed, variable] mods
-        mod_cols = [c for ind, c in enumerate(sdrf) if
-                    c.startswith('comment[modification parameters')]  # columns with modification parameters
+        mod_cols = [
+            c for ind, c in enumerate(sdrf) if c.startswith("comment[modification parameters")
+        ]  # columns with modification parameters
 
         if not split_by_columns:
 
-            factor_cols = [c for ind, c in enumerate(sdrf) if
-                           c.startswith('factor value[') and len(sdrf[c].unique()) >= 1]
+            factor_cols = [
+                c for ind, c in enumerate(sdrf) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
+            ]
 
-            characteristics_cols = [c for ind, c in enumerate(sdrf) if
-                                    c.startswith('characteristics[') and len(sdrf[c].unique()) >= 1]
+            characteristics_cols = [
+                c for ind, c in enumerate(sdrf) if c.startswith("characteristics[") and len(sdrf[c].unique()) >= 1
+            ]
             # and remove characteristics columns already present as factor
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
-            print('Factor columns: ' + str(factor_cols))
-            print('Characteristics columns (those covered by factor columns removed): ' + str(characteristics_cols))
+            print("Factor columns: " + str(factor_cols))
+            print("Characteristics columns (those covered by factor columns removed): " + str(characteristics_cols))
         else:
             factor_cols = split_by_columns  # enforce columns as factors if names provided by user
 
@@ -166,14 +229,15 @@ class OpenMS:
             # extract mods
             all_mods = list(row[mod_cols])
             # print(all_mods)
-            var_mods = [m for m in all_mods if
-                        'MT=variable' in m or 'MT=Variable' in m]  # workaround for capitalization
+            var_mods = [
+                m for m in all_mods if "MT=variable" in m or "MT=Variable" in m
+            ]  # workaround for capitalization
             var_mods.sort()
-            fixed_mods = [m for m in all_mods if 'MT=fixed' in m or 'MT=Fixed' in m]  # workaround for capitalization
+            fixed_mods = [m for m in all_mods if "MT=fixed" in m or "MT=Fixed" in m]  # workaround for capitalization
             fixed_mods.sort()
             if verbose:
                 print(row)
-            raw = row['comment[data file]']
+            raw = row["comment[data file]"]
             fixed_mods_string = ""
             if fixed_mods is not None:
                 fixed_mods_string = self.openms_ify_mods(fixed_mods)
@@ -184,13 +248,13 @@ class OpenMS:
 
             f2c.file2mods[raw] = (fixed_mods_string, variable_mods_string)
 
-            source_name = row['source name']
+            source_name = row["source name"]
             f2c.file2source[raw] = source_name
             if not source_name in source_name_list:
                 source_name_list.append(source_name)
 
-            if 'comment[precursor mass tolerance]' in row:
-                pc_tol_str = row['comment[precursor mass tolerance]']
+            if "comment[precursor mass tolerance]" in row:
+                pc_tol_str = row["comment[precursor mass tolerance]"]
                 if "ppm" in pc_tol_str or "Da" in pc_tol_str:
                     pc_tmp = pc_tol_str.split(" ")
                     f2c.file2pctol[raw] = pc_tmp[0]
@@ -206,8 +270,8 @@ class OpenMS:
                 f2c.file2pctol[raw] = "10"
                 f2c.file2pctolunit[raw] = "ppm"
 
-            if 'comment[fragment mass tolerance]' in row:
-                f_tol_str = row['comment[fragment mass tolerance]']
+            if "comment[fragment mass tolerance]" in row:
+                f_tol_str = row["comment[fragment mass tolerance]"]
                 f_tol_str.replace("PPM", "ppm")  # workaround
                 if "ppm" in f_tol_str or "Da" in f_tol_str:
                     f_tmp = f_tol_str.split(" ")
@@ -224,21 +288,21 @@ class OpenMS:
                 f2c.file2fragtol[raw] = "20"
                 f2c.file2fragtolunit[raw] = "ppm"
 
-            if 'comment[dissociation method]' in row:
-                if re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']) is not None:
-                    diss_method = re.search("NT=(.+?)(;|$)", row['comment[dissociation method]']).group(1)
+            if "comment[dissociation method]" in row:
+                if re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"]) is not None:
+                    diss_method = re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"]).group(1)
                     f2c.file2diss[raw] = diss_method.upper()
                 else:
                     warning_message = "No dissociation method provided. Assuming HCD."
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2diss[raw] = 'HCD'
+                    f2c.file2diss[raw] = "HCD"
             else:
                 warning_message = "No dissociation method provided. Assuming HCD."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                f2c.file2diss[raw] = 'HCD'
+                f2c.file2diss[raw] = "HCD"
 
-            if 'comment[technical replicate]' in row:
-                technical_replicate = str(row['comment[technical replicate]'])
+            if "comment[technical replicate]" in row:
+                technical_replicate = str(row["comment[technical replicate]"])
                 if "not available" in technical_replicate:
                     f2c.file2technical_rep[raw] = "1"
                 else:
@@ -248,12 +312,13 @@ class OpenMS:
 
             # store highest replicate number for this source name
             if source_name in source_name2n_reps:
-                source_name2n_reps[source_name] = max(int(source_name2n_reps[source_name]),
-                                                      int(f2c.file2technical_rep[raw]))
+                source_name2n_reps[source_name] = max(
+                    int(source_name2n_reps[source_name]), int(f2c.file2technical_rep[raw])
+                )
             else:
                 source_name2n_reps[source_name] = int(f2c.file2technical_rep[raw])
 
-            enzyme = re.search("NT=(.+?)(;|$)", row['comment[cleavage agent details]']).group(1)
+            enzyme = re.search("NT=(.+?)(;|$)", row["comment[cleavage agent details]"]).group(1)
 
             enzyme = enzyme.capitalize()
             # This is to check if the openMS map of enzymes
@@ -262,8 +327,8 @@ class OpenMS:
 
             f2c.file2enzyme[raw] = enzyme
 
-            if 'comment[fraction identifier]' in row:
-                fraction = str(row['comment[fraction identifier]'])
+            if "comment[fraction identifier]" in row:
+                fraction = str(row["comment[fraction identifier]"])
                 if "not available" in fraction:
                     f2c.file2fraction[raw] = "1"
                 else:
@@ -271,20 +336,20 @@ class OpenMS:
             else:
                 f2c.file2fraction[raw] = "1"
 
-            if re.search("NT=(.+?)(;|$)", row['comment[label]']) is not None:
-                label = re.search("NT=(.+?)(;|$)", row['comment[label]']).group(1)
+            if re.search("NT=(.+?)(;|$)", row["comment[label]"]) is not None:
+                label = re.search("NT=(.+?)(;|$)", row["comment[label]"]).group(1)
                 f2c.file2label[raw] = [label]
             else:
-                if 'TMT' in row['comment[label]']:
-                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
-                elif 'SILAC' in row['comment[label]']:
-                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
-                elif 'label free sample' in row['comment[label]']:
-                    label = ['label free sample']
-                elif 'ITRAQ' in row['comment[label]']:
-                    label = sdrf[sdrf['comment[data file]'] == raw]['comment[label]'].tolist()
+                if "TMT" in row["comment[label]"]:
+                    label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
+                elif "SILAC" in row["comment[label]"]:
+                    label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
+                elif "label free sample" in row["comment[label]"]:
+                    label = ["label free sample"]
+                elif "ITRAQ" in row["comment[label]"]:
+                    label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
                 else:
-                    raise Exception("Label " + str(row['comment[label]']) + " is not recognized")
+                    raise Exception("Label " + str(row["comment[label]"]) + " is not recognized")
                 f2c.file2label[raw] = label
 
             if not split_by_columns:
@@ -298,7 +363,7 @@ class OpenMS:
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
 
-            f2c.file2combined_factors[raw + row['comment[label]']] = combined_factors
+            f2c.file2combined_factors[raw + row["comment[label]"]] = combined_factors
 
             # print("Combined factors: " + str(combined_factors))
 
@@ -313,13 +378,30 @@ class OpenMS:
 
             # output one experimental design file
             if one_table:
-                self.writeOneTableExperimentalDesign("experimental_design.tsv", legacy, sdrf, f2c.file2technical_rep,
-                                                     source_name_list, source_name2n_reps, f2c.file2combined_factors,
-                                                     f2c.file2label, keep_raw, f2c.file2fraction)
+                self.writeOneTableExperimentalDesign(
+                    "experimental_design.tsv",
+                    legacy,
+                    sdrf,
+                    f2c.file2technical_rep,
+                    source_name_list,
+                    source_name2n_reps,
+                    f2c.file2combined_factors,
+                    f2c.file2label,
+                    keep_raw,
+                    f2c.file2fraction,
+                )
             else:  # two table format
-                self.writeTwoTableExperimentalDesign("experimental_design.tsv", sdrf, f2c.file2technical_rep,
-                                                     source_name_list, source_name2n_reps, f2c.file2label,
-                                                     keep_raw, f2c.file2fraction, f2c.file2combined_factors)
+                self.writeTwoTableExperimentalDesign(
+                    "experimental_design.tsv",
+                    sdrf,
+                    f2c.file2technical_rep,
+                    source_name_list,
+                    source_name2n_reps,
+                    f2c.file2label,
+                    keep_raw,
+                    f2c.file2fraction,
+                    f2c.file2combined_factors,
+                )
 
         else:  # split by columns
             for index, c in enumerate(conditions):
@@ -331,15 +413,30 @@ class OpenMS:
                 # output of experimental design
                 output_filename = "experimental_design.tsv." + str(index)
                 if one_table:
-                    self.writeOneTableExperimentalDesign(output_filename, legacy, split_sdrf, f2c.file2technical_rep,
-                                                         source_name_list,
-                                                         source_name2n_reps, f2c.file2combined_factors, f2c.file2label,
-                                                         keep_raw, f2c.file2fraction)
+                    self.writeOneTableExperimentalDesign(
+                        output_filename,
+                        legacy,
+                        split_sdrf,
+                        f2c.file2technical_rep,
+                        source_name_list,
+                        source_name2n_reps,
+                        f2c.file2combined_factors,
+                        f2c.file2label,
+                        keep_raw,
+                        f2c.file2fraction,
+                    )
                 else:  # two table format
-                    self.writeTwoTableExperimentalDesign(output_filename, split_sdrf, f2c.file2technical_rep,
-                                                         source_name_list, source_name2n_reps,
-                                                         f2c.file2label, keep_raw, f2c.file2fraction,
-                                                         f2c.file2combined_factors)
+                    self.writeTwoTableExperimentalDesign(
+                        output_filename,
+                        split_sdrf,
+                        f2c.file2technical_rep,
+                        source_name_list,
+                        source_name2n_reps,
+                        f2c.file2label,
+                        keep_raw,
+                        f2c.file2fraction,
+                        f2c.file2combined_factors,
+                    )
 
         self.reportWarnings(sdrf_file)
 
@@ -355,8 +452,10 @@ class OpenMS:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 combined_factors = None
             else:
-                warning_message = "No factors specified. Adding non-redundant characteristics as factor. Will be used " \
-                                  "as condition. "
+                warning_message = (
+                    "No factors specified. Adding non-redundant characteristics as factor. Will be used "
+                    "as condition. "
+                )
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         return combined_factors
 
@@ -374,18 +473,27 @@ class OpenMS:
     def reportWarnings(self, sdrf_file):
         if len(self.warnings) != 0:
             for k, v in self.warnings.items():
-                print('WARNING: "' + k + '" occurred ' + str(v) + ' times.')
+                print('WARNING: "' + k + '" occurred ' + str(v) + " times.")
         print("SUCCESS (WARNINGS=" + str(len(self.warnings)) + "): " + sdrf_file)
 
-    def writeTwoTableExperimentalDesign(self, output_filename, sdrf, file2technical_rep, source_name_list,
-                                        source_name2n_reps, file2label, keep_raw, file2fraction,
-                                        file2combined_factors):
+    def writeTwoTableExperimentalDesign(
+        self,
+        output_filename,
+        sdrf,
+        file2technical_rep,
+        source_name_list,
+        source_name2n_reps,
+        file2label,
+        keep_raw,
+        file2fraction,
+        file2combined_factors,
+    ):
         f = open(output_filename, "w+")
         raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
         f.write("\t".join(openms_file_header) + "\n")
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
+        sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         Fraction_group = {}
         sample_id_map = {}
         sample_id = 1
@@ -439,11 +547,17 @@ class OpenMS:
             label = file2label[raw]
             if "label free sample" in label:
                 label = "1"
-            elif "TMT" in ','.join(file2label[raw]):
-                if len(label) > 11 or 'TMT134N' in label or 'TMT133C' in label or 'TMT133N' \
-                        in label or 'TMT132C' in label or 'TMT132N' in label:
+            elif "TMT" in ",".join(file2label[raw]):
+                if (
+                    len(label) > 11
+                    or "TMT134N" in label
+                    or "TMT133C" in label
+                    or "TMT133N" in label
+                    or "TMT132C" in label
+                    or "TMT132N" in label
+                ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or 'TMT131C' in label:
+                elif len(label) == 11 or "TMT131C" in label:
                     choice = self.tmt11plex
                 elif len(label) > 6:
                     choice = self.tmt10plex
@@ -451,14 +565,19 @@ class OpenMS:
                     choice = self.tmt6plex
                 label = str(choice[label[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
-            elif 'SILAC' in ','.join(file2label[raw]):
+            elif "SILAC" in ",".join(file2label[raw]):
                 if len(label) == 3:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
-            elif 'ITRAQ' in ','.join(file2label[raw]):
-                if len(label) > 4 or 'ITRAQ113' in label or 'ITRAQ118' in label or 'ITRAQ119' in label \
-                        or 'ITRAQ121' in label:
+            elif "ITRAQ" in ",".join(file2label[raw]):
+                if (
+                    len(label) > 4
+                    or "ITRAQ113" in label
+                    or "ITRAQ118" in label
+                    or "ITRAQ119" in label
+                    or "ITRAQ121" in label
+                ):
                     label = str(self.itraq8plex[label[label_index[raw]].lower()])
                 else:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
@@ -469,13 +588,23 @@ class OpenMS:
                 out = raw
 
             f.write(
-                str(Fraction_group[raw]) + "\t" + file2fraction[raw] + "\t" + out + "\t" + label + "\t" + str(
-                    sample) + "\n")
+                str(Fraction_group[raw])
+                + "\t"
+                + file2fraction[raw]
+                + "\t"
+                + out
+                + "\t"
+                + label
+                + "\t"
+                + str(sample)
+                + "\n"
+            )
 
         # sample table
         f.write("\n")
-        if 'tmt' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])) \
-                or 'itraq' in ','.join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
+        if "tmt" in ",".join(
+            map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])
+        ) or "itraq" in ",".join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
@@ -507,11 +636,11 @@ class OpenMS:
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
-            if file2combined_factors[raw + row['comment[label]']] is None:
+            if file2combined_factors[raw + row["comment[label]"]] is None:
                 # no factor defined use sample as condition
                 condition = source_name
             else:
-                condition = file2combined_factors[raw + row['comment[label]']]
+                condition = file2combined_factors[raw + row["comment[label]"]]
             if len(openms_sample_header) == 4:
                 if raw not in mixture_raw_tag.keys():
                     if sample not in mixture_sample_tag.keys():
@@ -527,8 +656,7 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if sample not in sample_row_written:
-                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" +
-                            str(mix_id) + "\n")
+                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
                     sample_row_written.append(sample)
             else:
                 if sample not in sample_row_written:
@@ -537,34 +665,69 @@ class OpenMS:
 
         f.close()
 
-    def writeOneTableExperimentalDesign(self, output_filename, legacy, sdrf, file2technical_rep, source_name_list,
-                                        source_name2n_reps, file2combined_factors, file2label, keep_raw,
-                                        file2fraction):
+    def writeOneTableExperimentalDesign(
+        self,
+        output_filename,
+        legacy,
+        sdrf,
+        file2technical_rep,
+        source_name_list,
+        source_name2n_reps,
+        file2combined_factors,
+        file2label,
+        keep_raw,
+        file2fraction,
+    ):
         f = open(output_filename, "w+")
         raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
-        if 'tmt' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) \
-                or 'itraq' in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]):
+        if "tmt" in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
+            lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
+        ):
             if legacy:
-                open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
-                                                      "Label", "Sample", "MSstats_Condition",
-                                                      "MSstats_BioReplicate", "MSstats_Mixture"]
+                open_ms_experimental_design_header = [
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "Sample",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                    "MSstats_Mixture",
+                ]
             else:
-                open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
-                                                      "Label", "MSstats_Condition",
-                                                      "MSstats_BioReplicate", "MSstats_Mixture"]
+                open_ms_experimental_design_header = [
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                    "MSstats_Mixture",
+                ]
         else:
             if legacy:
-                open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
-                                                      "Label", "Sample", "MSstats_Condition",
-                                                      "MSstats_BioReplicate"]
+                open_ms_experimental_design_header = [
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "Sample",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                ]
             else:
-                open_ms_experimental_design_header = ["Fraction_Group", "Fraction", "Spectra_Filepath",
-                                                      "Label", "MSstats_Condition",
-                                                      "MSstats_BioReplicate"]
+                open_ms_experimental_design_header = [
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                ]
 
         f.write("\t".join(open_ms_experimental_design_header) + "\n")
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
-        sample_identifier_re = re.compile(r'sample (\d+)$', re.IGNORECASE)
+        sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         Fraction_group = {}
         mixture_identifier = 1
         mixture_raw_tag = {}
@@ -628,22 +791,28 @@ class OpenMS:
                     BioReplicate.append(sample)
                 MSstatsBioReplicate = str(BioReplicate.index(sample) + 1)
 
-            if file2combined_factors[raw + row['comment[label]']] is None:
+            if file2combined_factors[raw + row["comment[label]"]] is None:
                 # no factor defined -> use sample as condition
                 condition = source_name
             else:
-                condition = file2combined_factors[raw + row['comment[label]']]
+                condition = file2combined_factors[raw + row["comment[label]"]]
 
             # convert sdrf's label to openms's label
             label = file2label[raw]
             if "label free sample" in label:
                 label = "1"
 
-            elif "TMT" in ','.join(file2label[raw]):
-                if len(label) > 11 or 'TMT134N' in label or 'TMT133C' in label or 'TMT133N' \
-                        in label or 'TMT132C' in label or 'TMT132N' in label:
+            elif "TMT" in ",".join(file2label[raw]):
+                if (
+                    len(label) > 11
+                    or "TMT134N" in label
+                    or "TMT133C" in label
+                    or "TMT133N" in label
+                    or "TMT132C" in label
+                    or "TMT132N" in label
+                ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or 'TMT131C' in label:
+                elif len(label) == 11 or "TMT131C" in label:
                     choice = self.tmt11plex
                 elif len(label) > 6:
                     choice = self.tmt10plex
@@ -653,15 +822,20 @@ class OpenMS:
 
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
-            elif 'SILAC' in ','.join(file2label[raw]):
+            elif "SILAC" in ",".join(file2label[raw]):
                 if len(label) == 3:
                     label = str(self.silac3[label[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
-            elif 'ITRAQ' in ','.join(file2label[raw]):
-                if len(label) > 4 or 'ITRAQ113' in label or 'ITRAQ118' in label or 'ITRAQ119' in label \
-                        or 'ITRAQ121' in label:
+            elif "ITRAQ" in ",".join(file2label[raw]):
+                if (
+                    len(label) > 4
+                    or "ITRAQ113" in label
+                    or "ITRAQ118" in label
+                    or "ITRAQ119" in label
+                    or "ITRAQ121" in label
+                ):
                     label = str(self.itraq8plex[label[label_index[raw]].lower()])
                 else:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
@@ -686,46 +860,112 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if legacy:
-                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition
-                            + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
+                    f.write(
+                        str(Fraction_group[raw])
+                        + "\t"
+                        + file2fraction[raw]
+                        + "\t"
+                        + out
+                        + "\t"
+                        + label
+                        + "\t"
+                        + str(sample)
+                        + "\t"
+                        + condition
+                        + "\t"
+                        + MSstatsBioReplicate
+                        + "\t"
+                        + str(mix_id)
+                        + "\n"
+                    )
                 else:
-                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + condition + "\t"
-                            + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
+                    f.write(
+                        str(Fraction_group[raw])
+                        + "\t"
+                        + file2fraction[raw]
+                        + "\t"
+                        + out
+                        + "\t"
+                        + label
+                        + "\t"
+                        + condition
+                        + "\t"
+                        + MSstatsBioReplicate
+                        + "\t"
+                        + str(mix_id)
+                        + "\n"
+                    )
             else:
                 if legacy:
-                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + str(sample) + "\t" + condition + "\t" +
-                            MSstatsBioReplicate + "\n")
+                    f.write(
+                        str(Fraction_group[raw])
+                        + "\t"
+                        + file2fraction[raw]
+                        + "\t"
+                        + out
+                        + "\t"
+                        + label
+                        + "\t"
+                        + str(sample)
+                        + "\t"
+                        + condition
+                        + "\t"
+                        + MSstatsBioReplicate
+                        + "\n"
+                    )
                 else:
-                    f.write(str(Fraction_group[raw]) + "\t" + file2fraction[
-                        raw] + "\t" + out + "\t" + label + "\t" + condition + "\t" +
-                            MSstatsBioReplicate + "\n")
+                    f.write(
+                        str(Fraction_group[raw])
+                        + "\t"
+                        + file2fraction[raw]
+                        + "\t"
+                        + out
+                        + "\t"
+                        + label
+                        + "\t"
+                        + condition
+                        + "\t"
+                        + MSstatsBioReplicate
+                        + "\n"
+                    )
         f.close()
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
         f = open(output_filename, "w+")
-        open_ms_search_settings_header = ["URI", "Filename", "FixedModifications", "VariableModifications",
-                                          "Proteomics Data Acquisition Method", "Label",
-                                          "PrecursorMassTolerance", "PrecursorMassToleranceUnit",
-                                          "FragmentMassTolerance",
-                                          "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme"]
+        open_ms_search_settings_header = [
+            "URI",
+            "Filename",
+            "FixedModifications",
+            "VariableModifications",
+            "Proteomics Data Acquisition Method",
+            "Label",
+            "PrecursorMassTolerance",
+            "PrecursorMassToleranceUnit",
+            "FragmentMassTolerance",
+            "FragmentMassToleranceUnit",
+            "DissociationMethod",
+            "Enzyme",
+        ]
         f.write("\t".join(open_ms_search_settings_header) + "\n")
         raws = list()
-        TMT_mod = {'tmt6plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
-                   'tmt10plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
-                   'tmt11plex': ['TMT6plex (K)', 'TMT6plex (N-term)'],
-                   'tmt16plex': ['TMTpro (K)', 'TMTpro (N-term)']}
-        ITRAQ_mod = {'itraq4plex': ['iTRAQ4plex (K)', 'iTRAQ4plex (N-term)'],
-                     'itraq8plex': ['iTRAQ8plex (K)', 'iTRAQ8plex (N-term)']
-                     }
+        TMT_mod = {
+            "tmt6plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
+            "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
+            "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
+            "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
+        }
+        ITRAQ_mod = {
+            "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
+            "itraq8plex": ["iTRAQ8plex (K)", "iTRAQ8plex (N-term)"],
+        }
         for _0, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
             if "comment[proteomics data acquisition method]" not in row:
-                warning_message = "The comment[proteomics data acquisition method] column is missing, " \
-                                  "default Data-Dependent Acquisition"
+                warning_message = (
+                    "The comment[proteomics data acquisition method] column is missing, "
+                    "default Data-Dependent Acquisition"
+                )
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 acquisition_method = "Data-Dependent Acquisition"
             else:
@@ -736,53 +976,84 @@ class OpenMS:
                 continue
             raws.append(raw)
             labels = f2c.file2label[raw]
-            if 'TMT' in ','.join(labels):
-                if len(labels) > 11 or 'TMT134N' in labels or 'TMT133C' in labels or 'TMT133N' \
-                        in labels or 'TMT132C' in labels or 'TMT132N' in labels:
-                    label = 'tmt16plex'
-                elif len(labels) == 11 or 'TMT131C' in labels:
-                    label = 'tmt11plex'
+            if "TMT" in ",".join(labels):
+                if (
+                    len(labels) > 11
+                    or "TMT134N" in labels
+                    or "TMT133C" in labels
+                    or "TMT133N" in labels
+                    or "TMT132C" in labels
+                    or "TMT132N" in labels
+                ):
+                    label = "tmt16plex"
+                elif len(labels) == 11 or "TMT131C" in labels:
+                    label = "tmt11plex"
                 elif len(labels) > 6:
-                    label = 'tmt10plex'
+                    label = "tmt10plex"
                 else:
-                    label = 'tmt6plex'
+                    label = "tmt6plex"
                 # add default TMT modification when sdrf with label not contains TMT modification
-                if 'TMT' not in f2c.file2mods[raw][0] and 'TMT' not in f2c.file2mods[raw][1]:
+                if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
                     tmt_fix_mod = TMT_mod[label]
                     if f2c.file2mods[raw][0]:
-                        FixedMod = ','.join(f2c.file2mods[raw][0].split(',') + tmt_fix_mod)
+                        FixedMod = ",".join(f2c.file2mods[raw][0].split(",") + tmt_fix_mod)
                         f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
                     else:
-                        f2c.file2mods[raw] = (','.join(tmt_fix_mod), f2c.file2mods[raw][1])
+                        f2c.file2mods[raw] = (",".join(tmt_fix_mod), f2c.file2mods[raw][1])
             elif "label free sample" in labels:
                 label = "label free sample"
-            elif "silac" in ','.join(labels):
+            elif "silac" in ",".join(labels):
                 label = "SILAC"
-            elif "ITRAQ" in ','.join(labels):
-                if len(labels) > 4 or 'ITRAQ113' in labels or 'ITRAQ118' in labels or 'ITRAQ119' in labels \
-                        or 'ITRAQ121' in labels:
-                    label = 'itraq8plex'
+            elif "ITRAQ" in ",".join(labels):
+                if (
+                    len(labels) > 4
+                    or "ITRAQ113" in labels
+                    or "ITRAQ118" in labels
+                    or "ITRAQ119" in labels
+                    or "ITRAQ121" in labels
+                ):
+                    label = "itraq8plex"
                 else:
-                    label = 'itraq4plex'
+                    label = "itraq4plex"
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
-                if 'ITRAQ' not in f2c.file2mods[raw][0] and 'ITRAQ' not in f2c.file2mods[raw][1]:
+                if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
                     itraq_fix_mod = ITRAQ_mod[label]
                     if f2c.file2mods[raw][0]:
-                        FixedMod = ','.join(f2c.file2mods[raw][0].split(',') + itraq_fix_mod)
+                        FixedMod = ",".join(f2c.file2mods[raw][0].split(",") + itraq_fix_mod)
                         f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
                     else:
-                        f2c.file2mods[raw] = (','.join(itraq_fix_mod), f2c.file2mods[raw][1])
+                        f2c.file2mods[raw] = (",".join(itraq_fix_mod), f2c.file2mods[raw][1])
 
             else:
-                raise Exception("Failed to find any supported labels. Supported labels are 'silac', 'label free "
-                                "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'")
+                raise Exception(
+                    "Failed to find any supported labels. Supported labels are 'silac', 'label free "
+                    "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
+                )
 
             f.write(
-                URI + "\t" + raw + "\t" + f2c.file2mods[raw][0] + "\t" + f2c.file2mods[raw][1] + "\t" +
-                acquisition_method + "\t" + label + "\t" +
-                f2c.file2pctol[
-                    raw] + "\t" + f2c.file2pctolunit[raw] + "\t" + f2c.file2fragtol[raw] + "\t" + f2c.file2fragtolunit[
-                    raw] + "\t" +
-                f2c.file2diss[
-                    raw] + "\t" + f2c.file2enzyme[raw] + "\n")
+                URI
+                + "\t"
+                + raw
+                + "\t"
+                + f2c.file2mods[raw][0]
+                + "\t"
+                + f2c.file2mods[raw][1]
+                + "\t"
+                + acquisition_method
+                + "\t"
+                + label
+                + "\t"
+                + f2c.file2pctol[raw]
+                + "\t"
+                + f2c.file2pctolunit[raw]
+                + "\t"
+                + f2c.file2fragtol[raw]
+                + "\t"
+                + f2c.file2fragtolunit[raw]
+                + "\t"
+                + f2c.file2diss[raw]
+                + "\t"
+                + f2c.file2enzyme[raw]
+                + "\n"
+            )
         f.close()
