@@ -478,13 +478,11 @@ class Maxquant:
                 modification.appendChild(ter_type)
                 root.appendChild(modification)
         if w:
-            fp = open(mod_local_file, "w", encoding="utf-8")
-            mod_local.writexml(fp, indent="", addindent="\t", newl="\n", encoding="utf-8")
-            fp.close()
+            with open(mod_local_file, "w", encoding="utf-8") as fp:
+                mod_local.writexml(fp, indent="", addindent="\t", newl="\n", encoding="utf-8")
         if y:
-            fp = open(mod_file, "w", encoding="utf-8")
-            domTree.writexml(fp, encoding="utf-8")
-            fp.close()
+            with open(mod_file, "w", encoding="utf-8") as fp:
+                domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
 

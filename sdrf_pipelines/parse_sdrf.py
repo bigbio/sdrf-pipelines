@@ -178,9 +178,8 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
         with open(Path + new_file, "r+") as f:
             data = f.read()
         data = pattern.sub("]\t", data)
-        f = open(Path + new_file, "w")
-        f.write(data)
-        f.close()
+        with open(Path + new_file, "w") as f:
+            f.write(data)
 
 
 @click.command("convert-msstats", short_help="convert sdrf to msstats annotation file")
