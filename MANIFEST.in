@@ -1,9 +1,8 @@
 # Include the README
-include *.md
+include README.md
 
 # Include the license file
 include LICENSE
 
 # Include the data files
 recursive-include sdrf_pipelines *.xml *.yml
-
