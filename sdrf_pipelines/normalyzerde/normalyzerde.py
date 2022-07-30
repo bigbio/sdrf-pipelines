@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-import pandas as pd
-import re
 import csv
+import re
+
+import pandas as pd
 
 # Based on msstats class
 
