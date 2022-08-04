@@ -25,7 +25,6 @@ class Maxquant:
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
 
-
     def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -33,61 +32,60 @@ class Maxquant:
         if len(label_list) == 11:
             for i in label_list:
                 if i == label_list[-1]:
-                    lt = lt + "TMT11plex-Lys" + i.replace('TMT', '')
+                    lt = lt + "TMT11plex-Lys" + i.replace("TMT", "")
                 else:
-                    lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+                    lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
         elif len(label_list) > 8:
             for i in label_list:
                 if i == label_list[-1]:
                     if "N" in i or "C" in i:
-                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '')
+                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "")
                     else:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
                 else:
                     if "N" in i or "C" in i:
-                        lt = lt + "TMT10plex-Lys" + i.replace('TMT', '') + ","
+                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
                     else:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
 
         elif len(label_list) > 6:
             for i in label_list:
                 if i == label_list[-1]:
                     if "N" in i or "C" in i:
-                        lt = lt + "TMT8plex-Lys" + i.replace('TMT', '')
+                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "")
                     else:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '')
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
                 else:
                     if "N" in i or "C" in i:
-                        lt = lt + "TMT8plex-Lys" + i.replace('TMT', '') + ","
+                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "") + ","
                     else:
-                        lt = lt + "TMT6plex-Lys" + i.replace('TMT', '') + ","
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
         elif len(label_list) > 2:
             for i in label_list:
                 if i == label_list[-1]:
-                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip()
+                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip()
                 else:
-                    lt = lt + "TMT6plex-Lys" + i.replace('TMT', '').rstrip() + ","
+                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip() + ","
         else:
             for i in label_list:
                 if i == label_list[-1]:
-                    lt = lt + "TMT2plex-Lys" + i.replace('TMT', '')
+                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "")
                 else:
-                    lt = lt + "TMT2plex-Lys" + i.replace('TMT', '') + ","
+                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "") + ","
         return lt
 
-
     def extractTMT_info(self, label="TMT2", mods=None):
-        lt = ''
+        lt = ""
         label_list = sorted(label)
-        label_head = [re.search(r'TMT(\d+)plex-', i).group(1) for i in mods if "TMT" in i]
+        label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
 
         if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
             label_head = "TMT" + label_head[0] + "plex"
             for i in label_list:
                 if i == label_list[-1]:
-                    lt = lt + label_head + "-Lys" + i.replace('TMT', '')
+                    lt = lt + label_head + "-Lys" + i.replace("TMT", "")
                 else:
-                    lt = lt + label_head + "-Lys" + i.replace('TMT', '') + ","
+                    lt = lt + label_head + "-Lys" + i.replace("TMT", "") + ","
         else:
             lt = self.guess_tmt(lt, label_list)
         return lt
@@ -1076,7 +1074,6 @@ class Maxquant:
                                 lt = lt + "iTRAQ8plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "")
                             else:
                                 lt = lt + "iTRAQ8plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "") + ","
-
 
                 file2label[raw] = lt
 
@@ -2089,64 +2086,64 @@ class Maxquant:
                     IsobaricLabelInfo.appendChild(tmtLike)
                     isobaricLabels.appendChild(IsobaricLabelInfo)
             else:
-                isobaricLabels.appendChild(doc.createTextNode(''))
+                isobaricLabels.appendChild(doc.createTextNode(""))
 
-            neucodeLabels = doc.createElement('neucodeLabels')
-            neucodeLabels.appendChild(doc.createTextNode(''))
-            variableModificationsFirstSearch = doc.createElement('variableModificationsFirstSearch')
-            variableModificationsFirstSearch.appendChild(doc.createTextNode(''))
-            hasAdditionalVariableModifications = doc.createElement('hasAdditionalVariableModifications')
-            hasAdditionalVariableModifications.appendChild(doc.createTextNode('False'))
-            additionalVariableModifications = doc.createElement('additionalVariableModifications')
-            additionalVariableModifications.appendChild(doc.createTextNode(''))
-            additionalVariableModificationProteins = doc.createElement('additionalVariableModificationProteins')
-            additionalVariableModificationProteins.appendChild(doc.createTextNode(''))
-            doMassFiltering = doc.createElement('doMassFiltering')
-            doMassFiltering.appendChild(doc.createTextNode('True'))
-            firstSearchTol = doc.createElement('firstSearchTol')
-            mainSearchTol = doc.createElement('mainSearchTol')
-            if j["pctolunit"] == 'ppm':
-                    firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"])+15)))
-                    mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
-                    searchTolInPpm = doc.createElement('searchTolInPpm')
-                    searchTolInPpm.appendChild(doc.createTextNode('True'))
+            neucodeLabels = doc.createElement("neucodeLabels")
+            neucodeLabels.appendChild(doc.createTextNode(""))
+            variableModificationsFirstSearch = doc.createElement("variableModificationsFirstSearch")
+            variableModificationsFirstSearch.appendChild(doc.createTextNode(""))
+            hasAdditionalVariableModifications = doc.createElement("hasAdditionalVariableModifications")
+            hasAdditionalVariableModifications.appendChild(doc.createTextNode("False"))
+            additionalVariableModifications = doc.createElement("additionalVariableModifications")
+            additionalVariableModifications.appendChild(doc.createTextNode(""))
+            additionalVariableModificationProteins = doc.createElement("additionalVariableModificationProteins")
+            additionalVariableModificationProteins.appendChild(doc.createTextNode(""))
+            doMassFiltering = doc.createElement("doMassFiltering")
+            doMassFiltering.appendChild(doc.createTextNode("True"))
+            firstSearchTol = doc.createElement("firstSearchTol")
+            mainSearchTol = doc.createElement("mainSearchTol")
+            if j["pctolunit"] == "ppm":
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 15)))
+                mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
+                searchTolInPpm = doc.createElement("searchTolInPpm")
+                searchTolInPpm.appendChild(doc.createTextNode("True"))
             else:
-                    firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"])+0.04)))
-                    mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
-                    searchTolInPpm = doc.createElement('searchTolInPpm')
-                    searchTolInPpm.appendChild(doc.createTextNode('False'))
-            isotopeMatchTol = doc.createElement('isotopeMatchTol')
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 0.04)))
+                mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
+                searchTolInPpm = doc.createElement("searchTolInPpm")
+                searchTolInPpm.appendChild(doc.createTextNode("False"))
+            isotopeMatchTol = doc.createElement("isotopeMatchTol")
 
-            isotopeMatchTol.appendChild(doc.createTextNode('2'))
-            isotopeMatchTolInPpm = doc.createElement('isotopeMatchTolInPpm')
-            isotopeMatchTolInPpm.appendChild(doc.createTextNode('True'))
-            isotopeTimeCorrelation = doc.createElement('isotopeTimeCorrelation')
-            isotopeTimeCorrelation.appendChild(doc.createTextNode('0.6'))
-            theorIsotopeCorrelation = doc.createElement('theorIsotopeCorrelation')
-            theorIsotopeCorrelation.appendChild(doc.createTextNode('0.6'))
-            checkMassDeficit = doc.createElement('checkMassDeficit')
-            checkMassDeficit.appendChild(doc.createTextNode('True'))
-            recalibrationInPpm = doc.createElement('recalibrationInPpm')
-            recalibrationInPpm.appendChild(doc.createTextNode('True'))
-            intensityDependentCalibration = doc.createElement('intensityDependentCalibration')
-            intensityDependentCalibration.appendChild(doc.createTextNode('False'))
-            minScoreForCalibration = doc.createElement('minScoreForCalibration')
-            minScoreForCalibration.appendChild(doc.createTextNode('70'))
-            matchLibraryFile = doc.createElement('matchLibraryFile')
-            matchLibraryFile.appendChild(doc.createTextNode('False'))
-            libraryFile = doc.createElement('libraryFile')
-            libraryFile.appendChild(doc.createTextNode(''))
-            matchLibraryMassTolPpm = doc.createElement('matchLibraryMassTolPpm')
-            matchLibraryMassTolPpm.appendChild(doc.createTextNode('0'))
-            matchLibraryTimeTolMin = doc.createElement('matchLibraryTimeTolMin')
-            matchLibraryTimeTolMin.appendChild(doc.createTextNode('0'))
-            matchLabelTimeTolMin = doc.createElement('matchLabelTimeTolMin')
-            matchLabelTimeTolMin.appendChild(doc.createTextNode('0'))
-            reporterMassTolerance = doc.createElement('reporterMassTolerance')
-            reporterPif = doc.createElement('reporterPif')
-            filterPif = doc.createElement('filterPif')
-            reporterFraction = doc.createElement('reporterFraction')
-            reporterBasePeakRatio = doc.createElement('reporterBasePeakRatio')
+            isotopeMatchTol.appendChild(doc.createTextNode("2"))
+            isotopeMatchTolInPpm = doc.createElement("isotopeMatchTolInPpm")
+            isotopeMatchTolInPpm.appendChild(doc.createTextNode("True"))
+            isotopeTimeCorrelation = doc.createElement("isotopeTimeCorrelation")
+            isotopeTimeCorrelation.appendChild(doc.createTextNode("0.6"))
+            theorIsotopeCorrelation = doc.createElement("theorIsotopeCorrelation")
+            theorIsotopeCorrelation.appendChild(doc.createTextNode("0.6"))
+            checkMassDeficit = doc.createElement("checkMassDeficit")
+            checkMassDeficit.appendChild(doc.createTextNode("True"))
+            recalibrationInPpm = doc.createElement("recalibrationInPpm")
+            recalibrationInPpm.appendChild(doc.createTextNode("True"))
+            intensityDependentCalibration = doc.createElement("intensityDependentCalibration")
+            intensityDependentCalibration.appendChild(doc.createTextNode("False"))
+            minScoreForCalibration = doc.createElement("minScoreForCalibration")
+            minScoreForCalibration.appendChild(doc.createTextNode("70"))
+            matchLibraryFile = doc.createElement("matchLibraryFile")
+            matchLibraryFile.appendChild(doc.createTextNode("False"))
+            libraryFile = doc.createElement("libraryFile")
+            libraryFile.appendChild(doc.createTextNode(""))
+            matchLibraryMassTolPpm = doc.createElement("matchLibraryMassTolPpm")
+            matchLibraryMassTolPpm.appendChild(doc.createTextNode("0"))
+            matchLibraryTimeTolMin = doc.createElement("matchLibraryTimeTolMin")
+            matchLibraryTimeTolMin.appendChild(doc.createTextNode("0"))
+            matchLabelTimeTolMin = doc.createElement("matchLabelTimeTolMin")
+            matchLabelTimeTolMin.appendChild(doc.createTextNode("0"))
+            reporterMassTolerance = doc.createElement("reporterMassTolerance")
+            reporterPif = doc.createElement("reporterPif")
+            filterPif = doc.createElement("filterPif")
+            reporterFraction = doc.createElement("reporterFraction")
+            reporterBasePeakRatio = doc.createElement("reporterBasePeakRatio")
             if "TMT" in j["label"]:
                 reporterMassTolerance.appendChild(doc.createTextNode("0.003"))
                 reporterPif.appendChild(doc.createTextNode("0"))
@@ -2365,87 +2362,87 @@ class Maxquant:
         # create msmsParamsArray subnode
         msmsParamsArray = doc.createElement("msmsParamsArray")
         for i in range(4):
-            msmsParams = doc.createElement('msmsParams')
-            Name = doc.createElement('Name')
-            MatchTolerance = doc.createElement('MatchTolerance')
-            MatchToleranceInPpm = doc.createElement('MatchToleranceInPpm')
-            MatchTolerance.appendChild(doc.createTextNode(str(j['fragtol'])))
-            if j["fragtolunit"] == 'ppm':
-                MatchToleranceInPpm.appendChild(doc.createTextNode('True'))
+            msmsParams = doc.createElement("msmsParams")
+            Name = doc.createElement("Name")
+            MatchTolerance = doc.createElement("MatchTolerance")
+            MatchToleranceInPpm = doc.createElement("MatchToleranceInPpm")
+            MatchTolerance.appendChild(doc.createTextNode(str(j["fragtol"])))
+            if j["fragtolunit"] == "ppm":
+                MatchToleranceInPpm.appendChild(doc.createTextNode("True"))
             else:
-                MatchToleranceInPpm.appendChild(doc.createTextNode('False'))
-            DeisotopeTolerance = doc.createElement('DeisotopeTolerance')
-            DeisotopeToleranceInPpm = doc.createElement('DeisotopeToleranceInPpm')
-            DeNovoTolerance = doc.createElement('DeNovoTolerance')
-            DeNovoToleranceInPpm = doc.createElement('DeNovoToleranceInPpm')
-            Deisotope = doc.createElement('Deisotope')
-            Topx = doc.createElement('Topx')
-            TopxInterval = doc.createElement('TopxInterval')
-            HigherCharges = doc.createElement('HigherCharges')
-            IncludeWater = doc.createElement('IncludeWater')
-            IncludeAmmonia = doc.createElement('IncludeAmmonia')
-            DependentLosses = doc.createElement('DependentLosses')
-            Recalibration = doc.createElement('Recalibration')
+                MatchToleranceInPpm.appendChild(doc.createTextNode("False"))
+            DeisotopeTolerance = doc.createElement("DeisotopeTolerance")
+            DeisotopeToleranceInPpm = doc.createElement("DeisotopeToleranceInPpm")
+            DeNovoTolerance = doc.createElement("DeNovoTolerance")
+            DeNovoToleranceInPpm = doc.createElement("DeNovoToleranceInPpm")
+            Deisotope = doc.createElement("Deisotope")
+            Topx = doc.createElement("Topx")
+            TopxInterval = doc.createElement("TopxInterval")
+            HigherCharges = doc.createElement("HigherCharges")
+            IncludeWater = doc.createElement("IncludeWater")
+            IncludeAmmonia = doc.createElement("IncludeAmmonia")
+            DependentLosses = doc.createElement("DependentLosses")
+            Recalibration = doc.createElement("Recalibration")
 
             if i == 0:
-                Name.appendChild(doc.createTextNode('FTMS'))
-                DeisotopeTolerance.appendChild(doc.createTextNode('7'))
-                DeisotopeToleranceInPpm.appendChild(doc.createTextNode('True'))
-                DeNovoTolerance.appendChild(doc.createTextNode('10'))
-                DeNovoToleranceInPpm.appendChild(doc.createTextNode('True'))
-                Deisotope.appendChild(doc.createTextNode('True'))
-                Topx.appendChild(doc.createTextNode('12'))
-                TopxInterval.appendChild(doc.createTextNode('100'))
-                HigherCharges.appendChild(doc.createTextNode('True'))
-                IncludeWater.appendChild(doc.createTextNode('True'))
-                IncludeAmmonia.appendChild(doc.createTextNode('True'))
-                DependentLosses.appendChild(doc.createTextNode('True'))
-                Recalibration.appendChild(doc.createTextNode('False'))
+                Name.appendChild(doc.createTextNode("FTMS"))
+                DeisotopeTolerance.appendChild(doc.createTextNode("7"))
+                DeisotopeToleranceInPpm.appendChild(doc.createTextNode("True"))
+                DeNovoTolerance.appendChild(doc.createTextNode("10"))
+                DeNovoToleranceInPpm.appendChild(doc.createTextNode("True"))
+                Deisotope.appendChild(doc.createTextNode("True"))
+                Topx.appendChild(doc.createTextNode("12"))
+                TopxInterval.appendChild(doc.createTextNode("100"))
+                HigherCharges.appendChild(doc.createTextNode("True"))
+                IncludeWater.appendChild(doc.createTextNode("True"))
+                IncludeAmmonia.appendChild(doc.createTextNode("True"))
+                DependentLosses.appendChild(doc.createTextNode("True"))
+                Recalibration.appendChild(doc.createTextNode("False"))
 
             elif i == 1:
-                Name.appendChild(doc.createTextNode('ITMS'))
-                DeisotopeTolerance.appendChild(doc.createTextNode('0.15'))
-                DeisotopeToleranceInPpm.appendChild(doc.createTextNode('False'))
-                DeNovoTolerance.appendChild(doc.createTextNode('0.25'))
-                DeNovoToleranceInPpm.appendChild(doc.createTextNode('False'))
-                Deisotope.appendChild(doc.createTextNode('False'))
-                Topx.appendChild(doc.createTextNode('8'))
-                TopxInterval.appendChild(doc.createTextNode('100'))
-                HigherCharges.appendChild(doc.createTextNode('True'))
-                IncludeWater.appendChild(doc.createTextNode('True'))
-                IncludeAmmonia.appendChild(doc.createTextNode('True'))
-                DependentLosses.appendChild(doc.createTextNode('True'))
-                Recalibration.appendChild(doc.createTextNode('False'))
+                Name.appendChild(doc.createTextNode("ITMS"))
+                DeisotopeTolerance.appendChild(doc.createTextNode("0.15"))
+                DeisotopeToleranceInPpm.appendChild(doc.createTextNode("False"))
+                DeNovoTolerance.appendChild(doc.createTextNode("0.25"))
+                DeNovoToleranceInPpm.appendChild(doc.createTextNode("False"))
+                Deisotope.appendChild(doc.createTextNode("False"))
+                Topx.appendChild(doc.createTextNode("8"))
+                TopxInterval.appendChild(doc.createTextNode("100"))
+                HigherCharges.appendChild(doc.createTextNode("True"))
+                IncludeWater.appendChild(doc.createTextNode("True"))
+                IncludeAmmonia.appendChild(doc.createTextNode("True"))
+                DependentLosses.appendChild(doc.createTextNode("True"))
+                Recalibration.appendChild(doc.createTextNode("False"))
 
             elif i == 2:
-                Name.appendChild(doc.createTextNode('TOF'))
-                DeisotopeTolerance.appendChild(doc.createTextNode('0.01'))
-                DeisotopeToleranceInPpm.appendChild(doc.createTextNode('False'))
-                DeNovoTolerance.appendChild(doc.createTextNode('0.02'))
-                DeNovoToleranceInPpm.appendChild(doc.createTextNode('False'))
-                Deisotope.appendChild(doc.createTextNode('True'))
-                Topx.appendChild(doc.createTextNode('10'))
-                TopxInterval.appendChild(doc.createTextNode('100'))
-                HigherCharges.appendChild(doc.createTextNode('True'))
-                IncludeWater.appendChild(doc.createTextNode('True'))
-                IncludeAmmonia.appendChild(doc.createTextNode('True'))
-                DependentLosses.appendChild(doc.createTextNode('True'))
-                Recalibration.appendChild(doc.createTextNode('False'))
+                Name.appendChild(doc.createTextNode("TOF"))
+                DeisotopeTolerance.appendChild(doc.createTextNode("0.01"))
+                DeisotopeToleranceInPpm.appendChild(doc.createTextNode("False"))
+                DeNovoTolerance.appendChild(doc.createTextNode("0.02"))
+                DeNovoToleranceInPpm.appendChild(doc.createTextNode("False"))
+                Deisotope.appendChild(doc.createTextNode("True"))
+                Topx.appendChild(doc.createTextNode("10"))
+                TopxInterval.appendChild(doc.createTextNode("100"))
+                HigherCharges.appendChild(doc.createTextNode("True"))
+                IncludeWater.appendChild(doc.createTextNode("True"))
+                IncludeAmmonia.appendChild(doc.createTextNode("True"))
+                DependentLosses.appendChild(doc.createTextNode("True"))
+                Recalibration.appendChild(doc.createTextNode("False"))
 
             elif i == 3:
-                Name.appendChild(doc.createTextNode('Unknown'))
-                DeisotopeTolerance.appendChild(doc.createTextNode('7'))
-                DeisotopeToleranceInPpm.appendChild(doc.createTextNode('True'))
-                DeNovoTolerance.appendChild(doc.createTextNode('10'))
-                DeNovoToleranceInPpm.appendChild(doc.createTextNode('True'))
-                Deisotope.appendChild(doc.createTextNode('True'))
-                Topx.appendChild(doc.createTextNode('12'))
-                TopxInterval.appendChild(doc.createTextNode('100'))
-                HigherCharges.appendChild(doc.createTextNode('True'))
-                IncludeWater.appendChild(doc.createTextNode('True'))
-                IncludeAmmonia.appendChild(doc.createTextNode('True'))
-                DependentLosses.appendChild(doc.createTextNode('True'))
-                Recalibration.appendChild(doc.createTextNode('False'))
+                Name.appendChild(doc.createTextNode("Unknown"))
+                DeisotopeTolerance.appendChild(doc.createTextNode("7"))
+                DeisotopeToleranceInPpm.appendChild(doc.createTextNode("True"))
+                DeNovoTolerance.appendChild(doc.createTextNode("10"))
+                DeNovoToleranceInPpm.appendChild(doc.createTextNode("True"))
+                Deisotope.appendChild(doc.createTextNode("True"))
+                Topx.appendChild(doc.createTextNode("12"))
+                TopxInterval.appendChild(doc.createTextNode("100"))
+                HigherCharges.appendChild(doc.createTextNode("True"))
+                IncludeWater.appendChild(doc.createTextNode("True"))
+                IncludeAmmonia.appendChild(doc.createTextNode("True"))
+                DependentLosses.appendChild(doc.createTextNode("True"))
+                Recalibration.appendChild(doc.createTextNode("False"))
 
             msmsParams.appendChild(Name)
             msmsParams.appendChild(MatchTolerance)
