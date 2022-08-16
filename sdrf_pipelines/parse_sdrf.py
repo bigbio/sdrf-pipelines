@@ -22,9 +22,7 @@ from sdrf_pipelines.utils.exceptions import AppConfigException
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-@click.version_option(
-    version=__version__, package_name="sdrf_pipelines", message="%(package)s %(version)s"
-)
+@click.version_option(version=__version__, package_name="sdrf_pipelines", message="%(package)s %(version)s")
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
