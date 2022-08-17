@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr 19 09:46:14 2020
 
@@ -993,7 +992,7 @@ class Maxquant:
                         for j in range(arr.shape[1]):
                             arr[i][j] = sorted(arr[i])[j]
 
-                label_arr = np.array(list(set([tuple(t) for t in arr])))
+                label_arr = np.array(list({tuple(t) for t in arr}))
                 file2silac_shape[raw] = label_arr.shape
                 label_arr.sort()
                 if label_arr.shape[0] == 2:  # Support two or three silac labels
@@ -1100,7 +1099,7 @@ class Maxquant:
         fastaFilePath_node = doc.createElement("fastaFilePath")
         fastaFilePath_node.appendChild(doc.createTextNode(fastaFilePath))
         identifierParseRule = doc.createElement("identifierParseRule")
-        identifierParseRule.appendChild(doc.createTextNode(">([^\s]*)"))
+        identifierParseRule.appendChild(doc.createTextNode(r">([^\s]*)"))
         descriptionParseRule = doc.createElement("descriptionParseRule")
         descriptionParseRule.appendChild(doc.createTextNode(">(.*)"))
         taxonomyParseRule = doc.createElement("taxonomyParseRule")
