@@ -1,9 +1,7 @@
-from __future__ import print_function
-
 from setuptools import find_packages
 from setuptools import setup
 
-with open("README.md", "r", encoding="UTF-8") as fh:
+with open("README.md", encoding="UTF-8") as fh:
     long_description = fh.read()
 
 setup(

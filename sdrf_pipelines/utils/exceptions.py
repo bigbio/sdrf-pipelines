@@ -26,12 +26,12 @@ class LogicError(ValidationWarning):
                 self.row, self.column, self.value, self.message, logging.getLevelName(self._error_type)
             )
         else:
-            return "{} -- {}".format(self.message, logging.getLevelName(self._error_type))
+            return f"{self.message} -- {logging.getLevelName(self._error_type)}"
 
 
 class AppConfigException(AppException):
     def __init__(self, value):
-        super(AppConfigException, self).__init__(value)
+        super().__init__(value)
 
 
 class ConfigManagerException(Exception):

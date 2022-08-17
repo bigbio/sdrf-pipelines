@@ -104,7 +104,7 @@ class OntologyTerm(_SeriesValidation):
         Return a message for the validation of the Ontology Term
         :return:
         """
-        return "the term name or title can't be found in the ontology -- {}".format(self._ontology_name)
+        return f"the term name or title can't be found in the ontology -- {self._ontology_name}"
 
     @staticmethod
     def validate_ontology_terms(cell_value, labels):
@@ -285,7 +285,7 @@ class SDRFSchema(Schema):
 
         for column in columns_to_pair:
             if column.name not in panda_sdrf and column._optional is False:
-                message = "The column {} is not present in the SDRF".format(column.name)
+                message = f"The column {column.name} is not present in the SDRF"
                 errors.append(LogicError(message, error_type=logging.ERROR))
             elif column.name in panda_sdrf:
                 column_pairs.append((panda_sdrf[column.name], column))
