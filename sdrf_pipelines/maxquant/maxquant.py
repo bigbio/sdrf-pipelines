@@ -23,7 +23,71 @@ class Maxquant:
         self.warnings = {}
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
-        print(self.datparamfile)
+
+    def guess_tmt(self, lt, label_list=None):
+        warning_message = "guessing TMT from number of different labels"
+        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+
+        if len(label_list) == 11:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT11plex-Lys" + i.replace("TMT", "")
+                else:
+                    lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
+        elif len(label_list) > 8:
+            for i in label_list:
+                if i == label_list[-1]:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "")
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
+                else:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
+
+        elif len(label_list) > 6:
+            for i in label_list:
+                if i == label_list[-1]:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "")
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
+                else:
+                    if "N" in i or "C" in i:
+                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "") + ","
+                    else:
+                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
+        elif len(label_list) > 2:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip()
+                else:
+                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip() + ","
+        else:
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "")
+                else:
+                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "") + ","
+        return lt
+
+    def extractTMT_info(self, label="TMT2", mods=None):
+        lt = ""
+        label_list = sorted(label)
+        label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
+
+        if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
+            label_head = "TMT" + label_head[0] + "plex"
+            for i in label_list:
+                if i == label_list[-1]:
+                    lt = lt + label_head + "-Lys" + i.replace("TMT", "")
+                else:
+                    lt = lt + label_head + "-Lys" + i.replace("TMT", "") + ","
+        else:
+            lt = self.guess_tmt(lt, label_list)
+        return lt
 
     def create_new_mods(self, mods, mqconfdir):
         i = 0
@@ -174,7 +238,7 @@ class Maxquant:
                 root.appendChild(modification)
                 continue
 
-            elif name.lower().startswith("itraq"):
+            if name.lower().startswith("itraq"):
                 w = True
                 name = name.strip()
                 warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement manuanly some parameters"
@@ -240,7 +304,7 @@ class Maxquant:
                 root.appendChild(modification)
                 continue
 
-            elif "->" in name or "13C6-15N4" == name:
+            if "->" in name or "13C6-15N4" == name:
                 pass
             else:
                 name = name.capitalize()
@@ -756,30 +820,10 @@ class Maxquant:
             if "comment[fragment mass tolerance]" in row:
                 f_tol_str = row["comment[fragment mass tolerance]"]
                 f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str:
+                if "ppm" in f_tol_str or "Da" in f_tol_str:
                     f_tmp = f_tol_str.split(" ")
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
-
-                    # TODO how to set different tolerence unit
-                    if "Da" in file2pctolunit[raw]:
-                        warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 4.5 ppm. "
-                        )
-                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                        file2pctol[raw] = "4.5"
-                        file2pctolunit[raw] = "ppm"
-                elif "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    file2fragtol[raw] = f_tmp[0]
-                    file2fragtolunit[raw] = f_tmp[1]
-                    if "ppm" in file2pctolunit[raw]:
-                        warning_message = (
-                            "mass tolerance unit different between pc and frag. Assuming precursor 0.01 Da."
-                        )
-                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                        file2pctol[raw] = "0.01"
-                        file2pctolunit[raw] = "Da"
                 else:
                     warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -2057,12 +2101,14 @@ class Maxquant:
             doMassFiltering.appendChild(doc.createTextNode("True"))
             firstSearchTol = doc.createElement("firstSearchTol")
             mainSearchTol = doc.createElement("mainSearchTol")
-            firstSearchTol.appendChild(doc.createTextNode(str(j["fragtol"])))
-            mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
             if j["pctolunit"] == "ppm":
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 15)))
+                mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                 searchTolInPpm = doc.createElement("searchTolInPpm")
                 searchTolInPpm.appendChild(doc.createTextNode("True"))
             else:
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 0.04)))
+                mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                 searchTolInPpm = doc.createElement("searchTolInPpm")
                 searchTolInPpm.appendChild(doc.createTextNode("False"))
             isotopeMatchTol = doc.createElement("isotopeMatchTol")
@@ -2319,6 +2365,11 @@ class Maxquant:
             Name = doc.createElement("Name")
             MatchTolerance = doc.createElement("MatchTolerance")
             MatchToleranceInPpm = doc.createElement("MatchToleranceInPpm")
+            MatchTolerance.appendChild(doc.createTextNode(str(j["fragtol"])))
+            if j["fragtolunit"] == "ppm":
+                MatchToleranceInPpm.appendChild(doc.createTextNode("True"))
+            else:
+                MatchToleranceInPpm.appendChild(doc.createTextNode("False"))
             DeisotopeTolerance = doc.createElement("DeisotopeTolerance")
             DeisotopeToleranceInPpm = doc.createElement("DeisotopeToleranceInPpm")
             DeNovoTolerance = doc.createElement("DeNovoTolerance")
@@ -2334,8 +2385,6 @@ class Maxquant:
 
             if i == 0:
                 Name.appendChild(doc.createTextNode("FTMS"))
-                MatchTolerance.appendChild(doc.createTextNode("20"))
-                MatchToleranceInPpm.appendChild(doc.createTextNode("True"))
                 DeisotopeTolerance.appendChild(doc.createTextNode("7"))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode("True"))
                 DeNovoTolerance.appendChild(doc.createTextNode("10"))
@@ -2351,8 +2400,6 @@ class Maxquant:
 
             elif i == 1:
                 Name.appendChild(doc.createTextNode("ITMS"))
-                MatchTolerance.appendChild(doc.createTextNode("0.5"))
-                MatchToleranceInPpm.appendChild(doc.createTextNode("False"))
                 DeisotopeTolerance.appendChild(doc.createTextNode("0.15"))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode("False"))
                 DeNovoTolerance.appendChild(doc.createTextNode("0.25"))
@@ -2368,8 +2415,6 @@ class Maxquant:
 
             elif i == 2:
                 Name.appendChild(doc.createTextNode("TOF"))
-                MatchTolerance.appendChild(doc.createTextNode("40"))
-                MatchToleranceInPpm.appendChild(doc.createTextNode("True"))
                 DeisotopeTolerance.appendChild(doc.createTextNode("0.01"))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode("False"))
                 DeNovoTolerance.appendChild(doc.createTextNode("0.02"))
@@ -2385,8 +2430,6 @@ class Maxquant:
 
             elif i == 3:
                 Name.appendChild(doc.createTextNode("Unknown"))
-                MatchTolerance.appendChild(doc.createTextNode("20"))
-                MatchToleranceInPpm.appendChild(doc.createTextNode("True"))
                 DeisotopeTolerance.appendChild(doc.createTextNode("7"))
                 DeisotopeToleranceInPpm.appendChild(doc.createTextNode("True"))
                 DeNovoTolerance.appendChild(doc.createTextNode("10"))
