@@ -1366,7 +1366,7 @@ class Maxquant:
         root.appendChild(psmFdrCrosslink)
 
         peptideFdr = doc.createElement("peptideFdr")
-        tparam = file2params["fdr_peptide"]
+        tparam = file2params["ident_fdr_peptide"]
         if len(tparam) > 0:
             first = list(tparam.values())[0]
             warning_message = "overwriting pepptide FDR using the value in the sdrf file"
@@ -1380,7 +1380,7 @@ class Maxquant:
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement("proteinFdr")
-        tparam = file2params["fdr_protein"]
+        tparam = file2params["ident_fdr_protein"]
         if len(tparam) > 0:
             first = list(tparam.values())[0]
             warning_message = "overwriting protein FDR using the value in the sdrf file"
@@ -1394,7 +1394,7 @@ class Maxquant:
         root.appendChild(proteinFdr)
 
         siteFdr = doc.createElement("siteFdr")
-        tparam = file2params["fdr_psm"]
+        tparam = file2params["ident_fdr_psm"]
         if len(tparam) > 0:
             first = list(tparam.values())[0]
             warning_message = "overwriting PSM FDR using the value in the sdrf file"
@@ -1500,7 +1500,7 @@ class Maxquant:
         root.appendChild(compositionPrediction)
 
         quantMode = doc.createElement("quantMode")
-        tparam = file2params["quantification_method"]
+        tparam = file2params["protein_inference"]
         if len(tparam) > 0:
             first = list(tparam.values())[0]
             if first == "unique":
@@ -1777,7 +1777,10 @@ class Maxquant:
             if "Bruker Q-TOF" == j["instrument"]:
                 msInstrument.appendChild(doc.createTextNode("1"))
                 maxCharge = doc.createElement("maxCharge")
-                maxCharge.appendChild(doc.createTextNode("5"))
+                if "max_precursor_charge" in datanalysisparams:
+                    maxCharge.appendChild(doc.createTextNode(datanalysisparams["max_precursor_charge"]))
+                else:
+                    maxCharge.appendChild(doc.createTextNode("5"))
                 minPeakLen = doc.createElement("minPeakLen")
                 minPeakLen.appendChild(doc.createTextNode("3"))
                 diaMinPeakLen = doc.createElement("diaMinPeakLen")
@@ -1976,15 +1979,15 @@ class Maxquant:
 
             maxNmods = doc.createElement("maxNmods")
             if "max_mods" in datanalysisparams:
-                print(len(set(datanalysisparams["max_mods"])) > 1)
-                first = datanalysisparams["max_mods"]
-                maxNmods.appendChild(doc.createTextNode(first))
-
+                maxNmods.appendChild(doc.createTextNode(datanalysisparams["max_mods"]))
             else:
                 maxNmods.appendChild(doc.createTextNode("5"))
 
             maxMissedCleavages = doc.createElement("maxMissedCleavages")
-            maxMissedCleavages.appendChild(doc.createTextNode("2"))
+            if "allowed_miscleavages" in datanalysisparams:
+                maxMissedCleavages.appendChild(doc.createTextNode(datanalysisparams["allowed_miscleavages"]))
+            else:
+                maxMissedCleavages.appendChild(doc.createTextNode("2"))
             enzymeMode = doc.createElement("enzymeMode")
             enzymeMode.appendChild(doc.createTextNode("0"))
             complementaryReporterType = doc.createElement("complementaryReporterType")
