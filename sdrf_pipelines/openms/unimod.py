@@ -62,14 +62,14 @@ class UnimodDatabase:
         return found_list
 
     def _get_elements(self, node):
-        for e in node.findall("%selements/%selem" % (self.xmlns, self.xmlns)):
+        for e in node.findall(f"{self.xmlns}elements/{self.xmlns}elem"):
             ea = e.attrib
             self.elements[ea["title"]] = ea
             if re.match(r"[A-Z]", ea["title"][:1]):
-                self.elements["%s%s" % (int(round(float(ea["mono_mass"]))), ea["title"])] = ea
+                self.elements["{}{}".format(int(round(float(ea["mono_mass"]))), ea["title"])] = ea
 
     def _get_modifications(self, node):
-        for e in node.findall("%smodifications/%smod" % (self.xmlns, self.xmlns)):
+        for e in node.findall(f"{self.xmlns}modifications/{self.xmlns}mod"):
             ma = e.attrib
             d = e.findall("%sdelta" % self.xmlns)[0]
             for k in d.attrib.keys():
