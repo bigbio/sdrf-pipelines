@@ -733,7 +733,7 @@ class Maxquant:
         datparams = {}
         for i in mapping:
             datparams[i["sdrf"]] = i["name"]
-            
+
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [
             c for ind, c in enumerate(sdrf) if c.startswith("comment[modification parameters")
@@ -1232,7 +1232,7 @@ class Maxquant:
             matchBetweenRuns = True
             matchBetweenRuns_node.appendChild(doc.createTextNode(first))
             warning_message = "overwriting matchBetweenRuns using the value in the sdrf file"
-            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1            
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(file2params["enable_match_between_runs"].values())) > 1:
                 warning_message = "multiple values for match between runs, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1357,7 +1357,7 @@ class Maxquant:
             first = list(tparam.values())[0]
             minPepLen.appendChild(doc.createTextNode(first))
             warning_message = "overwriting minPepLen using the value in the sdrf file"
-            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1            
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter minimum peptide length, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1429,7 +1429,7 @@ class Maxquant:
             first = list(tparam.values())[0]
             minPeptides.appendChild(doc.createTextNode(first))
             warning_message = "overwriting minPeptides using the value in the sdrf file"
-            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1            
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter minimum number of peptides, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1517,7 +1517,7 @@ class Maxquant:
                 first = "1"
             quantMode.appendChild(doc.createTextNode(first))
             warning_message = "overwriting quantMode using the value in the sdrf file"
-            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1            
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter Quantification mode, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
