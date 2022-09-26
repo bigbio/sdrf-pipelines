@@ -167,7 +167,7 @@ class DataAnalysisParams:
             modtype = "fixed"
             if pname == "variable_mods":
                 modtype = "variable"
-            if re.match("[A-Z]", modpos):
+            if re.fullmatch("[A-Z]", modpos):
                 mod_columns[len(mod_columns.columns) + 1] = (
                     "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
                 )

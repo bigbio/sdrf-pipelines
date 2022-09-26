@@ -133,7 +133,6 @@ class Maxquant:
 
         for mod in all_mods:
             aa_equal = False
-
             if "AC=UNIMOD" not in mod and "AC=Unimod" not in mod:
                 warning_message = "only UNIMOD modifications supported. skip" + mod
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -635,7 +634,7 @@ class Maxquant:
                 elif aa[0] == "R" and name == "Label:13C(6)":
                     oms_mods.append("Arg6")
                 else:
-                    warning_message = "modifications is not supported in MaxQuant. skip " + m
+                    warning_message = "modification is not supported in MaxQuant. skip " + m
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
@@ -694,7 +693,7 @@ class Maxquant:
                             index = new_name.index(name.lower())
                             oms_mods.append(new_title[index])
                 else:
-                    warning_message = "modifications is not supported in MaxQuant. skip " + m
+                    warning_message = "modification is not supported in MaxQuant. skip " + m
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
             elif mqconfdir:
@@ -703,7 +702,7 @@ class Maxquant:
                         index = new_name.index(name.lower())
                         oms_mods.append(new_title[index])
             else:
-                warning_message = "modifications is not supported in MaxQuant. skip " + m
+                warning_message = "modification is not supported in MaxQuant. skip " + m
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
         return ",".join(oms_mods)
@@ -1227,10 +1226,13 @@ class Maxquant:
         root.appendChild(secondPeptide)
 
         matchBetweenRuns_node = doc.createElement("matchBetweenRuns")
-        if len(file2params["match_between_runs"]) > 0:
-            first = list(file2params["match_between_runs"].values())[0]
+        if "enable_match_between_runs" in file2params:
+            first = list(file2params["enable_match_between_runs"].values())[0]
+            matchBetweenRuns = True
             matchBetweenRuns_node.appendChild(doc.createTextNode(first))
-            if len(set(file2params["match_between_runs"].values())) > 1:
+            warning_message = "overwriting matchBetweenRuns using the value in the sdrf file"
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+            if len(set(file2params["enable_match_between_runs"].values())) > 1:
                 warning_message = "multiple values for match between runs, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
@@ -1349,10 +1351,12 @@ class Maxquant:
         root.appendChild(intensityPredictionsFile)
 
         minPepLen = doc.createElement("minPepLen")
-        tparam = file2params["min_peptide_length"]
-        if len(tparam) > 0:
+        if "min_peptide_length" in file2params:
+            tparam = file2params["min_peptide_length"]
             first = list(tparam.values())[0]
             minPepLen.appendChild(doc.createTextNode(first))
+            warning_message = "overwriting minPepLen using the value in the sdrf file"
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter minimum peptide length, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1365,10 +1369,10 @@ class Maxquant:
         root.appendChild(psmFdrCrosslink)
 
         peptideFdr = doc.createElement("peptideFdr")
-        tparam = file2params["fdr_peptide"]
-        if len(tparam) > 0:
+        if "ident_fdr_peptide" in file2params:
+            tparam = file2params["ident_fdr_peptide"]
             first = list(tparam.values())[0]
-            warning_message = "overwriting pepptide FDR using the value in the sdrf file"
+            warning_message = "overwriting peptide FDR using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             peptideFdr.appendChild(doc.createTextNode(first))
             if len(set(tparam.values())) > 1:
@@ -1379,8 +1383,8 @@ class Maxquant:
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement("proteinFdr")
-        tparam = file2params["fdr_protein"]
-        if len(tparam) > 0:
+        if "ident_fdr_protein" in file2params:
+            tparam = file2params["ident_fdr_protein"]
             first = list(tparam.values())[0]
             warning_message = "overwriting protein FDR using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1393,8 +1397,8 @@ class Maxquant:
         root.appendChild(proteinFdr)
 
         siteFdr = doc.createElement("siteFdr")
-        tparam = file2params["fdr_psm"]
-        if len(tparam) > 0:
+        if "ident_fdr_psm" in file2params:
+            tparam = file2params["ident_fdr_psm"]
             first = list(tparam.values())[0]
             warning_message = "overwriting PSM FDR using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1419,10 +1423,12 @@ class Maxquant:
         root.appendChild(useNormRatiosForOccupancy)
 
         minPeptides = doc.createElement("minPeptides")
-        tparam = file2params["min_num_peptides"]
-        if len(tparam) > 0:
+        if "min_num_peptides" in file2params:
+            tparam = file2params["min_num_peptides"]
             first = list(tparam.values())[0]
             minPeptides.appendChild(doc.createTextNode(first))
+            warning_message = "overwriting minPeptides using the value in the sdrf file"
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter minimum number of peptides, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1499,8 +1505,8 @@ class Maxquant:
         root.appendChild(compositionPrediction)
 
         quantMode = doc.createElement("quantMode")
-        tparam = file2params["quantification_method"]
-        if len(tparam) > 0:
+        if "protein_inference" in file2params:
+            tparam = file2params["protein_inference"]
             first = list(tparam.values())[0]
             if first == "unique":
                 first = "2"
@@ -1509,6 +1515,8 @@ class Maxquant:
             else:
                 first = "1"
             quantMode.appendChild(doc.createTextNode(first))
+            warning_message = "overwriting quantMode using the value in the sdrf file"
+            self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
                 warning_message = "multiple values for parameter Quantification mode, taking the first: " + first
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -1776,7 +1784,10 @@ class Maxquant:
             if "Bruker Q-TOF" == j["instrument"]:
                 msInstrument.appendChild(doc.createTextNode("1"))
                 maxCharge = doc.createElement("maxCharge")
-                maxCharge.appendChild(doc.createTextNode("5"))
+                if "max_precursor_charge" in datanalysisparams:
+                    maxCharge.appendChild(doc.createTextNode(datanalysisparams["max_precursor_charge"]))
+                else:
+                    maxCharge.appendChild(doc.createTextNode("5"))
                 minPeakLen = doc.createElement("minPeakLen")
                 minPeakLen.appendChild(doc.createTextNode("3"))
                 diaMinPeakLen = doc.createElement("diaMinPeakLen")
@@ -1975,15 +1986,15 @@ class Maxquant:
 
             maxNmods = doc.createElement("maxNmods")
             if "max_mods" in datanalysisparams:
-                print(len(set(datanalysisparams["max_mods"])) > 1)
-                first = datanalysisparams["max_mods"]
-                maxNmods.appendChild(doc.createTextNode(first))
-
+                maxNmods.appendChild(doc.createTextNode(datanalysisparams["max_mods"]))
             else:
                 maxNmods.appendChild(doc.createTextNode("5"))
 
             maxMissedCleavages = doc.createElement("maxMissedCleavages")
-            maxMissedCleavages.appendChild(doc.createTextNode("2"))
+            if "allowed_miscleavages" in datanalysisparams:
+                maxMissedCleavages.appendChild(doc.createTextNode(datanalysisparams["allowed_miscleavages"]))
+            else:
+                maxMissedCleavages.appendChild(doc.createTextNode("2"))
             enzymeMode = doc.createElement("enzymeMode")
             enzymeMode.appendChild(doc.createTextNode("0"))
             complementaryReporterType = doc.createElement("complementaryReporterType")
@@ -2002,16 +2013,18 @@ class Maxquant:
             Variable_list.extend(j["mods"][1].split(","))
             fixedM_list = list(set(fixedM_list))
             Variable_list = list(set(Variable_list))
-            for F in fixedM_list:
-                string = doc.createElement("string")
-                string.appendChild(doc.createTextNode(F))
-                fixedModifications.appendChild(string)
-            for V in Variable_list:
-                if "Lys8" == V or "Lys6" == V or "Lys4" == V or "Arg10" == V or "Arg6" == V:
-                    continue
-                string = doc.createElement("string")
-                string.appendChild(doc.createTextNode(V))
-                variableModifications.appendChild(string)
+            if len(fixedM_list) > 0: 
+                for F in fixedM_list:
+                    string = doc.createElement("string")
+                    string.appendChild(doc.createTextNode(F))
+                    fixedModifications.appendChild(string)
+            if len(Variable_list) > 0:
+                for V in Variable_list:
+                    if "Lys8" == V or "Lys6" == V or "Lys4" == V or "Arg10" == V or "Arg6" == V:
+                        continue
+                    string = doc.createElement("string")
+                    string.appendChild(doc.createTextNode(V))
+                    variableModifications.appendChild(string)
 
             # create enzymes subnode
             enzymes_node = doc.createElement("enzymes")
