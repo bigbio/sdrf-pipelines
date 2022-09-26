@@ -2013,12 +2013,12 @@ class Maxquant:
             Variable_list.extend(j["mods"][1].split(","))
             fixedM_list = list(set(fixedM_list))
             Variable_list = list(set(Variable_list))
-            if len(fixedM_list) > 0: 
+            if len(fixedM_list[0]) > 0:
                 for F in fixedM_list:
                     string = doc.createElement("string")
                     string.appendChild(doc.createTextNode(F))
                     fixedModifications.appendChild(string)
-            if len(Variable_list) > 0:
+            if len(Variable_list[0]) > 0:
                 for V in Variable_list:
                     if "Lys8" == V or "Lys6" == V or "Lys4" == V or "Arg10" == V or "Arg6" == V:
                         continue
