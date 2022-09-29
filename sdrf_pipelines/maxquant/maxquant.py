@@ -885,7 +885,7 @@ class Maxquant:
                 file2fraction[raw] = 0
 
             # For different quantitative experiments
-            if "not  available" in row["comment[label]"]:
+            if "not available" in row["comment[label]"] or "not applicable" in row["comment[label]"]:
                 file2label[raw] = "label free sample"
             elif re.search("NT=(.+?)(;|$)", row["comment[label]"]) is not None:
                 label = re.search("NT=(.+?)(;|$)", row["comment[label]"]).group(1)
@@ -1692,7 +1692,6 @@ class Maxquant:
         tmp = []
 
         referenceChannel = doc.createElement("referenceChannel")
-
         for key1, instr_val in file2instrument.items():
             value2 = (
                 str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
