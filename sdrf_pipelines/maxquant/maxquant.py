@@ -2019,7 +2019,7 @@ class Maxquant:
                     fixedModifications.appendChild(string)
             if len(Variable_list[0]) > 0:
                 for V in Variable_list:
-                    if "Lys8" == V or "Lys6" == V or "Lys4" == V or "Arg10" == V or "Arg6" == V:
+                    if V in ["Lys8","Lys6","Lys4","Arg10","Arg6"]:
                         continue
                     string = doc.createElement("string")
                     string.appendChild(doc.createTextNode(V))
