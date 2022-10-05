@@ -1,10 +1,12 @@
-import pandas as pd
-import re
-import yaml
 import os.path
-from sdrf_pipelines.zooma.zooma import OlsClient
+import re
+
+import pandas as pd
+import yaml
+
 from sdrf_pipelines.openms.unimod import UnimodDatabase
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
+from sdrf_pipelines.zooma.zooma import OlsClient
 
 # Accessing ontologies and CVs
 unimod = UnimodDatabase()
@@ -77,7 +79,7 @@ def new_or_default(params_in, pname, p):
         print("Found in parameter file")
         pvalue = params_in[pname]
     else:
-        print("Not found in params file. Taking default value: " + str(p["default"]))
+        print("Setting to default: " + p["default"])
         pvalue = p["default"]
     return pvalue
 
@@ -104,8 +106,7 @@ Note that it should be single residues"
 used space between the comma separated modifications'
             )
         modtype = pname.replace("_mods", "")
-        if re.fullmatch("[A-Z]", modpos):
-            print(modpos)
+        if re.match("[A-Z]", modpos):
             mod_columns[len(mod_columns.columns) + 1] = (
                 "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
             )
@@ -198,10 +199,9 @@ the file into parts with the same data analysis parameters"
 
         # Now finally writing the value
         elif pname not in ["fixed_mods", "variable_mods"]:
-            if pname in list(params_in.keys()):
-                print("WARNING: Overwriting " + pname + " values in sdrf file with " + str(pvalue))
-                overwritten.add(pname)
-                sdrf_content[psdrf] = pvalue
+            print("WARNING: Overwriting " + pname + " values in sdrf file with " + pvalue)
+            overwritten.add(pname)
+            sdrf_content[psdrf] = pvalue
 
     else:
         sdrf_content[psdrf] = pvalue
@@ -222,7 +222,7 @@ sdrf_content.dropna(how="all", axis=1, inplace=True)
 
 print("--- Writing sdrf file into sdrf_local.tsv ---")
 # sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False)
-sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
+sdrf_content.to_csv("sdrf_local.tsv", sep="\t")
 
 # Verify with sdrf-parser
 check_sdrf = SdrfDataFrame()
