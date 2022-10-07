@@ -2008,16 +2008,16 @@ class Maxquant:
             variableModifications = doc.createElement("variableModifications")
             fixedM_list = []
             Variable_list = []
-            fixedM_list.extend(j["mods"][0].split(","))
-            Variable_list.extend(j["mods"][1].split(","))
-            fixedM_list = list(set(fixedM_list))
-            Variable_list = list(set(Variable_list))
             if len(fixedM_list[0]) > 0:
+                fixedM_list.extend(j["mods"][0].split(","))
+                fixedM_list = list(set(fixedM_list))
                 for F in fixedM_list:
                     string = doc.createElement("string")
                     string.appendChild(doc.createTextNode(F))
                     fixedModifications.appendChild(string)
             if len(Variable_list[0]) > 0:
+                Variable_list.extend(j["mods"][1].split(","))
+                Variable_list = list(set(Variable_list))
                 for V in Variable_list:
                     if V in ["Lys8", "Lys6", "Lys4", "Arg10", "Arg6"]:
                         continue
