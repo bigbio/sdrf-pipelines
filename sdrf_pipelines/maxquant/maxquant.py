@@ -2005,25 +2005,28 @@ class Maxquant:
 
             # create Modification subnode
             fixedModifications = doc.createElement("fixedModifications")
-            variableModifications = doc.createElement("variableModifications")
-            fixedM_list = []
-            Variable_list = []
-            if len(fixedM_list[0]) > 0:
-                fixedM_list.extend(j["mods"][0].split(","))
-                fixedM_list = list(set(fixedM_list))
-                for F in fixedM_list:
-                    string = doc.createElement("string")
-                    string.appendChild(doc.createTextNode(F))
-                    fixedModifications.appendChild(string)
-            if len(Variable_list[0]) > 0:
-                Variable_list.extend(j["mods"][1].split(","))
-                Variable_list = list(set(Variable_list))
-                for V in Variable_list:
-                    if V in ["Lys8", "Lys6", "Lys4", "Arg10", "Arg6"]:
-                        continue
-                    string = doc.createElement("string")
-                    string.appendChild(doc.createTextNode(V))
-                    variableModifications.appendChild(string)
+            variableModifications = doc.createElement("variableModifications")            
+            def parse_mods(mods):
+                mods_list = []
+                if mods != "":
+                    mods_list.extend(mods.split(","))
+                return list(set(mods_list))
+
+            fixedM_list = parse_mods(j["mods"][0])
+            Variable_list = parse_mods(j["mods"][1])
+                
+            fixedM_list.extend(j["mods"][0].split(","))
+            fixedM_list = list(set(fixedM_list))
+            for F in fixedM_list:
+                string = doc.createElement("string")
+                string.appendChild(doc.createTextNode(F))
+                fixedModifications.appendChild(string)
+            for V in Variable_list:
+                if V in ["Lys8", "Lys6", "Lys4", "Arg10", "Arg6"]:
+                    continue
+                string = doc.createElement("string")
+                string.appendChild(doc.createTextNode(V))
+                variableModifications.appendChild(string)
 
             # create enzymes subnode
             enzymes_node = doc.createElement("enzymes")
