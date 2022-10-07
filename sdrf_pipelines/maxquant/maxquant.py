@@ -2005,7 +2005,8 @@ class Maxquant:
 
             # create Modification subnode
             fixedModifications = doc.createElement("fixedModifications")
-            variableModifications = doc.createElement("variableModifications")            
+            variableModifications = doc.createElement("variableModifications")
+
             def parse_mods(mods):
                 mods_list = []
                 if mods != "":
@@ -2014,7 +2015,7 @@ class Maxquant:
 
             fixedM_list = parse_mods(j["mods"][0])
             Variable_list = parse_mods(j["mods"][1])
-                
+
             fixedM_list.extend(j["mods"][0].split(","))
             fixedM_list = list(set(fixedM_list))
             for F in fixedM_list:
