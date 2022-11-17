@@ -83,7 +83,8 @@ class NormalyzerDE:
             mq_experiments = mq_design["Experiment"].tolist()
             new_samples = []
             for assay in assays:
-                new_samples.append(mq_experiments[mq_assays.index(assay)].replace(" ", "."))
+                new_sample = mq_experiments[mq_assays.index(assay)].replace(" ", ".")
+                new_samples.append(new_sample.replace("-", "."))
             data["sample"] = new_samples
         else:
             data["sample"] = assays
