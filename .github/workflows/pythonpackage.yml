@@ -38,4 +38,19 @@ jobs:
       run: |
         pip install pytest
         python setup.py install
-        python sdrf_pipelines/tests/sdrfchecker_tests.py
+        python sdrf_pipelines/tests/test_sdrfchecker.py
+    - name: Test OpenMS converter
+      run: |
+        cd sdrf_pipelines
+        for sdrf in testdata/*/*.sdrf.tsv
+        do
+          pushd $(dirname $sdrf)
+            python ../../parse_sdrf.py convert-openms -s $(pwd)/../../$sdrf -t2
+            diff -c experimental_design.tsv expected_experimental_design.tsv >> ../../failures.txt
+            diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
+          popd
+        done
+        if [ -s failures.txt ]
+        then
+          exit 1
+        fi
