@@ -1,3 +1,4 @@
+import os
 import re
 from collections import Counter
 
@@ -488,7 +489,6 @@ class OpenMS:
         file2combined_factors,
     ):
         f = open(output_filename, "w+")
-        raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
         f.write("\t".join(openms_file_header) + "\n")
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
@@ -582,7 +582,8 @@ class OpenMS:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
             if not keep_raw:
-                out = raw_ext_regex.sub(".mzML", raw)
+                ext = os.path.splitext(raw)
+                out = ext[0] + ".mzML"
             else:
                 out = raw
 
@@ -678,7 +679,6 @@ class OpenMS:
         file2fraction,
     ):
         f = open(output_filename, "w+")
-        raw_ext_regex = re.compile(r"\.raw$", re.IGNORECASE)
         if "tmt" in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
             lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
         ):
@@ -841,7 +841,8 @@ class OpenMS:
                 label_index[raw] = label_index[raw] + 1
 
             if not keep_raw:
-                out = raw_ext_regex.sub(".mzML", raw)
+                ext = os.path.splitext(raw)
+                out = ext[0] + ".mzML"
             else:
                 out = raw
 
@@ -993,12 +994,17 @@ class OpenMS:
                     label = "tmt6plex"
                 # add default TMT modification when sdrf with label not contains TMT modification
                 if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
-                    tmt_fix_mod = TMT_mod[label]
-                    if f2c.file2mods[raw][0]:
-                        FixedMod = ",".join(f2c.file2mods[raw][0].split(",") + tmt_fix_mod)
-                        f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
+                    warning_message = (
+                        "The sdrf with TMT label doesn't contain TMT modification. Adding default "
+                        "variable modifications."
+                    )
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    tmt_var_mod = TMT_mod[label]
+                    if f2c.file2mods[raw][1]:
+                        VarMod = ",".join(f2c.file2mods[raw][1].split(",") + tmt_var_mod)
+                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], VarMod)
                     else:
-                        f2c.file2mods[raw] = (",".join(tmt_fix_mod), f2c.file2mods[raw][1])
+                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(tmt_var_mod))
             elif "label free sample" in labels:
                 label = "label free sample"
             elif "silac" in ",".join(labels):
@@ -1016,12 +1022,17 @@ class OpenMS:
                     label = "itraq4plex"
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
                 if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
-                    itraq_fix_mod = ITRAQ_mod[label]
-                    if f2c.file2mods[raw][0]:
-                        FixedMod = ",".join(f2c.file2mods[raw][0].split(",") + itraq_fix_mod)
-                        f2c.file2mods[raw] = (FixedMod, f2c.file2mods[raw][1])
+                    warning_message = (
+                        "The sdrf with ITRAQ label doesn't contain label modification. Adding default "
+                        "variable modifications."
+                    )
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    itraq_var_mod = ITRAQ_mod[label]
+                    if f2c.file2mods[raw][1]:
+                        VarMod = ",".join(f2c.file2mods[raw][1].split(",") + itraq_var_mod)
+                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], VarMod)
                     else:
-                        f2c.file2mods[raw] = (",".join(itraq_fix_mod), f2c.file2mods[raw][1])
+                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(itraq_var_mod))
 
             else:
                 raise Exception(
