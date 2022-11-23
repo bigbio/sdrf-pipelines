@@ -1,7 +1,7 @@
 {
-  "dependencies": {
-    "remark-cli": "^11.0.0",
-    "remark-preset-lint-consistent": "^5.1.1",
-    "remark-preset-lint-recommended": "^6.1.2"
-  }
+    "dependencies": {
+        "remark-cli": "^11.0.0",
+        "remark-preset-lint-consistent": "^5.1.1",
+        "remark-preset-lint-recommended": "^6.1.2"
+    }
 }
