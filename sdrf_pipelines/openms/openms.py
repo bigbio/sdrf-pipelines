@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from collections import Counter
 
 import pandas as pd
@@ -994,8 +994,10 @@ class OpenMS:
                     label = "tmt6plex"
                 # add default TMT modification when sdrf with label not contains TMT modification
                 if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
-                    warning_message = "The sdrf with TMT label doesn't contain TMT modification. Adding default " \
-                                      "variable modifications."
+                    warning_message = (
+                        "The sdrf with TMT label doesn't contain TMT modification. Adding default "
+                        "variable modifications."
+                    )
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     tmt_var_mod = TMT_mod[label]
                     if f2c.file2mods[raw][1]:
@@ -1020,8 +1022,10 @@ class OpenMS:
                     label = "itraq4plex"
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
                 if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
-                    warning_message = "The sdrf with ITRAQ label doesn't contain label modification. Adding default " \
-                                      "variable modifications."
+                    warning_message = (
+                        "The sdrf with ITRAQ label doesn't contain label modification. Adding default "
+                        "variable modifications."
+                    )
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     itraq_var_mod = ITRAQ_mod[label]
                     if f2c.file2mods[raw][1]:
