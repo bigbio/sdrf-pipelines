@@ -547,7 +547,6 @@ class Maxquant:
                 domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
-
         mq_mods_file = self.modfile
         mod_pattern = re.compile(r"(.*?) \(")
         if mqconfdir:

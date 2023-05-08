@@ -179,7 +179,6 @@ class OpenMS:
         verbose: bool = False,
         split_by_columns: str = None,
     ):
-
         print("PROCESSING: " + sdrf_file + '"')
 
         # convert list passed on command line '[assay name,comment[fraction identifier]]' to python list
@@ -206,7 +205,6 @@ class OpenMS:
         ]  # columns with modification parameters
 
         if not split_by_columns:
-
             factor_cols = [
                 c for ind, c in enumerate(sdrf) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
             ]
