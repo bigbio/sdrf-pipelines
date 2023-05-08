@@ -128,7 +128,7 @@ class OpenMS:
                 name = ptm.get_name()
 
             # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
-            if re.search("PP=(.+?)[;$]", m) is None:
+            if re.search("PP=(.+?)(;|$)", m) is None:
                 pp = "Anywhere"
             else:
                 pp = re.search("PP=(.+?)(;|$)", m).group(
@@ -179,7 +179,6 @@ class OpenMS:
         verbose: bool = False,
         split_by_columns: str = None,
     ):
-
         print("PROCESSING: " + sdrf_file + '"')
 
         # convert list passed on command line '[assay name,comment[fraction identifier]]' to python list
@@ -206,7 +205,6 @@ class OpenMS:
         ]  # columns with modification parameters
 
         if not split_by_columns:
-
             factor_cols = [
                 c for ind, c in enumerate(sdrf) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
             ]
