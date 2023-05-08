@@ -128,7 +128,7 @@ class OpenMS:
                 name = ptm.get_name()
 
             # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
-            if re.search("PP=(.+?)[;$]", m) is None:
+            if re.search("PP=(.+?)(;|$)", m) is None:
                 pp = "Anywhere"
             else:
                 pp = re.search("PP=(.+?)(;|$)", m).group(
