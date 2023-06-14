@@ -211,7 +211,7 @@ class SDRFSchema(Schema):
             m = re.match(self._column_template, cname)
             if not m:
                 errors.append(cname)
-            if m.group().startswith("factor value"):
+            elif m.group().startswith("factor value"):
                 if (
                     m.group().replace("factor value", "comment") not in panda_sdrf.columns
                     and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
