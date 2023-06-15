@@ -1225,7 +1225,7 @@ class Maxquant:
         root.appendChild(secondPeptide)
 
         matchBetweenRuns_node = doc.createElement("matchBetweenRuns")
-        if "enable_match_between_runs" in file2params:
+        if "enable_match_between_runs" in file2params and len(file2params["enable_match_between_runs"]) > 0:
             first = list(file2params["enable_match_between_runs"].values())[0]
             matchBetweenRuns = True
             matchBetweenRuns_node.appendChild(doc.createTextNode(first))
@@ -1350,7 +1350,7 @@ class Maxquant:
         root.appendChild(intensityPredictionsFile)
 
         minPepLen = doc.createElement("minPepLen")
-        if "min_peptide_length" in file2params:
+        if "min_peptide_length" in file2params and len(file2params["min_peptide_length"]) > 0::
             tparam = file2params["min_peptide_length"]
             first = list(tparam.values())[0]
             minPepLen.appendChild(doc.createTextNode(first))
@@ -1368,7 +1368,7 @@ class Maxquant:
         root.appendChild(psmFdrCrosslink)
 
         peptideFdr = doc.createElement("peptideFdr")
-        if "ident_fdr_peptide" in file2params:
+        if "ident_fdr_peptide" in file2params and len(file2params["ident_fdr_peptide"]) > 0::
             tparam = file2params["ident_fdr_peptide"]
             first = list(tparam.values())[0]
             warning_message = "overwriting peptide FDR using the value in the sdrf file"
@@ -1382,7 +1382,7 @@ class Maxquant:
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement("proteinFdr")
-        if "ident_fdr_protein" in file2params:
+        if "ident_fdr_protein" in file2params and len(file2params["ident_fdr_protein"]) > 0::
             tparam = file2params["ident_fdr_protein"]
             first = list(tparam.values())[0]
             warning_message = "overwriting protein FDR using the value in the sdrf file"
@@ -1396,7 +1396,7 @@ class Maxquant:
         root.appendChild(proteinFdr)
 
         siteFdr = doc.createElement("siteFdr")
-        if "ident_fdr_psm" in file2params:
+        if "ident_fdr_psm" in file2params and len(file2params["ident_fdr_psm"]) > 0::
             tparam = file2params["ident_fdr_psm"]
             first = list(tparam.values())[0]
             warning_message = "overwriting PSM FDR using the value in the sdrf file"
@@ -1422,7 +1422,7 @@ class Maxquant:
         root.appendChild(useNormRatiosForOccupancy)
 
         minPeptides = doc.createElement("minPeptides")
-        if "min_num_peptides" in file2params:
+        if "min_num_peptides" in file2params and len(file2params["min_num_peptides"]) > 0::
             tparam = file2params["min_num_peptides"]
             first = list(tparam.values())[0]
             minPeptides.appendChild(doc.createTextNode(first))
@@ -1504,7 +1504,7 @@ class Maxquant:
         root.appendChild(compositionPrediction)
 
         quantMode = doc.createElement("quantMode")
-        if "protein_inference" in file2params:
+        if "protein_inference" in file2params and len(file2params["protein_inference"]) > 0::
             tparam = file2params["protein_inference"]
             first = list(tparam.values())[0]
             if first == "unique":
