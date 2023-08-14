@@ -1018,8 +1018,9 @@ class OpenMS:
                     label = "itraq8plex"
                 else:
                     label = "itraq4plex"
+                print(f2c.file2mods[raw][0].lower())
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
-                if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
+                if "itraq" not in f2c.file2mods[raw][0].lower() and "itraq" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
                         "The sdrf with ITRAQ label doesn't contain label modification. Adding default "
                         "variable modifications."
