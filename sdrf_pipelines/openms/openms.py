@@ -191,10 +191,12 @@ class OpenMS:
 
         # load sdrf file
         sdrf = pd.read_table(sdrf_file)
+        null_cols = sdrf.columns[sdrf.isnull().any()]
         if sdrf.isnull().values.any():
             raise Exception(
                 "Encountered empty cells while reading SDRF."
-                " Please check your file, e.g. for too many column headers or empty fields"
+                "Please check your file, e.g. for too many column headers or empty fields"
+                "Columns with empty values: {}".format(list(null_cols))
             )
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
@@ -968,7 +970,8 @@ class OpenMS:
                 acquisition_method = "Data-Dependent Acquisition"
             else:
                 acquisition_method = row["comment[proteomics data acquisition method]"]
-                acquisition_method = acquisition_method.split(";")[0].split("=")[1]
+                if len(acquisition_method.split(";")) > 1:
+                    acquisition_method = acquisition_method.split(";")[0].split("=")[1]
 
             if raw in raws:
                 continue

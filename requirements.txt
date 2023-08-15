@@ -4,3 +4,4 @@ pandas_schema
 pytest
 requests
 pyyaml
+numpy
