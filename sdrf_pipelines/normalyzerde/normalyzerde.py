@@ -2,10 +2,8 @@
 
 
 import csv
-import re
-
 import pandas as pd
-
+import re
 
 # Based on msstats class
 
