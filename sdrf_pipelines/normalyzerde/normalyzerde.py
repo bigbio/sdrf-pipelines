@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 
+
 # Based on msstats class
 
 # example:  parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./normalyzer_design.tsv
@@ -18,7 +19,7 @@ class NormalyzerDE:
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
-        self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file
+            self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)

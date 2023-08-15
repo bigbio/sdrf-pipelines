@@ -27,7 +27,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
-    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration files
+    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration
+    files.
     """
     pass
 
