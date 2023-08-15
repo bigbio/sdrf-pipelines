@@ -81,7 +81,6 @@ class Zooma:
         return self._zooma_api_request(full_url, "get", payload)
 
     def _zooma_api_request(self, url, method, payload=None):
-
         if payload is None:
             payload = {}
 
