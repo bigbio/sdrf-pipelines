@@ -6,7 +6,6 @@ import re
 
 import pandas as pd
 
-
 # Based on msstats class
 
 # example:  parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./normalyzer_design.tsv
