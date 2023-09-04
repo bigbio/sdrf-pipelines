@@ -123,7 +123,6 @@ class UnimodDatabase:
             mod = PostTranslationalModification(ontology_term, ma["delta_composition"], sites, ma["delta_mono_mass"])
             self.modifications.append(mod)
 
-
     def get_by_accession(self, accession):
         for mod in self.modifications:
             if mod.get_accession() == accession:
