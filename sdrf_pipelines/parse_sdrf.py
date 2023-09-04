@@ -33,16 +33,16 @@ def cli():
 
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
 @click.option("--sdrf", "-s", help="SDRF file")
-@click.option("--legacy/--modern", "-l/-m", default=False,
-              help="legacy=Create artificial sample column not needed in OpenMS 2.6.")
-@click.option("--onetable/--twotables", "-t1/-t2",
-              help="Create one-table or two-tables format.", default=False )
-@click.option("--verbose/--quiet", "-v/-q",
-              help="Output debug information.", default=False)
-@click.option("--conditionsfromcolumns", "-c",
-              help="Create conditions from provided (e.g., factor) columns.")
-@click.option("--extension_convert","-e",
-              help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'",
+@click.option(
+    "--legacy/--modern", "-l/-m", default=False, help="legacy=Create artificial sample column not needed in OpenMS 2.6."
+)
+@click.option("--onetable/--twotables", "-t1/-t2", help="Create one-table or two-tables format.", default=False)
+@click.option("--verbose/--quiet", "-v/-q", help="Output debug information.", default=False)
+@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--extension_convert",
+    "-e",
+    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'",
 )
 @click.pass_context
 def openms_from_sdrf(
