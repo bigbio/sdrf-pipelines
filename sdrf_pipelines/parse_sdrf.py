@@ -15,8 +15,7 @@ from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
-from sdrf_pipelines.sdrf.sdrf_schema import (ALL_TEMPLATES, DEFAULT_TEMPLATE,
-                                             MASS_SPECTROMETRY)
+from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES, DEFAULT_TEMPLATE, MASS_SPECTROMETRY
 from sdrf_pipelines.utils.exceptions import AppConfigException
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
