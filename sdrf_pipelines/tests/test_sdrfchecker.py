@@ -1,8 +1,6 @@
 from click.testing import CliRunner
-
 from sdrf_pipelines.parse_sdrf import cli
-from sdrf_pipelines.zooma.zooma import SlimOlsClient
-from sdrf_pipelines.zooma.zooma import Zooma
+from sdrf_pipelines.zooma.zooma import SlimOlsClient, Zooma
 
 
 def test_validate_srdf():
@@ -25,14 +23,18 @@ def test_convert_openms():
     print("convert to openms" + result.output)
     assert "ERROR" not in result.output
 
+
 def test_convert_openms_file_extensions():
     """
     :return:
     """
     runner = CliRunner()
-    result = runner.invoke(cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv", "--extension_convert", "raw:mzML"])
+    result = runner.invoke(
+        cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv", "--extension_convert", "raw:mzML"]
+    )
     print("convert to openms" + result.output)
     assert "ERROR" not in result.output
+
 
 def test_bioontologies():
     keyword = "human"
