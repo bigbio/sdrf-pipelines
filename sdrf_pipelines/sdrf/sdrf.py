@@ -1,16 +1,21 @@
 import logging
 
 import pandas as pd
-from sdrf_pipelines.sdrf.sdrf_schema import (CELL_LINES_TEMPLATE,
-                                             HUMAN_TEMPLATE, MASS_SPECTROMETRY,
-                                             NON_VERTEBRATES_TEMPLATE,
-                                             PLANTS_TEMPLATE,
-                                             VERTEBRATES_TEMPLATE,
-                                             cell_lines_schema, default_schema,
-                                             human_schema,
-                                             mass_spectrometry_schema,
-                                             nonvertebrates_chema,
-                                             plants_chema, vertebrates_chema)
+from sdrf_pipelines.sdrf.sdrf_schema import (
+    CELL_LINES_TEMPLATE,
+    HUMAN_TEMPLATE,
+    MASS_SPECTROMETRY,
+    NON_VERTEBRATES_TEMPLATE,
+    PLANTS_TEMPLATE,
+    VERTEBRATES_TEMPLATE,
+    cell_lines_schema,
+    default_schema,
+    human_schema,
+    mass_spectrometry_schema,
+    nonvertebrates_chema,
+    plants_chema,
+    vertebrates_chema,
+)
 
 
 class SdrfDataFrame(pd.DataFrame):
