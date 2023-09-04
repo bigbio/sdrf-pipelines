@@ -23,12 +23,9 @@ class FileToColumnEntries:
     file2technical_rep = {}
 
 
-def get_openms_file_name(raw, keep_raw: bool, extension_convert: str = None):
+def get_openms_file_name(raw, extension_convert: str = None):
     """
-    Convert file name for OpenMS, for if keep raw is set the same filename will be returned.
-    - file.raw -> file.raw  (keep_raw=True)
-    - file.raw -> file.mzML  (keep_raw=False)
-    However, if extension_convert is set, the extension will be converted to the specified format.
+    Convert file name for OpenMS. If extension_convert is set, the extension will be converted to the specified format.
     - file.raw -> file.mzML  (extension_convert=raw:mzML)
     - file.mzML -> file.mzML  (extension_convert=mzML:mzML)
     - file.mzML -> file.mzml  (extension_convert=mzML:mzml)
@@ -36,7 +33,6 @@ def get_openms_file_name(raw, keep_raw: bool, extension_convert: str = None):
     - file.d -> file.mzML  (extension_convert=d:mzML)
     - file.d -> file.d  (extension_convert=d:d)
     :param raw: raw file name
-    :param keep_raw: keep raw file name
     :param extension_convert: convert extension to specified format
     :return: converted file name
     """
@@ -56,9 +52,6 @@ def get_openms_file_name(raw, keep_raw: bool, extension_convert: str = None):
             )
         out = ext[0] + "." + new_extension
         return out
-    if not keep_raw:
-        ext = os.path.splitext(raw)
-        out = ext[0] + ".mzML"
     else:
         out = raw
 
@@ -214,7 +207,6 @@ class OpenMS:
     def openms_convert(
         self,
         sdrf_file: str = None,
-        keep_raw: bool = False,
         one_table: bool = False,
         legacy: bool = False,
         verbose: bool = False,
@@ -429,7 +421,6 @@ class OpenMS:
                     source_name2n_reps,
                     f2c.file2combined_factors,
                     f2c.file2label,
-                    keep_raw,
                     extension_convert,
                     f2c.file2fraction,
                 )
@@ -441,7 +432,6 @@ class OpenMS:
                     source_name_list,
                     source_name2n_reps,
                     f2c.file2label,
-                    keep_raw,
                     extension_convert,
                     f2c.file2fraction,
                     f2c.file2combined_factors,
@@ -466,7 +456,6 @@ class OpenMS:
                         source_name2n_reps,
                         f2c.file2combined_factors,
                         f2c.file2label,
-                        keep_raw,
                         extension_convert,
                         f2c.file2fraction,
                     )
@@ -478,7 +467,6 @@ class OpenMS:
                         source_name_list,
                         source_name2n_reps,
                         f2c.file2label,
-                        keep_raw,
                         extension_convert,
                         f2c.file2fraction,
                         f2c.file2combined_factors,
@@ -530,7 +518,6 @@ class OpenMS:
         source_name_list,
         source_name2n_reps,
         file2label,
-        keep_raw,
         extension_convert,
         file2fraction,
         file2combined_factors,
@@ -628,7 +615,7 @@ class OpenMS:
                 else:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
-            out = get_openms_file_name(raw, keep_raw, extension_convert)
+            out = get_openms_file_name(raw, extension_convert)
 
             f.write(
                 str(Fraction_group[raw])
@@ -718,7 +705,6 @@ class OpenMS:
         source_name2n_reps,
         file2combined_factors,
         file2label,
-        keep_raw,
         extension_convert,
         file2fraction,
     ):
@@ -884,7 +870,7 @@ class OpenMS:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
 
-            out = get_openms_file_name(raw, keep_raw, extension_convert)
+            out = get_openms_file_name(raw, extension_convert)
 
             if "MSstats_Mixture" in open_ms_experimental_design_header:
                 if raw not in mixture_raw_tag.keys():
