@@ -8,7 +8,8 @@ import os
 import re
 import time
 from datetime import datetime
-from xml.dom.minidom import Document, parse
+from xml.dom.minidom import Document
+from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd

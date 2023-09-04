@@ -1,6 +1,8 @@
 from click.testing import CliRunner
+
 from sdrf_pipelines.parse_sdrf import cli
-from sdrf_pipelines.zooma.zooma import SlimOlsClient, Zooma
+from sdrf_pipelines.zooma.zooma import SlimOlsClient
+from sdrf_pipelines.zooma.zooma import Zooma
 
 
 def test_validate_srdf():

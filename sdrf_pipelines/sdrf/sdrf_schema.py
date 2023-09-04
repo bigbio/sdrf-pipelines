@@ -4,14 +4,14 @@ import typing
 from typing import Any
 
 import pandas as pd
-from pandas_schema import Column, Schema
-from pandas_schema.validation import (
-    LeadingWhitespaceValidation,
-    MatchesPatternValidation,
-    TrailingWhitespaceValidation,
-    _BaseValidation,
-    _SeriesValidation,
-)
+from pandas_schema import Column
+from pandas_schema import Schema
+from pandas_schema.validation import LeadingWhitespaceValidation
+from pandas_schema.validation import MatchesPatternValidation
+from pandas_schema.validation import TrailingWhitespaceValidation
+from pandas_schema.validation import _BaseValidation
+from pandas_schema.validation import _SeriesValidation
+
 from sdrf_pipelines.sdrf import sdrf
 from sdrf_pipelines.utils.exceptions import LogicError
 from sdrf_pipelines.zooma.ols import OlsClient

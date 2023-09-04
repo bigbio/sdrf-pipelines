@@ -1,6 +1,6 @@
 import re
-import defusedxml.ElementTree as et
 
+import defusedxml.ElementTree as et
 import pkg_resources
 
 
