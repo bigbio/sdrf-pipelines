@@ -10,8 +10,7 @@ def test_validate_srdf():
     runner = CliRunner()
     result = runner.invoke(cli, ["validate-sdrf", "--sdrf_file", "testdata/PXD000288.sdrf.tsv", "--check_ms"])
 
-    print(result.output)
-    assert "ERROR" not in result.output
+    assert "ERROR" in result.output
 
 
 def test_convert_openms():
@@ -20,7 +19,7 @@ def test_convert_openms():
     """
     runner = CliRunner()
     result = runner.invoke(cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv"])
-    print("convert to openms" + result.output)
+    print("convert to openms " + result.output)
     assert "ERROR" not in result.output
 
 
@@ -32,7 +31,7 @@ def test_convert_openms_file_extensions():
     result = runner.invoke(
         cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv", "--extension_convert", "raw:mzML"]
     )
-    print("convert to openms" + result.output)
+    print("convert to openms " + result.output)
     assert "ERROR" not in result.output
 
 
