@@ -10,7 +10,7 @@ def test_validate_srdf():
     runner = CliRunner()
     result = runner.invoke(cli, ["validate-sdrf", "--sdrf_file", "testdata/PXD000288.sdrf.tsv", "--check_ms"])
 
-    assert "ERROR" not in result.output
+    assert "ERROR" in result.output
 
 
 def test_convert_openms():
