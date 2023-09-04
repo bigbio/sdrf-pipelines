@@ -47,12 +47,15 @@ def get_openms_file_name(raw, keep_raw: bool, extension_convert: str = None):
         current_extension, new_extension = extension_convert.split(":")
         if current_extension not in possible_extension or new_extension not in possible_extension:
             raise Exception(
-                "Invalid extension conversion. Please use one of the following formats: " + str(possible_extension))
+                "Invalid extension conversion. Please use one of the following formats: " + str(possible_extension)
+            )
         ext = os.path.splitext(raw)
         if current_extension != ext[1][1:]:
             raise Exception(
                 "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
-                    current_extension))
+                    current_extension
+                )
+            )
         out = ext[0] + "." + new_extension
         return out
     if not keep_raw:
@@ -211,14 +214,14 @@ class OpenMS:
         return ",".join(oms_mods)
 
     def openms_convert(
-            self,
-            sdrf_file: str = None,
-            keep_raw: bool = False,
-            one_table: bool = False,
-            legacy: bool = False,
-            verbose: bool = False,
-            split_by_columns: str = None,
-            extension_convert: str = None,
+        self,
+        sdrf_file: str = None,
+        keep_raw: bool = False,
+        one_table: bool = False,
+        legacy: bool = False,
+        verbose: bool = False,
+        split_by_columns: str = None,
+        extension_convert: str = None,
     ):
         print("PROCESSING: " + sdrf_file + '"')
 
@@ -522,17 +525,17 @@ class OpenMS:
         print("SUCCESS (WARNINGS=" + str(len(self.warnings)) + "): " + sdrf_file)
 
     def writeTwoTableExperimentalDesign(
-            self,
-            output_filename,
-            sdrf,
-            file2technical_rep,
-            source_name_list,
-            source_name2n_reps,
-            file2label,
-            keep_raw,
-            extension_convert,
-            file2fraction,
-            file2combined_factors,
+        self,
+        output_filename,
+        sdrf,
+        file2technical_rep,
+        source_name_list,
+        source_name2n_reps,
+        file2label,
+        keep_raw,
+        extension_convert,
+        file2fraction,
+        file2combined_factors,
     ):
         f = open(output_filename, "w+")
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
@@ -594,12 +597,12 @@ class OpenMS:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
                 if (
-                        len(label) > 11
-                        or "TMT134N" in label
-                        or "TMT133C" in label
-                        or "TMT133N" in label
-                        or "TMT132C" in label
-                        or "TMT132N" in label
+                    len(label) > 11
+                    or "TMT134N" in label
+                    or "TMT133C" in label
+                    or "TMT133N" in label
+                    or "TMT132C" in label
+                    or "TMT132N" in label
                 ):
                     choice = self.tmt16plex
                 elif len(label) == 11 or "TMT131C" in label:
@@ -617,11 +620,11 @@ class OpenMS:
                     label = str(self.silac2[label[label_index[raw]].lower()])
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                        len(label) > 4
-                        or "ITRAQ113" in label
-                        or "ITRAQ118" in label
-                        or "ITRAQ119" in label
-                        or "ITRAQ121" in label
+                    len(label) > 4
+                    or "ITRAQ113" in label
+                    or "ITRAQ118" in label
+                    or "ITRAQ119" in label
+                    or "ITRAQ121" in label
                 ):
                     label = str(self.itraq8plex[label[label_index[raw]].lower()])
                 else:
@@ -645,7 +648,7 @@ class OpenMS:
         # sample table
         f.write("\n")
         if "tmt" in ",".join(
-                map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])
+            map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])
         ) or "itraq" in ",".join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
@@ -708,22 +711,22 @@ class OpenMS:
         f.close()
 
     def writeOneTableExperimentalDesign(
-            self,
-            output_filename,
-            legacy,
-            sdrf,
-            file2technical_rep,
-            source_name_list,
-            source_name2n_reps,
-            file2combined_factors,
-            file2label,
-            keep_raw,
-            extension_convert,
-            file2fraction,
+        self,
+        output_filename,
+        legacy,
+        sdrf,
+        file2technical_rep,
+        source_name_list,
+        source_name2n_reps,
+        file2combined_factors,
+        file2label,
+        keep_raw,
+        extension_convert,
+        file2fraction,
     ):
         f = open(output_filename, "w+")
         if "tmt" in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
-                lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
+            lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
         ):
             if legacy:
                 open_ms_experimental_design_header = [
@@ -846,12 +849,12 @@ class OpenMS:
 
             elif "TMT" in ",".join(file2label[raw]):
                 if (
-                        len(label) > 11
-                        or "TMT134N" in label
-                        or "TMT133C" in label
-                        or "TMT133N" in label
-                        or "TMT132C" in label
-                        or "TMT132N" in label
+                    len(label) > 11
+                    or "TMT134N" in label
+                    or "TMT133C" in label
+                    or "TMT133N" in label
+                    or "TMT132C" in label
+                    or "TMT132N" in label
                 ):
                     choice = self.tmt16plex
                 elif len(label) == 11 or "TMT131C" in label:
@@ -872,11 +875,11 @@ class OpenMS:
                 label_index[raw] = label_index[raw] + 1
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                        len(label) > 4
-                        or "ITRAQ113" in label
-                        or "ITRAQ118" in label
-                        or "ITRAQ119" in label
-                        or "ITRAQ121" in label
+                    len(label) > 4
+                    or "ITRAQ113" in label
+                    or "ITRAQ118" in label
+                    or "ITRAQ119" in label
+                    or "ITRAQ121" in label
                 ):
                     label = str(self.itraq8plex[label[label_index[raw]].lower()])
                 else:
@@ -1018,12 +1021,12 @@ class OpenMS:
             labels = f2c.file2label[raw]
             if "TMT" in ",".join(labels):
                 if (
-                        len(labels) > 11
-                        or "TMT134N" in labels
-                        or "TMT133C" in labels
-                        or "TMT133N" in labels
-                        or "TMT132C" in labels
-                        or "TMT132N" in labels
+                    len(labels) > 11
+                    or "TMT134N" in labels
+                    or "TMT133C" in labels
+                    or "TMT133N" in labels
+                    or "TMT132C" in labels
+                    or "TMT132N" in labels
                 ):
                     label = "tmt16plex"
                 elif len(labels) == 11 or "TMT131C" in labels:
@@ -1051,11 +1054,11 @@ class OpenMS:
                 label = "SILAC"
             elif "ITRAQ" in ",".join(labels):
                 if (
-                        len(labels) > 4
-                        or "ITRAQ113" in labels
-                        or "ITRAQ118" in labels
-                        or "ITRAQ119" in labels
-                        or "ITRAQ121" in labels
+                    len(labels) > 4
+                    or "ITRAQ113" in labels
+                    or "ITRAQ118" in labels
+                    or "ITRAQ119" in labels
+                    or "ITRAQ121" in labels
                 ):
                     label = "itraq8plex"
                 else:
