@@ -21,10 +21,18 @@ def test_convert_openms():
     :return:
     """
     runner = CliRunner()
-    result = runner.invoke(cli, ["convert-openms", "-t2", "l", "-s", "testdata/sdrf.tsv"])
+    result = runner.invoke(cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv"])
     print("convert to openms" + result.output)
     assert "ERROR" not in result.output
 
+def test_convert_openms_file_extensions():
+    """
+    :return:
+    """
+    runner = CliRunner()
+    result = runner.invoke(cli, ["convert-openms", "-t2", "-s", "testdata/PXD000288.sdrf.tsv", "--extension_convert", "raw:mzML"])
+    print("convert to openms" + result.output)
+    assert "ERROR" not in result.output
 
 def test_bioontologies():
     keyword = "human"
