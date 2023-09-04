@@ -9,6 +9,12 @@ class PTMSite:
         self._site = site
         self._position = position
 
+    def get_site(self):
+        return self._site
+
+    def get_position(self):
+        return self._position
+
 
 class OntologyTerm:
     def __init__(self, accession: str, name: str) -> None:
@@ -34,6 +40,12 @@ class PostTranslationalModification:
 
     def get_accession(self):
         return self._ontology_term.get_accession()
+
+    def get_delta_mono_mass(self):
+        return self._delta_mono_mass
+
+    def get_delta_composition(self):
+        return self._delta_composition
 
 
 class UnimodDatabase:
