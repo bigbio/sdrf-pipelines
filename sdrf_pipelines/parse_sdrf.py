@@ -8,16 +8,13 @@ import sys
 
 import click
 import pandas as pd
-
 from sdrf_pipelines import __version__
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
-from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES
-from sdrf_pipelines.sdrf.sdrf_schema import DEFAULT_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY
+from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES, DEFAULT_TEMPLATE, MASS_SPECTROMETRY
 from sdrf_pipelines.utils.exceptions import AppConfigException
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -42,11 +39,22 @@ def cli():
 @click.option("--onetable/--twotables", "-t1/-t2", default=False, help="Create one-table or two-tables format.")
 @click.option("--verbose/--quiet", "-v/-q", default=False, help="Output debug information.")
 @click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
-@click.option("--extension_convert", "-e",
-              help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'")
+@click.option(
+    "--extension_convert",
+    "-e",
+    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'",
+)
 @click.pass_context
-def openms_from_sdrf(ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool,
-                     verbose: bool, conditionsfromcolumns: str, extension_convert: str):
+def openms_from_sdrf(
+    ctx,
+    sdrf: str,
+    raw: bool,
+    onetable: bool,
+    legacy: bool,
+    verbose: bool,
+    conditionsfromcolumns: str,
+    extension_convert: str,
+):
     if sdrf is None:
         help()
     if extension_convert is not None and raw:
