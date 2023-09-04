@@ -76,3 +76,7 @@ jobs:
             diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
           popd
         done
+        if [ -s failures.txt ]
+        then
+         exit 1
+        fi
