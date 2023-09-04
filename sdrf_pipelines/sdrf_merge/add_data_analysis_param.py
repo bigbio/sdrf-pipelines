@@ -3,7 +3,6 @@ import re
 
 import pandas as pd
 import yaml
-
 from sdrf_pipelines.openms.unimod import UnimodDatabase
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.zooma.zooma import OlsClient

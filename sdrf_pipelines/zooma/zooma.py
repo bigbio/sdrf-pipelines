@@ -1,6 +1,5 @@
 import requests
 from requests import HTTPError
-
 from sdrf_pipelines.zooma.ols import OlsClient
 
 
