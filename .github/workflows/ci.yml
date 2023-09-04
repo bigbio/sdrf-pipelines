@@ -76,4 +76,3 @@ jobs:
             diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
           popd
         done
-        fi
