@@ -58,13 +58,12 @@ def get_openms_file_name(raw, extension_convert: str = None):
     current_extension = ext[1][1:]
     if current_extension not in extension_convert_dict:
         raise Exception(
-                "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
-                    ext[1][1:]
-                )
+            "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
+                current_extension
+            )
         )
     out = ext[0] + "." + extension_convert_dict[current_extension]
     return out
-
 
 
 class OpenMS:
