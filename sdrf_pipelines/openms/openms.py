@@ -37,26 +37,34 @@ def get_openms_file_name(raw, extension_convert: str = None):
     :param extension_convert: convert extension to specified format
     :return: converted file name
     """
+    if extension_convert is None:
+        return raw
+
     possible_extension = ["raw", "mzML", "mzml", "d"]
-    if extension_convert is not None:
+    extension_convert_list = extension_convert.split(",")
+    extension_convert_dict = {}
+    for extension_convert in extension_convert_list:
         current_extension, new_extension = extension_convert.split(":")
         if current_extension not in possible_extension or new_extension not in possible_extension:
             raise Exception(
                 "Invalid extension conversion. Please use one of the following formats: " + str(possible_extension)
             )
-        ext = os.path.splitext(raw)
-        if current_extension != ext[1][1:]:
-            raise Exception(
-                "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
-                    current_extension
-                )
-            )
-        out = ext[0] + "." + new_extension
-        return out
-    else:
-        out = raw
+        elif current_extension in extension_convert_dict:
+            raise Exception("Invalid extension conversion. Please use only one conversion per extension")
+        else:
+            extension_convert_dict[current_extension] = new_extension
 
+    ext = os.path.splitext(raw)
+    current_extension = ext[1][1:]
+    if current_extension not in extension_convert_dict:
+        raise Exception(
+                "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
+                    ext[1][1:]
+                )
+        )
+    out = ext[0] + "." + extension_convert_dict[current_extension]
     return out
+
 
 
 class OpenMS:
