@@ -42,7 +42,7 @@ jobs:
         for sdrf in testdata/*/*.sdrf.tsv
         do
           pushd $(dirname $sdrf)
-            python ../../parse_sdrf.py convert-openms -s $(pwd)/../../$sdrf -t2
+            python ../../parse_sdrf.py convert-openms -s $(pwd)/../../$sdrf -t2 --extension_convert raw:mzML
             diff -c experimental_design.tsv expected_experimental_design.tsv >> ../../failures.txt
             diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
           popd

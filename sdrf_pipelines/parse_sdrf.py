@@ -35,21 +35,31 @@ def cli():
 
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
 @click.option("--sdrf", "-s", help="SDRF file")
-@click.option("--raw", "-r", help="Keep filenames in experimental design output as raw.")
 @click.option(
     "--legacy/--modern", "-l/-m", default=False, help="legacy=Create artificial sample column not needed in OpenMS 2.6."
 )
-@click.option("--onetable/--twotables", "-t1/-t2", default=False, help="Create one-table or two-tables format.")
-@click.option("--verbose/--quiet", "-v/-q", default=False, help="Output debug information.")
+@click.option("--onetable/--twotables", "-t1/-t2", help="Create one-table or two-tables format.", default=False)
+@click.option("--verbose/--quiet", "-v/-q", help="Output debug information.", default=False)
 @click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--extension_convert",
+    "-e",
+    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'",
+)
 @click.pass_context
 def openms_from_sdrf(
-    ctx, sdrf: str, raw: bool, onetable: bool, legacy: bool, verbose: bool, conditionsfromcolumns: str
+    ctx,
+    sdrf: str,
+    onetable: bool,
+    legacy: bool,
+    verbose: bool,
+    conditionsfromcolumns: str,
+    extension_convert: str,
 ):
     if sdrf is None:
         help()
     try:
-        OpenMS().openms_convert(sdrf, raw, onetable, legacy, verbose, conditionsfromcolumns)
+        OpenMS().openms_convert(sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert)
     except Exception as ex:
         print("Error: " + str(ex))
 

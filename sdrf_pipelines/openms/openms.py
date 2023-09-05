@@ -24,6 +24,48 @@ class FileToColumnEntries:
     file2technical_rep = {}
 
 
+def get_openms_file_name(raw, extension_convert: str = None):
+    """
+    Convert file name for OpenMS. If extension_convert is set, the extension will be converted to the specified format.
+    - file.raw -> file.mzML  (extension_convert=raw:mzML)
+    - file.mzML -> file.mzML  (extension_convert=mzML:mzML)
+    - file.mzML -> file.mzml  (extension_convert=mzML:mzml)
+    - file.mzml -> file.mzML  (extension_convert=mzml:mzML)
+    - file.d -> file.mzML  (extension_convert=d:mzML)
+    - file.d -> file.d  (extension_convert=d:d)
+    :param raw: raw file name
+    :param extension_convert: convert extension to specified format
+    :return: converted file name
+    """
+    if extension_convert is None:
+        return raw
+
+    possible_extension = ["raw", "mzML", "mzml", "d"]
+    extension_convert_list = extension_convert.split(",")
+    extension_convert_dict = {}
+    for extension_convert in extension_convert_list:
+        current_extension, new_extension = extension_convert.split(":")
+        if current_extension not in possible_extension or new_extension not in possible_extension:
+            raise Exception(
+                "Invalid extension conversion. Please use one of the following formats: " + str(possible_extension)
+            )
+        elif current_extension in extension_convert_dict:
+            raise Exception("Invalid extension conversion. Please use only one conversion per extension")
+        else:
+            extension_convert_dict[current_extension] = new_extension
+
+    ext = os.path.splitext(raw)
+    current_extension = ext[1][1:]
+    if current_extension not in extension_convert_dict:
+        raise Exception(
+            "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
+                current_extension
+            )
+        )
+    out = ext[0] + "." + extension_convert_dict[current_extension]
+    return out
+
+
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
@@ -173,11 +215,11 @@ class OpenMS:
     def openms_convert(
         self,
         sdrf_file: str = None,
-        keep_raw: bool = False,
         one_table: bool = False,
         legacy: bool = False,
         verbose: bool = False,
         split_by_columns: str = None,
+        extension_convert: str = None,
     ):
         print("PROCESSING: " + sdrf_file + '"')
 
@@ -387,7 +429,7 @@ class OpenMS:
                     source_name2n_reps,
                     f2c.file2combined_factors,
                     f2c.file2label,
-                    keep_raw,
+                    extension_convert,
                     f2c.file2fraction,
                 )
             else:  # two table format
@@ -398,7 +440,7 @@ class OpenMS:
                     source_name_list,
                     source_name2n_reps,
                     f2c.file2label,
-                    keep_raw,
+                    extension_convert,
                     f2c.file2fraction,
                     f2c.file2combined_factors,
                 )
@@ -422,7 +464,7 @@ class OpenMS:
                         source_name2n_reps,
                         f2c.file2combined_factors,
                         f2c.file2label,
-                        keep_raw,
+                        extension_convert,
                         f2c.file2fraction,
                     )
                 else:  # two table format
@@ -433,7 +475,7 @@ class OpenMS:
                         source_name_list,
                         source_name2n_reps,
                         f2c.file2label,
-                        keep_raw,
+                        extension_convert,
                         f2c.file2fraction,
                         f2c.file2combined_factors,
                     )
@@ -484,7 +526,7 @@ class OpenMS:
         source_name_list,
         source_name2n_reps,
         file2label,
-        keep_raw,
+        extension_convert,
         file2fraction,
         file2combined_factors,
     ):
@@ -581,11 +623,7 @@ class OpenMS:
                 else:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
-            if not keep_raw:
-                ext = os.path.splitext(raw)
-                out = ext[0] + ".mzML"
-            else:
-                out = raw
+            out = get_openms_file_name(raw, extension_convert)
 
             f.write(
                 str(Fraction_group[raw])
@@ -675,7 +713,7 @@ class OpenMS:
         source_name2n_reps,
         file2combined_factors,
         file2label,
-        keep_raw,
+        extension_convert,
         file2fraction,
     ):
         f = open(output_filename, "w+")
@@ -840,11 +878,7 @@ class OpenMS:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
 
-            if not keep_raw:
-                ext = os.path.splitext(raw)
-                out = ext[0] + ".mzML"
-            else:
-                out = raw
+            out = get_openms_file_name(raw, extension_convert)
 
             if "MSstats_Mixture" in open_ms_experimental_design_header:
                 if raw not in mixture_raw_tag.keys():
