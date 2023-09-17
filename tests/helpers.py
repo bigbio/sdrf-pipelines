@@ -24,5 +24,13 @@ def run_and_check_status_code(command: BaseCommand, args: List[str], status_code
     runner = CliRunner()
     result = runner.invoke(command, args)
 
-    assert result.exit_code == status_code, result.output
+    if result.exit_code != status_code:
+        print("Output: ")
+        print(result.output)
+        print("Exception: ")
+        print(result.exception)
+        import traceback
+
+        traceback.print_exception(*result.exc_info)
+        raise Exception(f"Status code {result.exit_code} not {status_code}")
     return result

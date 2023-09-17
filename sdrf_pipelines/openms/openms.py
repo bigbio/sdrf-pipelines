@@ -1,4 +1,3 @@
-import os
 import re
 from collections import Counter
 
@@ -37,6 +36,17 @@ def get_openms_file_name(raw, extension_convert: str = None):
     :param extension_convert: convert extension to specified format
     :return: converted file name
     """
+
+    def _removesuffix(x: str, suffix: str, /) -> str:
+        # str.removesuffix is only available in python 3.9
+        # This is a backport of the function, remove it and use the
+        # built-in function when we drop support for python 3.8
+        # https://peps.python.org/pep-0616/
+        if suffix and x.endswith(suffix):
+            return x[: -len(suffix)]
+        else:
+            return x[:]
+
     if extension_convert is None:
         return raw
 
@@ -45,25 +55,22 @@ def get_openms_file_name(raw, extension_convert: str = None):
     extension_convert_dict = {}
     for extension_convert in extension_convert_list:
         current_extension, new_extension = extension_convert.split(":")
-        if current_extension not in possible_extension or new_extension not in possible_extension:
-            raise Exception(
-                "Invalid extension conversion. Please use one of the following formats: " + str(possible_extension)
-            )
-        elif current_extension in extension_convert_dict:
-            raise Exception("Invalid extension conversion. Please use only one conversion per extension")
-        else:
-            extension_convert_dict[current_extension] = new_extension
+        extension_convert_dict[current_extension] = new_extension
 
-    ext = os.path.splitext(raw)
-    current_extension = ext[1][1:]
-    if current_extension not in extension_convert_dict:
-        raise Exception(
-            "Invalid extension conversion. The current extension of the file do not match the provided extension {}".format(
-                current_extension
-            )
-        )
-    out = ext[0] + "." + extension_convert_dict[current_extension]
-    return out
+    raw_bkp = raw
+    for current_extension, target_extension in extension_convert_dict.items():
+        if raw.endswith(current_extension):
+            raw = _removesuffix(raw, current_extension)
+            raw += target_extension
+            if not any(raw.endswith(x) for x in possible_extension):
+                raise RuntimeError(
+                    f"Error converting extension, {raw_bkp} -> {raw},"
+                    " the ending file does not have any of the supported"
+                    f" extensions {possible_extension}"
+                )
+            return raw
+
+    return raw
 
 
 class OpenMS:
@@ -292,7 +299,7 @@ class OpenMS:
 
             source_name = row["source name"]
             f2c.file2source[raw] = source_name
-            if not source_name in source_name_list:
+            if source_name not in source_name_list:
                 source_name_list.append(source_name)
 
             if "comment[precursor mass tolerance]" in row:
@@ -417,7 +424,7 @@ class OpenMS:
 
         if not split_by_columns:
             # output of search settings for every row in sdrf
-            self.save_search_settings_to_file("openms.tsv", sdrf, f2c)
+            self.save_search_settings_to_file("openms.tsv", sdrf, f2c, extension_convert=extension_convert)
 
             # output one experimental design file
             if one_table:
@@ -451,7 +458,7 @@ class OpenMS:
                 # extract rows from sdrf for current condition
                 split_sdrf = sdrf.loc[sdrf["_conditions_from_factors"] == c]
                 output_filename = "openms.tsv." + str(index)
-                self.save_search_settings_to_file(output_filename, split_sdrf, f2c)
+                self.save_search_settings_to_file(output_filename, split_sdrf, f2c, extension_convert=extension_convert)
 
                 # output of experimental design
                 output_filename = "experimental_design.tsv." + str(index)
@@ -624,6 +631,7 @@ class OpenMS:
                 else:
                     label = str(self.itraq4plex[label[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+
             out = get_openms_file_name(raw, extension_convert)
 
             f += (
@@ -968,7 +976,7 @@ class OpenMS:
         with open(output_filename, "w+") as of:
             of.write(f)
 
-    def save_search_settings_to_file(self, output_filename, sdrf, f2c):
+    def save_search_settings_to_file(self, output_filename, sdrf, f2c, extension_convert):
         f = ""
         open_ms_search_settings_header = [
             "URI",
@@ -1079,10 +1087,14 @@ class OpenMS:
                     "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
                 )
 
+            # Why is the file name modified on the experimental design but not in the openms.tsv?
+            # out_fname = get_openms_file_name(raw, extension_convert=extension_convert)
+            out_fname = raw
+
             f += (
                 URI
                 + "\t"
-                + raw
+                + out_fname
                 + "\t"
                 + f2c.file2mods[raw][0]
                 + "\t"
@@ -1105,5 +1117,6 @@ class OpenMS:
                 + f2c.file2enzyme[raw]
                 + "\n"
             )
+        # openms.tsv
         with open(output_filename, "w+") as of:
             of.write(f)
