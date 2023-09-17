@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -36,21 +36,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pip install pytest
+        pip install pytest pytest-datadir
         python setup.py install
-        python sdrf_pipelines/tests/test_sdrfchecker.py
-    - name: Test OpenMS converter
-      run: |
-        cd sdrf_pipelines
-        for sdrf in testdata/*/*.sdrf.tsv
-        do
-          pushd $(dirname $sdrf)
-            python ../../parse_sdrf.py convert-openms -s $(pwd)/../../$sdrf -t2 --extension_convert raw:mzML
-            diff -c experimental_design.tsv expected_experimental_design.tsv >> ../../failures.txt
-            diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
-          popd
-        done
-        if [ -s failures.txt ]
-        then
-          exit 1
-        fi
+        python -m pytest tests
