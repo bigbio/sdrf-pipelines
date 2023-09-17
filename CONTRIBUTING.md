@@ -1,6 +1,6 @@
 # CONTRIBUTING
 
-# Testing
+## Testing
 
 ```
 python -m venv venv
@@ -9,7 +9,7 @@ pip install -r requirements-dev.txt -r requirements.txt
 pytest tests
 ```
 
-# Code formatting
+## Code formatting
 
 We delegate code formatting to isort and black.
 To pass the CI tests, the code must adhere to the code formatting standards set in `pyproject.toml` file.

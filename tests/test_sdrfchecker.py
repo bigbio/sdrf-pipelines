@@ -1,11 +1,9 @@
 import pytest
-from click.testing import CliRunner
 
 from sdrf_pipelines.parse_sdrf import cli
 from sdrf_pipelines.zooma.zooma import SlimOlsClient
 from sdrf_pipelines.zooma.zooma import Zooma
 
-from .helpers import compare_files
 from .helpers import run_and_check_status_code
 
 
