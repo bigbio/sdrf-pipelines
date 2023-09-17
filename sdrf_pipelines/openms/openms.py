@@ -403,6 +403,7 @@ class OpenMS:
                 combined_factors = "|".join(list(row[split_by_columns]))
 
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
+            sdrf["_conditions_from_factors"] = pd.Series([None] * sdrf.shape[0], dtype="object")
             sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
 
             f2c.file2combined_factors[raw + row["comment[label]"]] = combined_factors
@@ -530,9 +531,9 @@ class OpenMS:
         file2fraction,
         file2combined_factors,
     ):
-        f = open(output_filename, "w+")
         openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
-        f.write("\t".join(openms_file_header) + "\n")
+        f = ""
+        f += "\t".join(openms_file_header) + "\n"
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         Fraction_group = {}
@@ -625,7 +626,7 @@ class OpenMS:
                 label_index[raw] = label_index[raw] + 1
             out = get_openms_file_name(raw, extension_convert)
 
-            f.write(
+            f += (
                 str(Fraction_group[raw])
                 + "\t"
                 + file2fraction[raw]
@@ -639,14 +640,14 @@ class OpenMS:
             )
 
         # sample table
-        f.write("\n")
+        f += "\n"
         if "tmt" in ",".join(
             map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])
         ) or "itraq" in ",".join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
-        f.write("\t".join(openms_sample_header) + "\n")
+        f += "\t".join(openms_sample_header) + "\n"
         sample_row_written = []
         mixture_identifier = 1
         mixture_raw_tag = {}
@@ -694,14 +695,15 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if sample not in sample_row_written:
-                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n")
+                    f += str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\t" + str(mix_id) + "\n"
                     sample_row_written.append(sample)
             else:
                 if sample not in sample_row_written:
-                    f.write(str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\n")
+                    f += str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\n"
                     sample_row_written.append(sample)
 
-        f.close()
+        with open(output_filename, "w+") as of:
+            of.write(f)
 
     def writeOneTableExperimentalDesign(
         self,
@@ -716,7 +718,7 @@ class OpenMS:
         extension_convert,
         file2fraction,
     ):
-        f = open(output_filename, "w+")
+        f = ""
         if "tmt" in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
             lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
         ):
@@ -762,7 +764,7 @@ class OpenMS:
                     "MSstats_BioReplicate",
                 ]
 
-        f.write("\t".join(open_ms_experimental_design_header) + "\n")
+        f += "\t".join(open_ms_experimental_design_header) + "\n"
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         Fraction_group = {}
@@ -894,7 +896,7 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if legacy:
-                    f.write(
+                    f += (
                         str(Fraction_group[raw])
                         + "\t"
                         + file2fraction[raw]
@@ -913,7 +915,7 @@ class OpenMS:
                         + "\n"
                     )
                 else:
-                    f.write(
+                    f += (
                         str(Fraction_group[raw])
                         + "\t"
                         + file2fraction[raw]
@@ -931,7 +933,7 @@ class OpenMS:
                     )
             else:
                 if legacy:
-                    f.write(
+                    f += (
                         str(Fraction_group[raw])
                         + "\t"
                         + file2fraction[raw]
@@ -948,7 +950,7 @@ class OpenMS:
                         + "\n"
                     )
                 else:
-                    f.write(
+                    f += (
                         str(Fraction_group[raw])
                         + "\t"
                         + file2fraction[raw]
@@ -962,10 +964,12 @@ class OpenMS:
                         + MSstatsBioReplicate
                         + "\n"
                     )
-        f.close()
+
+        with open(output_filename, "w+") as of:
+            of.write(f)
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
-        f = open(output_filename, "w+")
+        f = ""
         open_ms_search_settings_header = [
             "URI",
             "Filename",
@@ -980,7 +984,7 @@ class OpenMS:
             "DissociationMethod",
             "Enzyme",
         ]
-        f.write("\t".join(open_ms_search_settings_header) + "\n")
+        f += "\t".join(open_ms_search_settings_header) + "\n"
         raws = []
         TMT_mod = {
             "tmt6plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
@@ -1075,7 +1079,7 @@ class OpenMS:
                     "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
                 )
 
-            f.write(
+            f += (
                 URI
                 + "\t"
                 + raw
@@ -1101,4 +1105,5 @@ class OpenMS:
                 + f2c.file2enzyme[raw]
                 + "\n"
             )
-        f.close()
+        with open(output_filename, "w+") as of:
+            of.write(f)
