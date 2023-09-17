@@ -2,15 +2,15 @@
 
 The general layout of the testing data is as follows:
 
- 1. A parent directory with either an accession representing where
+1.  A parent directory with either an accession representing where
     the data would come from (e.g. PXD000288) or a generic name
     describing what the data is meant to represent.
- 2. Within that directoy there can be a file called
+2.  Within that directoy there can be a file called
     `expected_experimental_design.tsv` which is the expected
-    output of the from converting to a design (same for expected_openms.tsv).
- 3. In the specific case of the `erroneous` directory, the
+    output of the from converting to a design (same for expected\_openms.tsv).
+3.  In the specific case of the `erroneous` directory, the
     none of the files should pass checking or conversion.
- 4. In the specific case of the `reference` directory, the
+4.  In the specific case of the `reference` directory, the
     files should all pass checking and conversion. and are
     extracted from the reference implementation of the sdrf
     format (https://github.com/bigbio/proteomics-sample-metadata/tree/master/)
