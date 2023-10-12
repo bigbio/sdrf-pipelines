@@ -16,7 +16,7 @@ import urllib.parse
 
 import requests
 
-OLS = "https://www.ebi.ac.uk/ols"
+OLS = "https://www.ebi.ac.uk/ols4"
 
 __all__ = ["OlsClient"]
 
@@ -45,7 +45,7 @@ def _concat_str_or_list(input_str):
 def _dparse(iri):
     """
     Double url encode the IRI, which is required
-    @:param iri IRI in the OLS
+    @:param iri in the OLS
     """
     return urllib.parse.quote_plus(urllib.parse.quote_plus(iri))
 
@@ -70,7 +70,7 @@ class OlsClient:
 
     def besthit(self, name, **kwargs):
         """
-        select first element of the /search API response
+        select a first element of the /search API response
         """
         search_resp = self.search(name, **kwargs)
         if search_resp:
@@ -82,8 +82,8 @@ class OlsClient:
         """
         Gets the data for a given term
             Args:
-            ontology:   The name of the ontology
-            iri:        The IRI of a term
+            ontology: The name of the ontology
+            iri: The IRI of a term
         """
 
         url = self.ontology_term.format(ontology=ontology, iri=_dparse(iri))
@@ -117,7 +117,7 @@ class OlsClient:
         """
         Searches the OLS with the given term
 
-        @:param query_fields: By default the search is performed over term labels,
+        @:param query_fields: By default, the search is performed over term labels,
         synonyms, descriptions, identifiers and annotation properties. This option allows
         to specify the fields to query, the defaults are
         `{label, synonym, description, short_form, obo_id, annotations, logical_description, iri}`
@@ -196,7 +196,7 @@ class OlsClient:
         """Select terms,
         Tuned specifically to support applications such as autocomplete.
 
-        .. seealso:: https://www.ebi.ac.uk/ols/docs/api#_select
+        .. see also:: https://www.ebi.ac.uk/ols4/docs/api#_select
         """
         params = {"q": name}
         if ontology:

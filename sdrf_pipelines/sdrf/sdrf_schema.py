@@ -114,8 +114,8 @@ class OntologyTerm(_SeriesValidation):
     @staticmethod
     def validate_ontology_terms(cell_value, labels):
         """
-        Check if a cell value is in a list of labels or list of strings
-        :param cell_value: string line in cell
+        Check if a cell value is in a list of labels or list of string
+        :param cell_value: line in a cell
         :param labels: list of labels
         :return:
         """
