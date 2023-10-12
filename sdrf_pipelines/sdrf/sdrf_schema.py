@@ -59,8 +59,9 @@ def ontology_term_parser(cell_value: str = None):
             if len(value_terms) == 2:
                 term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
             else:
-                raise ValueError(f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, "
-                                 f"TA..)")
+                raise ValueError(
+                    f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
+                )
     return term
 
 
