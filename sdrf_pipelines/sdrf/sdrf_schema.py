@@ -56,7 +56,12 @@ def ontology_term_parser(cell_value: str = None):
     else:
         for name in values:
             value_terms = name.split("=")
-            term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
+            if len(value_terms) == 2:
+                term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
+            else:
+                raise ValueError(
+                    f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
+                )
     return term
 
 
@@ -109,8 +114,8 @@ class OntologyTerm(_SeriesValidation):
     @staticmethod
     def validate_ontology_terms(cell_value, labels):
         """
-        Check if a cell value is in a list of labels or list of strings
-        :param cell_value: string line in cell
+        Check if a cell value is in a list of labels or list of string
+        :param cell_value: line in a cell
         :param labels: list of labels
         :return:
         """
@@ -124,7 +129,7 @@ class OntologyTerm(_SeriesValidation):
         """
         Validate if the term is present in the provided ontology. This method looks in the provided
         ontology _ontology_name
-        :param series: return the series that do not match the criteria
+        :param series: return series that do not match the criteria
         :return:
         """
         terms = [ontology_term_parser(x) for x in series.unique()]
@@ -165,7 +170,7 @@ class SDRFSchema(Schema):
     def validate(self, panda_sdrf: sdrf = None) -> typing.List[LogicError]:
         errors = []
 
-        # Check minimum number of columns
+        # Check the minimum number of columns
         if check_minimum_columns(panda_sdrf, self._min_columns):
             error_message = (
                 "The number of columns in the SDRF ({}) is smaller than the number of mandatory fields ({})".format(
@@ -179,7 +184,7 @@ class SDRFSchema(Schema):
         if error_mandatory is not None:
             errors.append(error_mandatory)
 
-        # Check the columns order
+        # Check the column order
         error_columns_order = self.validate_columns_order(panda_sdrf)
         if error_columns_order is not None:
             errors.extend(error_columns_order)

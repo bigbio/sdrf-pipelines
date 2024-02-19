@@ -1,6 +1,6 @@
 import re
-import xml.etree.ElementTree as et
 
+import defusedxml.ElementTree as et
 import pkg_resources
 
 
@@ -8,6 +8,12 @@ class PTMSite:
     def __init__(self, site: str, position: str) -> None:
         self._site = site
         self._position = position
+
+    def get_site(self):
+        return self._site
+
+    def get_position(self):
+        return self._position
 
 
 class OntologyTerm:
@@ -34,6 +40,15 @@ class PostTranslationalModification:
 
     def get_accession(self):
         return self._ontology_term.get_accession()
+
+    def get_delta_mono_mass(self):
+        return self._delta_mono_mass
+
+    def get_delta_composition(self):
+        return self._delta_composition
+
+    def to_str(self):
+        return f"{self.get_accession()} {self.get_name()} {self.get_delta_mono_mass()} {self.get_delta_composition()}"
 
 
 class UnimodDatabase:
@@ -107,45 +122,6 @@ class UnimodDatabase:
                 sites.append(site)
             mod = PostTranslationalModification(ontology_term, ma["delta_composition"], sites, ma["delta_mono_mass"])
             self.modifications.append(mod)
-
-    def get_label(self, label):
-        mod = self.modifications.get(label, None)
-        return mod
-
-    def get_element(self, name):
-        el = self.elements.get(name, None)
-        return el
-
-    def list_labels(self, search):
-        labels = []
-        lre = re.compile(search)
-        for k in self.modifications.keys():
-            l = lre.search(k)
-            if l is not None:
-                labels.append(k)
-        return labels
-
-    def get_neutral_loss(self, label, site):
-        mod = self.modifications.get(label, None)
-        if mod is not None:
-            try:
-                nl = []
-                for n in mod["sites"][site]["NeutralLoss"]:
-                    if n["composition"] != "0":
-                        nl.append(n)
-                return nl
-            except:
-                return []
-        return []
-
-    def get_delta_mono(self, label):
-        mod = self.modifications.get(label, None)
-        if mod is not None:
-            try:
-                val = float(mod["delta_mono_mass"])
-                return val
-            except:
-                pass
 
     def get_by_accession(self, accession):
         for mod in self.modifications:

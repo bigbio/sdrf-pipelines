@@ -13,6 +13,8 @@ from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
+
+# NOTE pkg_resources is deprecated
 import pkg_resources
 import yaml
 
@@ -73,7 +75,7 @@ class Maxquant:
                     lt = lt + "TMT2plex-Lys" + i.replace("TMT", "") + ","
         return lt
 
-    def extractTMT_info(self, label="TMT2", mods=None):
+    def extract_tmt_info(self, label="TMT2", mods=None):
         lt = ""
         label_list = sorted(label)
         label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]

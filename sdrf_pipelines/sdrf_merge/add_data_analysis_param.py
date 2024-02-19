@@ -37,7 +37,7 @@ def verify_content(pname, pvalue, ptype):
     #            exit("ERROR: " + pname + " needs to be a numeric value!!")
     elif ptype == "class":
         not_matching = [x for x in pvalue.split(",") if x not in p["value"]]
-        if not_matching != []:
+        if len(not_matching) != 0:
             exit(
                 "ERROR: "
                 + pname
@@ -98,7 +98,7 @@ Note that it should be single residues"
         modname = tmod[0]
         modpos = tmod[1]
         found = [x for x in unimod.modifications if modname == x.get_name()]
-        if found == []:
+        if len(found) == 0:
             exit(
                 "ERROR: "
                 + m

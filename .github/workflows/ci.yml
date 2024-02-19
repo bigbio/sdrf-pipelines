@@ -5,9 +5,9 @@ name: Continuous integration Unit tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   PythonBlack:
@@ -62,21 +62,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r requirements.txt -r requirements-dev.txt
     - name: Install package
       run: python setup.py install
     - name: Test OpenMS converter
       run: |
-        cd sdrf_pipelines
-        for sdrf in testdata/*/*.sdrf.tsv
-        do
-          pushd $(dirname $sdrf)
-            python ../../parse_sdrf.py convert-openms -s $(pwd)/../../$sdrf -t2
-            diff -c experimental_design.tsv expected_experimental_design.tsv >> ../../failures.txt
-            diff -c expected_openms.tsv openms.tsv >> ../../failures.txt
-          popd
-        done
-        if [ -s failures.txt ]
-        then
-         exit 1
-        fi
+        python -m pytest tests
