@@ -1,3 +1,5 @@
 black
 isort
 pre-commit
+pytest
+pytest-datadir

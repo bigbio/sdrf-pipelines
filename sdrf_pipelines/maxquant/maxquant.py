@@ -13,6 +13,8 @@ from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
+
+# NOTE pkg_resources is deprecated
 import pkg_resources
 import yaml
 

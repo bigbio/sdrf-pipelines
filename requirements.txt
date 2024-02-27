@@ -1,7 +1,11 @@
 pandas
 click
+
+# https://github.com/multimeric/PandasSchema does not seem to be maintained
+# anymore, and right now it thows a pandas deprecation warning, in the
+# future it will stop working.
+# https://github.com/unionai-oss/pandera seems like a good alternative.
 pandas_schema
-pytest
 requests
 pyyaml
 numpy

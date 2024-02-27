@@ -61,7 +61,8 @@ def openms_from_sdrf(
     try:
         OpenMS().openms_convert(sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert)
     except Exception as ex:
-        print("Error: " + str(ex))
+        msg = "Error: " + str(ex)
+        raise ValueError(msg) from ex
 
 
 @click.command(
@@ -234,7 +235,11 @@ cli.add_command(normalyzerde_from_sdrf)
 
 
 def main():
-    cli()
+    try:
+        cli()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
 
 
 if __name__ == "__main__":
