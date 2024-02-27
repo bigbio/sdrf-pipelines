@@ -3,6 +3,7 @@ import re
 import typing
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from pandas_schema import Column
 from pandas_schema import Schema
@@ -135,8 +136,6 @@ class OntologyTerm(_SeriesValidation):
         terms = [ontology_term_parser(x) for x in series.unique()]
         labels = []
         for term in terms:
-            if term['NT'] == 'clostridium perfringens':
-                print(term)
             if TERM_NAME not in term:
                 ontology_terms = None
             else:
@@ -180,6 +179,10 @@ class SDRFSchema(Schema):
                 )
             )
             errors.append(LogicError(error_message, error_type=logging.WARN))
+
+        empty_cells_errors = self.validate_empty_cells(panda_sdrf)
+        if empty_cells_errors:
+            errors.extend(empty_cells_errors)
 
         # Check the mandatory fields
         error_mandatory = self.validate_mandatory_columns(panda_sdrf)
@@ -311,6 +314,28 @@ class SDRFSchema(Schema):
         for series, column in column_pairs:
             warnings += column.validate_optional(series)
         return sorted(warnings, key=lambda e: e.row)
+
+    def validate_empty_cells(self, panda_sdrf):
+        """
+        Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
+        :param panda_sdrf: SDRF dataframe
+        :return: List of errors
+        """
+        errors = []
+        def validate_string(string):
+            return len(string.strip()) > 0
+
+        # Apply the validation function element-wise
+        validation_results = panda_sdrf.map(lambda x: validate_string(x))
+
+        # Get the indices where the validation fails
+        failed_indices = [(row, col) for row in validation_results.index for col in validation_results.columns if
+                          not validation_results.at[row, col]]
+
+        for row, col in failed_indices:
+            message = f"Empty value found Row: {row}, Column: {col}"
+            errors.append(LogicError(message, error_type=logging.ERROR))
+        return errors
 
 
 default_schema = SDRFSchema(
