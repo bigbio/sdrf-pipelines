@@ -105,14 +105,17 @@ class OlsClient:
             raise ex
 
     def search(
-        self,
-        name,
-        query_fields=None,
-        ontology=None,
-        field_list=None,
-        children_of=None,
-        exact=None,
-        bytype="class",
+            self,
+            name: str,
+            query_fields=None,
+            ontology: str=None,
+            field_list=None,
+            children_of=None,
+            exact: bool=None,
+            bytype: str="class",
+            rows: int=10,
+            num_retries:int=10,
+            start: int=0,
     ):
         """
         Searches the OLS with the given term
@@ -124,6 +127,8 @@ class OlsClient:
         @:param exact: Forces exact match if not `None`
         @:param bytype: restrict to terms one of {class,property,individual,ontology}
         @:param childrenOf: Search only under a certain term.
+        @:param rows: number of rows to query on each call of OLS search
+        @:param num_retries: Number of retries to OLS when it fails.
         """
         params = {"q": name}
         if ontology is not None:
@@ -134,6 +139,9 @@ class OlsClient:
 
         if bytype:
             params["type"] = _concat_str_or_list(bytype)
+
+        if rows:
+            params["rows"] = rows
 
         if ontology:
             params["ontology"] = _concat_str_or_list(ontology)
@@ -155,26 +163,53 @@ class OlsClient:
         if len(children_of) > 0:
             params["childrenOf"] = _concat_str_or_list(children_of)
 
-        retry_num = 0
+        if start:
+            params["start"] = start
 
-        while retry_num < 10:
+        docs_found = []
+
+        for retry_num in range(num_retries):
             try:
                 req = self.session.get(self.ontology_search, params=params)
-                logger.debug("Request to OLS search API: %s - %s", req.status_code, name)
+                logger.debug("Request to OLS search API term %s, status code %s", name, req.status_code)
 
-                req.raise_for_status()
-                if req.json()["response"]["numFound"]:
-                    return req.json()["response"]["docs"]
-                if exact:
-                    logger.debug("OLS exact search returned empty response for %s", name)
+                if req.status_code != 200:
+                    logger.error("OLS search term %s error tried number %s", name, retry_num)
+                    req.raise_for_status()
                 else:
-                    logger.debug("OLS search returned empty response for %s", name)
-                return None
-            except Exception as ex:
-                retry_num += 1
-                logger.debug("OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex)
+                    if req.json()["response"]["numFound"] == 0:
+                        if exact:
+                            logger.debug("OLS exact search returned empty response for %s", name)
+                        else:
+                            logger.debug("OLS search returned empty response for %s", name)
+                        return docs_found
+                    elif len(req.json()["response"]["docs"]) < rows:
+                        return req.json()["response"]["docs"]
+                    else:
+                        docs_found = req.json()["response"]["docs"]
+                        docs_found.extend(self.search(name, query_fields=query_fields, ontology=ontology,
+                                                      field_list=field_list, children_of=children_of, exact=exact,
+                                                      bytype=bytype, rows=rows, num_retries=num_retries,
+                                                      start=(rows + (start))))
+                        return docs_found
 
-        return None
+                if req.status_code == 200 and req.json()["response"]["numFound"] == 0:
+                    if exact:
+                        logger.debug("OLS exact search returned empty response for %s", name)
+                    else:
+                        logger.debug("OLS search returned empty response for %s", name)
+                    return None
+                elif req.status_code != 200 and req.json()["response"]["numFound"] > 0:
+                    if len(req.json()["response"]["docs"]) <= rows:
+                        return req.json()["response"]["docs"]
+                    else:
+                        start = 0
+                        docs_found = req.json()["response"]["docs"]
+
+            except Exception as ex:
+                logger.exception("OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex)
+
+        return docs_found
 
     def suggest(self, name, ontology=None):
         """Suggest terms from an optional list of ontologies

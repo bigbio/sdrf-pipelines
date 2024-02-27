@@ -135,6 +135,8 @@ class OntologyTerm(_SeriesValidation):
         terms = [ontology_term_parser(x) for x in series.unique()]
         labels = []
         for term in terms:
+            if term['NT'] == 'clostridium perfringens':
+                print(term)
             if TERM_NAME not in term:
                 ontology_terms = None
             else:
