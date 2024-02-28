@@ -67,12 +67,12 @@ def ontology_term_parser(cell_value: str = None):
 
 class SDRFColumn(Column):
     def __init__(
-            self,
-            name: str,
-            validations: typing.Iterable["_BaseValidation"] = None,
-            optional_validations: typing.Iterable["_BaseValidation"] = None,
-            allow_empty=False,
-            optional_type=True,
+        self,
+        name: str,
+        validations: typing.Iterable["_BaseValidation"] = None,
+        optional_validations: typing.Iterable["_BaseValidation"] = None,
+        allow_empty=False,
+        optional_type=True,
     ):
         if validations is None:
             validations = []
@@ -222,9 +222,9 @@ class SDRFSchema(Schema):
                 errors.append(cname)
             elif m.group().startswith("factor value"):
                 if (
-                        m.group().replace("factor value", "comment") not in panda_sdrf.columns
-                        and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
-                        and m.group() not in panda_sdrf.columns
+                    m.group().replace("factor value", "comment") not in panda_sdrf.columns
+                    and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
+                    and m.group() not in panda_sdrf.columns
                 ):
                     error_message = "The " + cname + " column should also be in the characteristics or comment"
                     logerror.append(LogicError(error_message, error_type=logging.ERROR))
@@ -264,7 +264,7 @@ class SDRFSchema(Schema):
                     error_message = "The column " + column + "cannot be before the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
                 if (
-                        "characteristics" in column or ("material type" in column and "factor value" not in column)
+                    "characteristics" in column or ("material type" in column and "factor value" not in column)
                 ) and cnames.index(column) > index:
                     error_message = "The column " + column + "cannot be after the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
@@ -329,8 +329,12 @@ class SDRFSchema(Schema):
         validation_results = panda_sdrf.map(validate_string)
 
         # Get the indices where the validation fails
-        failed_indices = [(row, col) for row in validation_results.index for col in validation_results.columns if
-                          not validation_results.at[row, col]]
+        failed_indices = [
+            (row, col)
+            for row in validation_results.index
+            for col in validation_results.columns
+            if not validation_results.at[row, col]
+        ]
 
         for row, col in failed_indices:
             message = f"Empty value found Row: {row}, Column: {col}"
