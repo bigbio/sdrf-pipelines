@@ -80,9 +80,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def map(
-        self, func: PythonFuncType, na_action: str | None = None, **kwargs
-    ) -> DataFrame:
+    def map(self, func: PythonFuncType, na_action: str | None = None, **kwargs) -> DataFrame:
         """
         Apply a function to the DataFrame.
         :param func: The function to apply to the DataFrame.
