@@ -79,13 +79,3 @@ class SdrfDataFrame(pd.DataFrame):
             errors = mass_spectrometry_schema.validate(self)
 
         return errors
-
-    def map(self, func: PythonFuncType, na_action: str | None = None, **kwargs) -> DataFrame:
-        """
-        Apply a function to the DataFrame.
-        :param func: The function to apply to the DataFrame.
-        :param na_action: If 'ignore', propagate NA values, without passing them to func.
-        :param kwargs: Additional keyword arguments to pass as keywords arguments to func.
-        :return: DataFrame
-        """
-        return super().map(func, na_action=na_action, **kwargs)
