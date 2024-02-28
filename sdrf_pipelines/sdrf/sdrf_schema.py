@@ -67,12 +67,12 @@ def ontology_term_parser(cell_value: str = None):
 
 class SDRFColumn(Column):
     def __init__(
-        self,
-        name: str,
-        validations: typing.Iterable["_BaseValidation"] = None,
-        optional_validations: typing.Iterable["_BaseValidation"] = None,
-        allow_empty=False,
-        optional_type=True,
+            self,
+            name: str,
+            validations: typing.Iterable["_BaseValidation"] = None,
+            optional_validations: typing.Iterable["_BaseValidation"] = None,
+            allow_empty=False,
+            optional_type=True,
     ):
         if validations is None:
             validations = []
@@ -145,8 +145,8 @@ class OntologyTerm(_SeriesValidation):
 
             if ontology_terms is not None:
                 query_labels = [o["label"].lower() for o in ontology_terms]
-                for label in query_labels:
-                    labels.append(label)
+                if term[TERM_NAME] in query_labels:
+                    labels.append(term[TERM_NAME])
         if self._not_available:
             labels.append(NOT_AVAILABLE)
         if self._not_applicable:
@@ -178,6 +178,10 @@ class SDRFSchema(Schema):
                 )
             )
             errors.append(LogicError(error_message, error_type=logging.WARN))
+
+        empty_cells_errors = self.validate_empty_cells(panda_sdrf)
+        if empty_cells_errors:
+            errors.extend(empty_cells_errors)
 
         # Check the mandatory fields
         error_mandatory = self.validate_mandatory_columns(panda_sdrf)
@@ -218,9 +222,9 @@ class SDRFSchema(Schema):
                 errors.append(cname)
             elif m.group().startswith("factor value"):
                 if (
-                    m.group().replace("factor value", "comment") not in panda_sdrf.columns
-                    and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
-                    and m.group() not in panda_sdrf.columns
+                        m.group().replace("factor value", "comment") not in panda_sdrf.columns
+                        and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
+                        and m.group() not in panda_sdrf.columns
                 ):
                     error_message = "The " + cname + " column should also be in the characteristics or comment"
                     logerror.append(LogicError(error_message, error_type=logging.ERROR))
@@ -260,7 +264,7 @@ class SDRFSchema(Schema):
                     error_message = "The column " + column + "cannot be before the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
                 if (
-                    "characteristics" in column or ("material type" in column and "factor value" not in column)
+                        "characteristics" in column or ("material type" in column and "factor value" not in column)
                 ) and cnames.index(column) > index:
                     error_message = "The column " + column + "cannot be after the assay name"
                     error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
@@ -309,6 +313,29 @@ class SDRFSchema(Schema):
         for series, column in column_pairs:
             warnings += column.validate_optional(series)
         return sorted(warnings, key=lambda e: e.row)
+
+    def validate_empty_cells(self, panda_sdrf):
+        """
+        Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
+        :param panda_sdrf: SDRF dataframe
+        :return: List of errors
+        """
+        errors = []
+
+        def validate_string(cell_value):
+            return cell_value is not None and cell_value != "nan" and len(cell_value.strip()) > 0
+
+        # Apply the validation function element-wise
+        validation_results = panda_sdrf.map(validate_string)
+
+        # Get the indices where the validation fails
+        failed_indices = [(row, col) for row in validation_results.index for col in validation_results.columns if
+                          not validation_results.at[row, col]]
+
+        for row, col in failed_indices:
+            message = f"Empty value found Row: {row}, Column: {col}"
+            errors.append(LogicError(message, error_type=logging.ERROR))
+        return errors
 
 
 default_schema = SDRFSchema(
