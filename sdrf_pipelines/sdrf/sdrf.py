@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import logging
 
 import pandas as pd
+from pandas import DataFrame
+from pandas._typing import PythonFuncType
 
 from sdrf_pipelines.sdrf.sdrf_schema import CELL_LINES_TEMPLATE
 from sdrf_pipelines.sdrf.sdrf_schema import HUMAN_TEMPLATE
