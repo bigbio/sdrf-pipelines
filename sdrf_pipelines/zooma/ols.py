@@ -105,17 +105,17 @@ class OlsClient:
             raise ex
 
     def search(
-            self,
-            name: str,
-            query_fields=None,
-            ontology: str=None,
-            field_list=None,
-            children_of=None,
-            exact: bool=None,
-            bytype: str="class",
-            rows: int=10,
-            num_retries:int=10,
-            start: int=0,
+        self,
+        name: str,
+        query_fields=None,
+        ontology: str = None,
+        field_list=None,
+        children_of=None,
+        exact: bool = None,
+        bytype: str = "class",
+        rows: int = 10,
+        num_retries: int = 10,
+        start: int = 0,
     ):
         """
         Searches the OLS with the given term
@@ -187,10 +187,20 @@ class OlsClient:
                         return req.json()["response"]["docs"]
                     else:
                         docs_found = req.json()["response"]["docs"]
-                        docs_found.extend(self.search(name, query_fields=query_fields, ontology=ontology,
-                                                      field_list=field_list, children_of=children_of, exact=exact,
-                                                      bytype=bytype, rows=rows, num_retries=num_retries,
-                                                      start=(rows + (start))))
+                        docs_found.extend(
+                            self.search(
+                                name,
+                                query_fields=query_fields,
+                                ontology=ontology,
+                                field_list=field_list,
+                                children_of=children_of,
+                                exact=exact,
+                                bytype=bytype,
+                                rows=rows,
+                                num_retries=num_retries,
+                                start=(rows + (start)),
+                            )
+                        )
                         return docs_found
 
                 if req.status_code == 200 and req.json()["response"]["numFound"] == 0:
@@ -207,7 +217,9 @@ class OlsClient:
                         docs_found = req.json()["response"]["docs"]
 
             except Exception as ex:
-                logger.exception("OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex)
+                logger.exception(
+                    "OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex
+                )
 
         return docs_found
 
