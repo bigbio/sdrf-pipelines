@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 import typing
 from typing import Any
 
@@ -325,8 +326,12 @@ class SDRFSchema(Schema):
         def validate_string(cell_value):
             return cell_value is not None and cell_value != "nan" and len(cell_value.strip()) > 0
 
-        # Apply the validation function element-wise
-        validation_results = panda_sdrf.map(validate_string)
+        if sys.version_info <= (3, 8):
+            # Use map for Python versions less than 3.8
+            validation_results = panda_sdrf.map(validate_string)
+        else:
+            # Use applymap for Python versions 3.8 and above
+            validation_results = panda_sdrf.applymap(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [
