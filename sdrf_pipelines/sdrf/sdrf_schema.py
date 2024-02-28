@@ -2,6 +2,8 @@ import logging
 import re
 import typing
 from typing import Any
+
+import numpy as np
 import pandas as pd
 from pandas_schema import Column
 from pandas_schema import Schema
@@ -321,11 +323,11 @@ class SDRFSchema(Schema):
         """
         errors = []
 
-        def validate_string(string):
-            return len(string.strip()) > 0
+        def validate_string(cell_value):
+            return cell_value is not None and cell_value != "nan" and len(cell_value.strip()) > 0
 
         # Apply the validation function element-wise
-        validation_results = panda_sdrf.map(lambda x: validate_string(x))
+        validation_results = panda_sdrf.map(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [(row, col) for row in validation_results.index for col in validation_results.columns if
