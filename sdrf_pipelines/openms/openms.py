@@ -127,6 +127,7 @@ class OpenMS:
             "Glutamyl endopeptidase": "glutamyl endopeptidase",
             "Trypsin/p": "Trypsin/P",
             "Lys-c": "Lys-C",
+            "Lys-c/p": "Lys-C/P",
             "Lys-n": "Lys-N",
             "Arg-c": "Arg-C",
             "Arg-c/p": "Arg-C/P",
