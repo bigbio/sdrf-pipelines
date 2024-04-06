@@ -709,17 +709,17 @@ class Maxquant:
         return ",".join(oms_mods)
 
     def maxquant_convert(
-            self,
-            sdrf_file,
-            fastaFilePath,
-            mqconfdir,
-            matchBetweenRuns,
-            peptideFDR,
-            proteinFDR,
-            tempFolder,
-            raw_Folder,
-            numThreads,
-            output_path,
+        self,
+        sdrf_file,
+        fastaFilePath,
+        mqconfdir,
+        matchBetweenRuns,
+        peptideFDR,
+        proteinFDR,
+        tempFolder,
+        raw_Folder,
+        numThreads,
+        output_path,
     ):
         print("PROCESSING: " + sdrf_file + '"')
 
@@ -1695,8 +1695,7 @@ class Maxquant:
         referenceChannel = doc.createElement("referenceChannel")
         for key1, instr_val in file2instrument.items():
             value2 = (
-                    str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(
-                file2fragtol)
+                str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
             )
             datanalysisparams = {}
             for p in file2params.keys():
@@ -1719,10 +1718,10 @@ class Maxquant:
                     "datanalysisparams": datanalysisparams,
                 }
                 if (
-                        "Lys8" in file2label[key1]
-                        or "Arg10" in file2label[key1]
-                        or "Arg6" in file2label[key1]
-                        or "Lys6" in file2label[key1]
+                    "Lys8" in file2label[key1]
+                    or "Arg10" in file2label[key1]
+                    or "Arg6" in file2label[key1]
+                    or "Lys6" in file2label[key1]
                 ):
                     parameterGroup["0"]["silac_shape"] = file2silac_shape[key1]
 
@@ -1750,10 +1749,10 @@ class Maxquant:
                 }
 
                 if (
-                        "Lys8" in file2label[key1]
-                        or "Arg10" in file2label[key1]
-                        or "Arg6" in file2label[key1]
-                        or "Lys6" in file2label[key1]
+                    "Lys8" in file2label[key1]
+                    or "Arg10" in file2label[key1]
+                    or "Arg6" in file2label[key1]
+                    or "Lys6" in file2label[key1]
                 ):
                     parameterGroup[str(tag)]["silac_shape"] = file2silac_shape[key1]
 
@@ -1926,8 +1925,8 @@ class Maxquant:
             if "Lys8" in j["label"] or "Arg10" in j["label"] or "Arg6" in j["label"] or "Lys6" in j["label"]:
                 for lm in range(j["silac_shape"][0]):
                     r = j["label"].split(",")[
-                        lm * j["silac_shape"][1]: lm * j["silac_shape"][1] + lm * j["silac_shape"][1]
-                        ]
+                        lm * j["silac_shape"][1] : lm * j["silac_shape"][1] + lm * j["silac_shape"][1]
+                    ]
                     if "Arg0" in r:
                         r.remove("Arg0")
                     text = ";".join(r)
