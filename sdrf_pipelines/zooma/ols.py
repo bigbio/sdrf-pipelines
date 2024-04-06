@@ -198,7 +198,7 @@ class OlsClient:
                                 bytype=bytype,
                                 rows=rows,
                                 num_retries=num_retries,
-                                start=(rows + (start)),
+                                start=(rows + start),
                             )
                         )
                         return docs_found

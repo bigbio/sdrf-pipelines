@@ -126,6 +126,7 @@ class OpenMS:
         self.enzymes = {
             "Glutamyl endopeptidase": "glutamyl endopeptidase",
             "Trypsin/p": "Trypsin/P",
+            "Trypchymo": "TrypChymo",
             "Lys-c": "Lys-C",
             "Lys-c/p": "Lys-C/P",
             "Lys-n": "Lys-N",
@@ -425,7 +426,7 @@ class OpenMS:
 
         if not split_by_columns:
             # output of search settings for every row in sdrf
-            self.save_search_settings_to_file("openms.tsv", sdrf, f2c, extension_convert=extension_convert)
+            self.save_search_settings_to_file("openms.tsv", sdrf, f2c)
 
             # output one experimental design file
             if one_table:
@@ -459,7 +460,7 @@ class OpenMS:
                 # extract rows from sdrf for current condition
                 split_sdrf = sdrf.loc[sdrf["_conditions_from_factors"] == c]
                 output_filename = "openms.tsv." + str(index)
-                self.save_search_settings_to_file(output_filename, split_sdrf, f2c, extension_convert=extension_convert)
+                self.save_search_settings_to_file(output_filename, split_sdrf, f2c)
 
                 # output of experimental design
                 output_filename = "experimental_design.tsv." + str(index)
@@ -977,7 +978,7 @@ class OpenMS:
         with open(output_filename, "w+") as of:
             of.write(f)
 
-    def save_search_settings_to_file(self, output_filename, sdrf, f2c, extension_convert):
+    def save_search_settings_to_file(self, output_filename, sdrf, f2c):
         f = ""
         open_ms_search_settings_header = [
             "URI",
