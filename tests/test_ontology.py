@@ -1,4 +1,4 @@
-from sdrf_pipelines.zooma.ols import OlsClient
+from sdrf_pipelines.ols.ols import OlsClient
 
 def test_ontology():
     ols = OlsClient()

@@ -15,7 +15,7 @@ from pandas_schema.validation import _SeriesValidation
 
 from sdrf_pipelines.sdrf import sdrf
 from sdrf_pipelines.utils.exceptions import LogicError
-from sdrf_pipelines.zooma.ols import OlsClient
+from sdrf_pipelines.ols.ols import OlsClient
 
 client = OlsClient()
 
