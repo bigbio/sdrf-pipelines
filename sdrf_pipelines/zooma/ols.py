@@ -27,6 +27,7 @@ API_SEARCH = "/api/search"
 API_SELECT = "/api/select"
 API_TERM = "/api/ontologies/{ontology}/terms/{iri}"
 API_ANCESTORS = "/api/ontologies/{ontology}/terms/{iri}/ancestors"
+API_PROPERTIES = "/api/ontologies/{ontology}/properties?lang=en"
 
 
 def _concat_str_or_list(input_str):
