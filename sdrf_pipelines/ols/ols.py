@@ -50,6 +50,7 @@ def _dparse(iri):
     """
     return urllib.parse.quote_plus(urllib.parse.quote_plus(iri))
 
+
 class OlsTerm:
     def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
         self._iri = iri
@@ -58,6 +59,7 @@ class OlsTerm:
 
     def __str__(self) -> str:
         return f"{self._term} -- {self._ontology} -- {self._iri}"
+
 
 class OlsClient:
     def __init__(self, ols_base=None, ontology=None, field_list=None, query_fields=None):
