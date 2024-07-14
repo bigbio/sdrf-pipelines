@@ -18,8 +18,8 @@ import urllib.parse
 
 import duckdb
 import pandas as pd
+import rdflib
 import requests
-from pronto import Ontology
 
 OLS = "https://www.ebi.ac.uk/ols4"
 
@@ -88,6 +88,83 @@ def get_cache_parquet_files():
     return parquet_files, ontologies
 
 
+def get_obo_accession(uri):
+    # Example: Convert 'http://www.ebi.ac.uk/efo/EFO_0000001' to 'EFO:0000001'
+    try:
+        if "#" in uri:
+            fragment = uri.split("#")[-1]
+        else:
+            fragment = uri.split("/")[-1]
+
+        prefix, identifier = fragment.split("_")
+        return f"{prefix}:{identifier}"
+    except Exception as ex:
+        logger.error("Error converting URI %s to OBO accession: %s", uri, ex)
+
+    return None
+
+
+def read_owl_file(ontology_file, ontology_name=None):
+    """
+    Reads an OWL file and returns a list of OlsTerms
+    @:param ontology_file: The name of the ontology
+    @:param ontology_name: The name of the ontology
+    """
+    g = rdflib.Graph()
+    g.parse(ontology_file, format="xml")
+    terms_info = []
+
+    for s, p, o in g.triples((None, rdflib.RDF.type, rdflib.OWL.Class)):
+        term_id = str(s)
+        for _, _, name in g.triples((s, rdflib.RDFS.label, None)):
+            term_name = str(name)
+            terms_info.append({"accession": get_obo_accession(term_id), "label": term_name, "ontology": ontology_name})
+
+    # remove terms with no label or accession
+    terms_info = [term for term in terms_info if "label" in term and "accession" in term]
+    return terms_info
+
+
+def read_obo_file(ontology_file, ontology_name=None):
+    """
+    Reads an OBO file and returns a list of OlsTerms
+    @:param ontology_file: The name of the ontology
+    @:param ontology_name: The name of the ontology
+    """
+    terms_info = []
+
+    def split_terms(content):
+        terms = content.split("[Term]")[1:]  # Skip the header and split by [Term]
+        return terms
+
+    def get_ontology_name(content):
+        lines = content.split("\n")
+        for line in lines:
+            if line.startswith("ontology:"):
+                return line.split("ontology:")[1].strip()
+        return None
+
+    def parse_term(term, ontology_name):
+        term_info = {}
+        lines = term.strip().split("\n")
+        for line in lines:
+            if line.startswith("id:"):
+                term_info["accession"] = line.split("id:")[1].strip()
+                term_info["ontology"] = ontology_name
+            elif line.startswith("name:"):
+                term_info["label"] = line.split("name:")[1].strip()
+        return term_info
+
+    with open(ontology_file, "r") as file:
+        content = file.read()
+
+    terms = split_terms(content)
+    ontology_name = get_ontology_name(content) if ontology_name is None else ontology_name
+    terms_info = [parse_term(term, ontology_name) for term in terms]
+
+    return terms_info
+
+
 class OlsClient:
     def __init__(self, ols_base=None, ontology=None, field_list=None, query_fields=None, use_cache=True):
         """
@@ -121,7 +198,8 @@ class OlsClient:
         else:
             self.use_cache = False
 
-    def build_ontology_index(self, ontology_file: str, output_file: str = None):
+    @staticmethod
+    def build_ontology_index(ontology_file: str, output_file: str = None, ontology_name: str = None):
         """
         Builds an index of an ontology file OBO format. The output file will be a parquet file containing only three columns:
         - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) the name of the term and the number.
@@ -130,31 +208,33 @@ class OlsClient:
         All information should be in lower case and also the file will be compressed.
         @:param ontology_file: The name of the ontology
         @:param output_file: The name of the output file
+        @:param ontology_name: The name of the ontology
         """
 
         if ontology_file is None or not os.path.isfile(ontology_file):
             raise ValueError(f"File {ontology_file} is None or does not exist")
 
         # check an extension of the ontology file
+        owl_file = False
         if not ontology_file.lower().endswith(".obo"):
-            raise ValueError(f"File {ontology_file} is not an OBO format, at the moment only OBO is supported")
+            owl_file = True
+            if ontology_name is None:
+                raise ValueError("Ontology name is required for OWL files")
 
         if output_file is None or not output_file.lower().endswith(".parquet"):
             output_file = os.path.splitext(ontology_file)[0] + ".parquet"
 
         logger.info("Building index of %s", ontology_file)
-        ontology = Ontology(ontology_file)
 
-        df = pd.DataFrame(
-            [
-                {
-                    "accession": ontology[term].id,
-                    "label": ontology[term].name,
-                    "ontology": ontology.metadata.ontology,
-                }
-                for term in ontology
-            ]
-        )
+        if owl_file:
+            terms = read_owl_file(ontology_file, ontology_name = ontology_name)
+            terms = [term for term in terms if "label" in term]
+            df = pd.DataFrame(terms)
+        else:
+            terms = read_obo_file(ontology_file, ontology_name = ontology_name)
+            # remove terms with no label
+            terms = [term for term in terms if "label" in term]
+            df = pd.DataFrame(terms)
 
         df.to_parquet(output_file, compression="gzip")
         logger.info("Index has finished, output file: %s", output_file)
@@ -195,7 +275,19 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(
+    def search(self, term: str, ontology: str, exact=True, **kwargs):
+        """
+        Search a term in the OLS
+        @:param term: The name of the term
+        @:param ontology: The name of the ontology
+        @:param exact: Forces exact match if not `None`
+        """
+        terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
+        if terms is None and self.use_cache:
+            terms = self.cache_search(term, ontology)
+        return terms
+
+    def ols_search(
         self,
         name: str,
         query_fields=None,
@@ -279,7 +371,7 @@ class OlsClient:
                     else:
                         docs_found = req.json()["response"]["docs"]
                         docs_found.extend(
-                            self.search(
+                            self.ols_search(
                                 name,
                                 query_fields=query_fields,
                                 ontology=ontology,

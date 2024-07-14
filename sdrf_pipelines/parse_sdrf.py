@@ -230,10 +230,15 @@ def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcom
 @click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
 @click.option("--ontology", "-in", help="ontology file")
 @click.option("--index", "-out", help="Output file in parquet format")
+@click.option("--ontology_name", "-name", help="ontology name")
 @click.pass_context
-def build_index_ontology(ctx, ontology: str, index: str):
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
     ols_client = OlsClient()
-    ols_client.build_ontology_index(ontology, index)
+
+    if ontology.lower().endswith(".owl") and ontology_name is None:
+        raise ValueError("Please provide the ontology name for the owl file")
+
+    ols_client.build_ontology_index(ontology, index, ontology_name)
 
 
 cli.add_command(validate_sdrf)
