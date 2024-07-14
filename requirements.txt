@@ -10,3 +10,6 @@ requests
 pyyaml
 numpy
 defusedxml
+pronto
+pyarrow
+duckdb
