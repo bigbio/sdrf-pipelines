@@ -12,3 +12,4 @@ numpy
 defusedxml
 pyarrow
 duckdb
+rdflib
