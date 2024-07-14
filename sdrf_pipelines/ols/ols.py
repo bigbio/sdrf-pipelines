@@ -227,11 +227,11 @@ class OlsClient:
         logger.info("Building index of %s", ontology_file)
 
         if owl_file:
-            terms = read_owl_file(ontology_file, ontology_name = ontology_name)
+            terms = read_owl_file(ontology_file, ontology_name=ontology_name)
             terms = [term for term in terms if "label" in term]
             df = pd.DataFrame(terms)
         else:
-            terms = read_obo_file(ontology_file, ontology_name = ontology_name)
+            terms = read_obo_file(ontology_file, ontology_name=ontology_name)
             # remove terms with no label
             terms = [term for term in terms if "label" in term]
             df = pd.DataFrame(terms)
