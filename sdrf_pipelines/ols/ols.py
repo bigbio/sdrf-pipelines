@@ -14,6 +14,7 @@ TODO: handle requests.exceptions.ConnectionError when traffic is too high and AP
 import glob
 import logging
 import os.path
+import re
 import urllib.parse
 
 import duckdb
@@ -66,6 +67,10 @@ class OlsTerm:
         return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
+def escape_string(s):
+    return re.sub(r"'", "''", str(s))
+
+
 def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
@@ -78,7 +83,7 @@ def get_cache_parquet_files():
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
-    query = """SELECT DISTINCT ontology FROM read_parquet('{}')""".format(parquet_files)
+    query = f"SELECT DISTINCT ontology FROM read_parquet('{escape_string(parquet_files)}')"
     df = duckdb.query(query).fetchdf()
 
     if df is None or df.empty:
