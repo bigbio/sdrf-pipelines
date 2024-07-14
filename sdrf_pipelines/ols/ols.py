@@ -114,7 +114,7 @@ def read_owl_file(ontology_file, ontology_name=None):
     g.parse(ontology_file, format="xml")
     terms_info = []
 
-    for s, p, o in g.triples((None, rdflib.RDF.type, rdflib.OWL.Class)):
+    for s, _, _ in g.triples((None, rdflib.RDF.type, rdflib.OWL.Class)):
         term_id = str(s)
         for _, _, name in g.triples((s, rdflib.RDFS.label, None)):
             term_name = str(name)
@@ -470,7 +470,7 @@ class OlsClient:
             return []
 
         terms = []
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             terms.append({"ontology_name": row.ontology, "label": row.label, "obo_id": row.accession})
 
         return terms
