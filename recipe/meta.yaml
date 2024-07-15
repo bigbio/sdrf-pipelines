@@ -10,7 +10,9 @@ build:
   noarch: python
   entry_points:
       - parse_sdrf = sdrf_pipelines.parse_sdrf:main
-  script: "python -m pip install . --no-deps -vvv"
+  script:
+    - pip install pandas_schema
+    - {{ PYTHON }} -m pip install --no-deps --ignore-installed .
 
 requirements:
   host:
