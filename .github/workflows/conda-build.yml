@@ -15,6 +15,7 @@ jobs:
       with:
         auto-update-conda: true
         python-version: 3.8
+        channels: conda-forge,defaults,bioconda
 
     - name: Create conda environment
       run: conda env create -f environment.yml
