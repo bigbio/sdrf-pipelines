@@ -56,5 +56,5 @@ jobs:
     - name: Test other commands
       run: |
         conda activate sdrf-pipelines
-        parse_sdrf validate-sdrf --sdrf_file tests/data/PXD001819/PXD001819.sdrf.tsv --check_ms
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --check_ms
       shell: bash -l {0}
