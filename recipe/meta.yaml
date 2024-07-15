@@ -8,8 +8,6 @@ source:
 
 build:
   noarch: python
-  run_exports:
-    - { { pin_subpackage(name, max_pin="x") } }
   entry_points:
       - parse_sdrf = sdrf_pipelines.parse_sdrf:main
   script: "python -m pip install . --no-deps -vvv"
