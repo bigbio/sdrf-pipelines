@@ -291,6 +291,27 @@ class OlsClient:
             terms = self.cache_search(term, ontology)
         return terms
 
+    def _perform_ols_search(self, params, name, exact, retry_num=0):
+        try:
+            req = self.session.get(self.ontology_search, params=params)
+            logger.debug("Request to OLS search API term %s, status code %s", name, req.status_code)
+
+            if req.status_code != 200:
+                logger.error("OLS search term %s error, retry number %s", name, retry_num)
+                req.raise_for_status()
+
+            response_json = req.json()
+            num_found = response_json["response"]["numFound"]
+            docs = response_json["response"]["docs"]
+
+            if num_found == 0:
+                logger.debug("OLS %s search returned empty response for %s", "exact" if exact else "", name)
+                return []
+
+            return docs
+        except Exception as ex:
+            logger.exception("OLS error searching term %s. Error: %s", name, ex)
+
     def ols_search(
         self,
         name: str,
@@ -304,36 +325,14 @@ class OlsClient:
         num_retries: int = 10,
         start: int = 0,
     ):
-        """
-        Searches the OLS with the given term
-
-        @:param query_fields: By default, the search is performed over term labels,
-        synonyms, descriptions, identifiers and annotation properties. This option allows
-        to specify the fields to query, the defaults are
-        `{label, synonym, description, short_form, obo_id, annotations, logical_description, iri}`
-        @:param exact: Forces exact match if not `None`
-        @:param bytype: restrict to terms one of {class,property,individual,ontology}
-        @:param childrenOf: Search only under a certain term.
-        @:param rows: number of rows to query on each call of OLS search
-        @:param num_retries: Number of retries to OLS when it fails.
-        """
-        params = {"q": name}
-        if ontology is not None:
-            ontology = ontology.lower()
+        params = {"q": name, "type": _concat_str_or_list(bytype), "rows": rows, "start": start}
+        if ontology:
+            params["ontology"] = _concat_str_or_list(ontology.lower())
+        elif self.ontology:
+            params["ontology"] = _concat_str_or_list(self.ontology)
 
         if exact:
             params["exact"] = "on"
-
-        if bytype:
-            params["type"] = _concat_str_or_list(bytype)
-
-        if rows:
-            params["rows"] = rows
-
-        if ontology:
-            params["ontology"] = _concat_str_or_list(ontology)
-        elif self.ontology:
-            params["ontology"] = _concat_str_or_list(self.ontology)
 
         if query_fields:
             params["queryFields"] = _concat_str_or_list(query_fields)
@@ -345,68 +344,20 @@ class OlsClient:
         elif self.field_list:
             params["fieldList"] = _concat_str_or_list(self.field_list)
 
-        if children_of is None:
-            children_of = []
-        if len(children_of) > 0:
+        if children_of:
             params["childrenOf"] = _concat_str_or_list(children_of)
-
-        if start:
-            params["start"] = start
 
         docs_found = []
 
         for retry_num in range(num_retries):
-            try:
-                req = self.session.get(self.ontology_search, params=params)
-                logger.debug("Request to OLS search API term %s, status code %s", name, req.status_code)
+            docs = self._perform_ols_search(params, name = name, exact = exact, retry_num = retry_num)
+            if docs:
+                docs_found.extend(docs)
+                if len(docs) < rows:
+                    return docs_found
 
-                if req.status_code != 200:
-                    logger.error("OLS search term %s error tried number %s", name, retry_num)
-                    req.raise_for_status()
-                else:
-                    if req.json()["response"]["numFound"] == 0:
-                        if exact:
-                            logger.debug("OLS exact search returned empty response for %s", name)
-                        else:
-                            logger.debug("OLS search returned empty response for %s", name)
-                        return docs_found
-                    elif len(req.json()["response"]["docs"]) < rows:
-                        return req.json()["response"]["docs"]
-                    else:
-                        docs_found = req.json()["response"]["docs"]
-                        docs_found.extend(
-                            self.ols_search(
-                                name,
-                                query_fields=query_fields,
-                                ontology=ontology,
-                                field_list=field_list,
-                                children_of=children_of,
-                                exact=exact,
-                                bytype=bytype,
-                                rows=rows,
-                                num_retries=num_retries,
-                                start=(rows + start),
-                            )
-                        )
-                        return docs_found
-
-                if req.status_code == 200 and req.json()["response"]["numFound"] == 0:
-                    if exact:
-                        logger.debug("OLS exact search returned empty response for %s", name)
-                    else:
-                        logger.debug("OLS search returned empty response for %s", name)
-                    return None
-                elif req.status_code != 200 and req.json()["response"]["numFound"] > 0:
-                    if len(req.json()["response"]["docs"]) <= rows:
-                        return req.json()["response"]["docs"]
-                    else:
-                        start = 0
-                        docs_found = req.json()["response"]["docs"]
-
-            except Exception as ex:
-                logger.exception(
-                    "OLS error searching the following term -- %s iteration %s.\n%e", req.url, retry_num, ex
-                )
+            start += rows
+            params["start"] = start
 
         return docs_found
 
@@ -461,9 +412,14 @@ class OlsClient:
             return []
 
         if ontology is not None:
-            duckdb_conn = duckdb.execute("""SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?) AND lower(ontology) = lower(?)""", (self.parquet_files, term, ontology))
+            duckdb_conn = duckdb.execute(
+                """SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?) AND lower(ontology) = lower(?)""",
+                (self.parquet_files, term, ontology),
+            )
         else:
-            duckdb_conn = duckdb.execute("""SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?)""", (self.parquet_files, term))
+            duckdb_conn = duckdb.execute(
+                """SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?)""", (self.parquet_files, term)
+            )
         df = duckdb_conn.fetchdf()
 
         if df is None or df.empty:
