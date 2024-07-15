@@ -27,7 +27,10 @@ jobs:
       shell: bash
 
     - name: Install conda-build
-      run: conda install -n sdrf-pipelines conda-build anaconda-client
+      run: |
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate sdrf-pipelines
+        conda install -n sdrf-pipelines conda-build anaconda-client
       shell: bash -l {0}
 
     - name: Activate conda environment and build package
@@ -38,7 +41,10 @@ jobs:
       shell: bash -l {0}
 
     - name: Install the built package
-      run: conda install --use-local sdrf-pipelines
+      run: |
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate sdrf-pipelines
+        conda install --use-local sdrf-pipelines
       shell: bash -l {0}
 
     - name: Test the installed package
