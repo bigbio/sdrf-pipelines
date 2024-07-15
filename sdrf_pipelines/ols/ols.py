@@ -83,8 +83,7 @@ def get_cache_parquet_files():
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
-    query = f"SELECT DISTINCT ontology FROM read_parquet('{escape_string(parquet_files)}')"
-    df = duckdb.query(query).fetchdf()
+    df = duckdb.execute("""SELECT DISTINCT ontology FROM read_parquet(?)""", (parquet_files,)).fetchdf()
 
     if df is None or df.empty:
         return parquet_files, []
