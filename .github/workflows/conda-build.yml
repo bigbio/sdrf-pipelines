@@ -16,35 +16,28 @@ jobs:
         auto-update-conda: true
         python-version: 3.8
 
-    - name: Initialize conda
-      shell: bash -l {0}
-      run: |
-        source $HOME/.bashrc
-        conda init bash
-        source ~/.bashrc
-
     - name: Create conda environment
-      shell: bash -l {0}
       run: conda env create -f environment.yml
 
     - name: Activate conda environment
-      shell: bash -l {0}
-      run: conda activate sdrf-pipelines
+      run: |
+        conda init bash
+        conda activate sdrf-pipelines
 
     - name: Install conda-build
-      shell: bash -l {0}
       run: conda install -n sdrf-pipelines conda-build anaconda-client
 
     - name: Build the conda package
-      shell: bash -l {0}
       run: conda build recipe
 
     - name: Install the built package
-      shell: bash -l {0}
       run: conda install --use-local sdrf-pipelines
 
     - name: Test the installed package
-      shell: bash -l {0}
       run: |
         conda activate sdrf-pipelines
         parse_sdrf --help
+    - name: Test other commands
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/PXD001819/PXD001819.sdrf.tsv --check_ms
