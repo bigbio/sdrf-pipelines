@@ -14,7 +14,7 @@ dependencies:
   - numpy
   - defusedxml
   - pyarrow
-  - duckdb
+  - python-duckdb
   - rdflib
   - pandas_schema
 
