@@ -7,28 +7,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v2
+    - name: Build conda package
+      id: build
+      uses: cascode-labs/build-conda-action@main
       with:
-        auto-update-conda: true
-        python-version: 3.8
-
-    - name: Create conda environment
-      run: conda env create -f environment.yml
-
-    - name: Activate conda environment
-      run: |
-        conda init bash
-        conda activate sdrf-pipelines
-
-    - name: Install conda-build
-      run: conda install -n sdrf-pipelines conda-build anaconda-client
-
-    - name: Build the conda package
-      run: conda build recipe
+        build_options: "-c conda-forge"
+        conda_build_env_filepath: environment.yml
+        recipe_path: conda
 
     - name: Install the built package
       run: conda install --use-local sdrf-pipelines
