@@ -14,13 +14,13 @@ TODO: handle requests.exceptions.ConnectionError when traffic is too high and AP
 import glob
 import logging
 import os.path
-import re
 import urllib.parse
 
 import duckdb
 import pandas as pd
 import rdflib
 import requests
+from importlib.resources import files
 
 OLS = "https://www.ebi.ac.uk/ols4"
 
@@ -67,19 +67,17 @@ class OlsTerm:
         return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
-def escape_string(s):
-    return re.sub(r"'", "''", str(s))
-
-
 def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
     """
-    cache_dir = os.path.join(os.path.dirname(__file__))
-    parquet_files = os.path.join(cache_dir, "*.parquet")
-    if len(glob.glob(parquet_files)) == 0:
-        logger.info("No parquet files found in %s", parquet_files)
-        return parquet_files, []
+    cache_dir = files('sdrf_pipelines').joinpath('ols/').as_posix()
+    parquet_files_pattern = os.path.join(cache_dir, "*.parquet")
+    parquet_files = glob.glob(parquet_files_pattern)
+
+    if not parquet_files:
+        logger.info("No parquet files found in %s", parquet_files_pattern)
+        return parquet_files_pattern, []
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
