@@ -26,6 +26,7 @@ requirements:
     - pyaml
     - defusedxml
     - pytest
+    - duckdb
 
 test:
   imports:
