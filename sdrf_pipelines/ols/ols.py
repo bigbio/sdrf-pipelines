@@ -349,7 +349,7 @@ class OlsClient:
         docs_found = []
 
         for retry_num in range(num_retries):
-            docs = self._perform_ols_search(params, name = name, exact = exact, retry_num = retry_num)
+            docs = self._perform_ols_search(params, name=name, exact=exact, retry_num=retry_num)
             if docs:
                 docs_found.extend(docs)
                 if len(docs) < rows:
