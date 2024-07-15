@@ -43,7 +43,7 @@ def _concat_str_or_list(input_str):
     @:param input_str String to join
     """
 
-    if type(input_str) is str:
+    if isinstance(input_str, str):
         return input_str
 
     return ",".join(input_str)
@@ -79,7 +79,7 @@ def get_cache_parquet_files():
     parquet_files = os.path.join(cache_dir, "*.parquet")
     if len(glob.glob(parquet_files)) == 0:
         logger.info("No parquet files found in %s", parquet_files)
-        return (parquet_files, [])
+        return parquet_files, []
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
@@ -135,7 +135,6 @@ def read_obo_file(ontology_file, ontology_name=None):
     @:param ontology_file: The name of the ontology
     @:param ontology_name: The name of the ontology
     """
-    terms_info = []
 
     def split_terms(content):
         terms = content.split("[Term]")[1:]  # Skip the header and split by [Term]
