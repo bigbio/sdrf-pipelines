@@ -20,18 +20,24 @@ jobs:
       run: conda env create -f environment.yml
 
     - name: Activate conda environment
-      run: conda activate myenv
+      run: |
+        
+        conda activate sdrf-pipelines
 
     - name: Install conda-build
-      run: conda install -n myenv conda-build anaconda-client
+      run: conda install -n sdrf-pipelines conda-build anaconda-client
 
     - name: Build the conda package
       run: conda build recipe
 
     - name: Install the built package
-      run: conda install --use-local your-package
+      run: conda install --use-local sdrf-pipelines
 
     - name: Test the installed package
       run: |
-        conda activate myenv
-        python -c "import your_package; your_package.run_tests()"
+        conda activate sdrf-pipelines
+        parse_sdrf --help
+    - name: Test other commands
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/PXD001819/PXD001819.sdrf.tsv --check_ms
