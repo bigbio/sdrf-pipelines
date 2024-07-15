@@ -461,14 +461,10 @@ class OlsClient:
             return []
 
         if ontology is not None:
-            query = """SELECT * FROM read_parquet('{}') WHERE lower(label) = lower('{}') AND lower(ontology) = lower('{}')""".format(
-                self.parquet_files, term, ontology
-            )
+            duckdb_conn = duckdb.execute("""SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?) AND lower(ontology) = lower(?)""", (self.parquet_files, term, ontology))
         else:
-            query = """SELECT * FROM read_parquet('{}') WHERE lower(label) = lower('{}')""".format(
-                self.parquet_files, term
-            )
-        df = duckdb.query(query).fetchdf()
+            duckdb_conn = duckdb.execute("""SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?)""", (self.parquet_files, term))
+        df = duckdb_conn.fetchdf()
 
         if df is None or df.empty:
             return []
