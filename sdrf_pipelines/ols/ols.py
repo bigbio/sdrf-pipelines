@@ -18,9 +18,9 @@ import urllib.parse
 
 import duckdb
 import pandas as pd
+import pkg_resources
 import rdflib
 import requests
-from importlib.resources import files
 
 OLS = "https://www.ebi.ac.uk/ols4"
 
@@ -71,8 +71,7 @@ def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
     """
-    cache_dir = files('sdrf_pipelines').joinpath('ols/').as_posix()
-    parquet_files_pattern = os.path.join(cache_dir, "*.parquet")
+    parquet_files_pattern = pkg_resources.resource_filename(__name__, "*.parquet")
     parquet_files = glob.glob(parquet_files_pattern)
 
     if not parquet_files:
