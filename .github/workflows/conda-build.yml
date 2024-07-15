@@ -21,23 +21,30 @@ jobs:
 
     - name: Activate conda environment
       run: |
-        conda init bash
+        source $CONDA/etc/profile.d/conda.sh
         conda activate sdrf-pipelines
+      shell: bash
 
     - name: Install conda-build
       run: conda install -n sdrf-pipelines conda-build anaconda-client
+      shell: bash -l {0}
 
     - name: Build the conda package
       run: conda build recipe
+      shell: bash -l {0}
 
     - name: Install the built package
       run: conda install --use-local sdrf-pipelines
+      shell: bash -l {0}
 
     - name: Test the installed package
       run: |
         conda activate sdrf-pipelines
         parse_sdrf --help
+      shell: bash -l {0}
+
     - name: Test other commands
       run: |
         conda activate sdrf-pipelines
         parse_sdrf validate-sdrf --sdrf_file tests/data/PXD001819/PXD001819.sdrf.tsv --check_ms
+      shell: bash -l {0}
