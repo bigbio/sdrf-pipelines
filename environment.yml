@@ -1,0 +1,21 @@
+name: sdrf-pipelines
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.8
+  - conda-build
+  - anaconda-client
+  - pandas
+  - click
+  - requests
+  - pyyaml
+  - numpy
+  - defusedxml
+  - pyarrow
+  - duckdb
+  - rdflib
+  - pip:
+     - pandas_schema
+
