@@ -16,6 +16,5 @@ dependencies:
   - pyarrow
   - duckdb
   - rdflib
-  - pip:
-     - pandas_schema
+  - pandas_schema
 
