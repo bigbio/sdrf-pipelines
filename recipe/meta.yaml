@@ -1,4 +1,4 @@
-# conda/meta.yaml
+# recipe/meta.yaml
 package:
   name: sdrf-pipelines
   version: "0.0.27"
