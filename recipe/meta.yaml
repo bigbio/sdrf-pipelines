@@ -1,0 +1,49 @@
+# recipe/meta.yaml
+package:
+  name: sdrf-pipelines
+  version: "0.0.27"
+
+source:
+  path: ../
+
+build:
+  noarch: python
+  entry_points:
+      - parse_sdrf = sdrf_pipelines.parse_sdrf:main
+  script:
+    - {{ PYTHON }} -m pip install --no-deps --ignore-installed .
+
+requirements:
+  host:
+    - pip
+    - python >=3.5
+  run:
+    - click
+    - requests
+    - pandas
+    - pandas_schema
+    - python >=3.5
+    - pyaml
+    - defusedxml
+    - pytest
+    - duckdb
+    - rdflib
+    - pyarrow
+
+test:
+  imports:
+    - sdrf_pipelines
+    - sdrf_pipelines.openms
+    - sdrf_pipelines.sdrf
+    - sdrf_pipelines.utils
+    - sdrf_pipelines.ols
+  commands:
+    - parse_sdrf --help
+
+about:
+  home: "https://github.com/bigbio/sdrf-pipelines"
+  license: Apache 2
+  ##license_file: LICENSE ## patch is applied upstream, next version will have it
+  summary: "Translate, convert SDRF to configuration pipelines"
+  doc_url: "https://github.com/bigbio/sdrf-pipelines"
+  dev_url: "https://github.com/bigbio/sdrf-pipelines"

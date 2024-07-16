@@ -13,6 +13,7 @@ from sdrf_pipelines import __version__
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
+from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES
@@ -226,12 +227,27 @@ def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcom
     )
 
 
+@click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
+@click.option("--ontology", "-in", help="ontology file")
+@click.option("--index", "-out", help="Output file in parquet format")
+@click.option("--ontology_name", "-name", help="ontology name")
+@click.pass_context
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
+    ols_client = OlsClient()
+
+    if ontology.lower().endswith(".owl") and ontology_name is None:
+        raise ValueError("Please provide the ontology name for the owl file")
+
+    ols_client.build_ontology_index(ontology, index, ontology_name)
+
+
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
 cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
 cli.add_command(normalyzerde_from_sdrf)
+cli.add_command(build_index_ontology)
 
 
 def main():

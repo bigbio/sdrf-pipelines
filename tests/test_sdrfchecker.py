@@ -1,8 +1,6 @@
 import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
-from sdrf_pipelines.zooma.zooma import SlimOlsClient
-from sdrf_pipelines.zooma.zooma import Zooma
 
 from .helpers import run_and_check_status_code
 
@@ -49,22 +47,3 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     test_sdrf = shared_datadir / file_subpath
     result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf), "--check_ms"])
     assert "ERROR" not in result.output.upper(), result.output
-
-
-def test_bioontologies():
-    keyword = "human"
-    client = Zooma()
-    results = client.recommender(keyword, filters="ontologies:[nbcitaxon]")
-    ols_terms = client.process_zooma_results(results)
-    print(ols_terms)
-
-    ols_client = SlimOlsClient()
-    for ols_term in ols_terms:
-        terms = ols_client.get_term_from_url(ols_term["ols_url"], ontology="ncbitaxon")
-        print(*terms, sep="\n")
-
-    keyword = "Lung adenocarcinoma"
-    client = Zooma()
-    results = client.recommender(keyword)
-    ols_terms = client.process_zooma_results(results)
-    print(ols_terms)
