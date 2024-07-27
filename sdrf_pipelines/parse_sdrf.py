@@ -125,7 +125,6 @@ def maxquant_from_sdrf(
     )
     Maxquant().maxquant_experiamental_design(sdrf, output2)
 
-
 @click.command("validate-sdrf", short_help="Command to validate the sdrf file")
 @click.option("--sdrf_file", "-s", help="SDRF file to be validated")
 @click.option(
@@ -137,21 +136,37 @@ def maxquant_from_sdrf(
     required=False,
 )
 @click.option(
-    "--check_ms", help="check mass spectrometry fields in SDRF (e.g. postranslational modifications)", is_flag=True
+    "--skip_ms_validation",
+    help="Disable the validation of mass spectrometry fields in SDRF (e.g. posttranslational modifications)",
+    is_flag=True,
 )
+@click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
 @click.pass_context
-def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
+def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, skip_factor_validation: bool):
+    """
+    Command to validate the SDRF file. The validation is based on the template provided by the user.
+    User can select the template to be used for validation. If no template is provided, the default template will be used.
+    Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
+    the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
+
+    @param sdrf_file: SDRF file to be validated
+    @param template: template to be used for validation
+    @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
+    @param skip_factor_validation: flag to skip the validation of factor values
+    """
+
     if sdrf_file is None:
         msg = "The config file for the pipeline is missing, please provide one "
         logging.error(msg)
         raise AppConfigException(msg)
+
     if template is None:
         template = DEFAULT_TEMPLATE
 
     df = SdrfDataFrame.parse(sdrf_file)
     errors = df.validate(template)
 
-    if check_ms:
+    if not skip_ms_validation:
         errors = errors + df.validate(MASS_SPECTROMETRY)
 
     for error in errors:
