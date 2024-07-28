@@ -19,7 +19,6 @@ from sdrf_pipelines.sdrf.sdrf_schema import nonvertebrates_chema
 from sdrf_pipelines.sdrf.sdrf_schema import plants_chema
 from sdrf_pipelines.sdrf.sdrf_schema import vertebrates_chema
 from sdrf_pipelines.utils.exceptions import LogicError
-from typing import List
 
 
 class SdrfDataFrame(pd.DataFrame):
