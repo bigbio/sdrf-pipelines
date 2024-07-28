@@ -142,8 +142,9 @@ def maxquant_from_sdrf(
     is_flag=True,
 )
 @click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
+@click.option("--skip_experimental_design_validation", help="Disable the validation of experimental design", is_flag=True)
 @click.pass_context
-def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, skip_factor_validation: bool):
+def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, skip_factor_validation: bool, skip_experimental_design_validation: bool):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
     User can select the template to be used for validation. If no template is provided, the default template will be used.
@@ -154,6 +155,7 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, 
     @param template: template to be used for validation
     @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
     @param skip_factor_validation: flag to skip the validation of factor values
+    @param skip_experimental_design_validation: flag to skip the validation of experimental design
     """
 
     if sdrf_file is None:
@@ -172,6 +174,9 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, 
 
     if not skip_factor_validation:
         errors = errors + df.validate_factor_values()
+
+    if not skip_experimental_design_validation:
+        errors = errors + df.validate_experimental_design()
 
     for error in errors:
         print(error)
