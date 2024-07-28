@@ -125,6 +125,7 @@ def maxquant_from_sdrf(
     )
     Maxquant().maxquant_experiamental_design(sdrf, output2)
 
+
 @click.command("validate-sdrf", short_help="Command to validate the sdrf file")
 @click.option("--sdrf_file", "-s", help="SDRF file to be validated")
 @click.option(
@@ -168,6 +169,9 @@ def validate_sdrf(ctx, sdrf_file: str, template: str, skip_ms_validation: bool, 
 
     if not skip_ms_validation:
         errors = errors + df.validate(MASS_SPECTROMETRY)
+
+    if not skip_factor_validation:
+        errors = errors + df.validate_factor_values()
 
     for error in errors:
         print(error)
