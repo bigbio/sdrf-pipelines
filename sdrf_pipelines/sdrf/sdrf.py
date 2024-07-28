@@ -143,7 +143,7 @@ class SdrfDataFrame(pd.DataFrame):
         """
 
         # Group by col1 and check if each group has only one unique col2 value
-        col1_inconsistencies = self.groupby('assay name')['comment[data file]'].nunique()
+        col1_inconsistencies = self.groupby("assay name")["comment[data file]"].nunique()
         col1_inconsistent_groups = col1_inconsistencies[col1_inconsistencies > 1]
         if len(col1_inconsistent_groups) > 0:
             cell_index = col1_inconsistent_groups.index.tolist()
@@ -151,7 +151,7 @@ class SdrfDataFrame(pd.DataFrame):
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         # Group by col2 and check if each group has only one unique col1 value
-        col2_inconsistencies = self.groupby('comment[data file]')['assay name'].nunique()
+        col2_inconsistencies = self.groupby("comment[data file]")["assay name"].nunique()
         col2_inconsistent_groups = col2_inconsistencies[col2_inconsistencies > 1]
         if len(col2_inconsistent_groups) > 0:
             cell_index = col2_inconsistent_groups.index.tolist()
@@ -159,6 +159,3 @@ class SdrfDataFrame(pd.DataFrame):
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
-
-
-
