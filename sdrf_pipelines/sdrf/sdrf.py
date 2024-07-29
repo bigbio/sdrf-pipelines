@@ -130,14 +130,16 @@ class SdrfDataFrame(pd.DataFrame):
 
         errors = []
 
-        # Check that combination of values assay name and characteristics[data file] is unique in self
+        # Check that combination of value assay name and characteristics[data file] is unique in self
         errors = self.check_inconsistencies_assay_file(errors)
+
+        errors = self.check_unique_sample_file_combinations(errors)
 
         return errors
 
     def check_inconsistencies_assay_file(self, errors: List[LogicError]) -> List[LogicError]:
         """
-        Check that combination of values assay name and comment[data file] is unique in self
+        Check that combination of values assay name and comment[data file] is unique in self.
         :return: A list of LogicError objects if the combination of values assay name and characteristics[data file] is
         not unique, otherwise an empty list.
         """
@@ -156,6 +158,26 @@ class SdrfDataFrame(pd.DataFrame):
         if len(col2_inconsistent_groups) > 0:
             cell_index = col2_inconsistent_groups.index.tolist()
             error_message = f"Multiple raw files with the same assay: {cell_index}, the combination assay name and comment[data file] should be unique"
+            errors.append(LogicError(error_message, error_type=logging.ERROR))
+
+        return errors
+
+    def check_unique_sample_file_combinations(self, errors: List[LogicError]) -> List[LogicError]:
+        """
+        The combination of the following columns should be unique:
+        - source name
+        - comment[technical replicate]
+        - comment[biological replicate]
+        - comment[label]
+        - comment[fraction identifier]
+        :return: A list of LogicError objects if the source names are not unique, otherwise an empty list.
+        """
+        cols = ["source name", "comment[technical replicate]",
+                "characteristics[biological replicate]", "comment[label]", "comment[fraction identifier]"]
+
+        duplicates = self.duplicated(subset=cols, keep=False)
+        if duplicates.any():
+            error_message = f"Duplicate samples found in the SDRF for the combinations of the following columns: {cols}"
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
