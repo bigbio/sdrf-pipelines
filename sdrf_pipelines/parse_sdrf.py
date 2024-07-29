@@ -161,7 +161,7 @@ def validate_sdrf(
     the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
 
     @param sdrf_file: SDRF file to be validated
-    @param template: template to be used for validation
+    @param template: template to be used for a validation
     @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
     @param skip_factor_validation: flag to skip the validation of factor values
     @param skip_experimental_design_validation: flag to skip the validation of experimental design

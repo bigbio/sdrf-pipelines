@@ -180,6 +180,15 @@ class SdrfDataFrame(pd.DataFrame):
             "comment[fraction identifier]",
         ]
 
+        for col in cols:
+            if col not in self.columns:
+                error_message = f"In order to perfrom experimental design validation, column '{col}' must be present in the SDRF"
+                errors.append(LogicError(error_message, error_type=logging.ERROR))
+
+        colum_present = all(col in self.columns for col in cols)
+        if not colum_present:
+            return errors
+
         duplicates = self.duplicated(subset=cols, keep=False)
         if duplicates.any():
             error_message = f"Duplicate samples found in the SDRF for the combinations of the following columns: {cols}"
