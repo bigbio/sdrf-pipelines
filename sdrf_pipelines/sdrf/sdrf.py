@@ -182,7 +182,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         for col in cols:
             if col not in self.columns:
-                error_message = f"In order to perfrom experimental design validation, column '{col}' must be present in the SDRF"
+                error_message = f"In order to perform experimental design validation, column '{col}' must be present in the SDRF"
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         colum_present = all(col in self.columns for col in cols)
