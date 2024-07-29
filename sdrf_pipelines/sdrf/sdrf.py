@@ -172,8 +172,13 @@ class SdrfDataFrame(pd.DataFrame):
         - comment[fraction identifier]
         :return: A list of LogicError objects if the source names are not unique, otherwise an empty list.
         """
-        cols = ["source name", "comment[technical replicate]",
-                "characteristics[biological replicate]", "comment[label]", "comment[fraction identifier]"]
+        cols = [
+            "source name",
+            "comment[technical replicate]",
+            "characteristics[biological replicate]",
+            "comment[label]",
+            "comment[fraction identifier]",
+        ]
 
         duplicates = self.duplicated(subset=cols, keep=False)
         if duplicates.any():
