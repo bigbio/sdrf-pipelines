@@ -33,6 +33,7 @@ def check_if_integer(x):
     except ValueError:
         return False
 
+
 class SdrfDataFrame(pd.DataFrame):
     @property
     def _constructor(self):
@@ -237,7 +238,11 @@ class SdrfDataFrame(pd.DataFrame):
             return non_integer_rows
 
         # Specify the columns to check
-        columns_to_check = ["comment[technical replicate]", "characteristics[biological replicate]", "comment[fraction identifier]"]
+        columns_to_check = [
+            "comment[technical replicate]",
+            "characteristics[biological replicate]",
+            "comment[fraction identifier]",
+        ]
 
         ## Remove columns that are not present in the dataframe
         columns_to_check = [col for col in columns_to_check if col in self.columns]
@@ -246,7 +251,12 @@ class SdrfDataFrame(pd.DataFrame):
         non_integer_rows = check_integer_columns(self, columns_to_check)
 
         if len(non_integer_rows) > 0:
-            errors.append(LogicError(f"Non-integer values found in the following columns and rows: {non_integer_rows}", error_type=logging.WARNING))
+            errors.append(
+                LogicError(
+                    f"Non-integer values found in the following columns and rows: {non_integer_rows}",
+                    error_type=logging.WARNING,
+                )
+            )
 
         def check_all_integers_higher_than_one(df, columns):
             """
@@ -265,6 +275,11 @@ class SdrfDataFrame(pd.DataFrame):
 
         lower_than_one = check_all_integers_higher_than_one(self, columns_to_check)
         if len(lower_than_one) > 0:
-            errors.append(LogicError(f"Values lower than 1 found in the following columns and rows: {lower_than_one}", error_type=logging.WARNING))
+            errors.append(
+                LogicError(
+                    f"Values lower than 1 found in the following columns and rows: {lower_than_one}",
+                    error_type=logging.WARNING,
+                )
+            )
 
         return errors
