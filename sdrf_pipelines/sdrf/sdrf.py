@@ -21,11 +21,23 @@ from sdrf_pipelines.sdrf.sdrf_schema import vertebrates_chema
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
+def check_if_integer(x):
+    """
+    Check if value x from panda cell can be converted to an integer.
+    :param x: value to check
+    :return: True if x can be converted to an integer, False otherwise
+    """
+    try:
+        int(x)
+        return True
+    except ValueError:
+        return False
+
 class SdrfDataFrame(pd.DataFrame):
     @property
     def _constructor(self):
         """
-        This method is makes it so our methods return an instance
+        This method is making it so our methods return an instance
         :return:
         """
         return SdrfDataFrame
@@ -209,21 +221,19 @@ class SdrfDataFrame(pd.DataFrame):
 
         def check_integer_columns(df, columns):
             """
-            This method checks that all the values in the given columns are integers.
+            This method checks that all the values in the given columns are integers. Retrieve a dictionary with the
+            columns as keys and the list of row indexes that do not contain integer as values.
             :param df: The dataframe to check
             :param columns: The columns to check
             :return: A dataframe containing the rows that do not contain only integers in the specified columns
             """
-            # Initialize a boolean series that is True for all rows
-            all_integers = pd.Series([True] * len(df))
 
-            # Check each specified column
+            non_integer_rows = {}
             for column in columns:
                 # Check if the column contains only integers
-                all_integers &= df[column].apply(lambda x: isinstance(x, int))
-
-            # Return rows that do not meet the integer requirement
-            non_integer_rows = df[~all_integers]
+                non_integers = df[~df[column].apply(lambda x: check_if_integer(x))].index.tolist()
+                if non_integers:
+                    non_integer_rows[column] = non_integers
             return non_integer_rows
 
         # Specify the columns to check
@@ -232,27 +242,26 @@ class SdrfDataFrame(pd.DataFrame):
         # Find rows that do not contain only integers in the specified columns
         non_integer_rows = check_integer_columns(self, columns_to_check)
 
-        if not non_integer_rows.empty:
-            errors.append(LogicError(f"Non-integer values found in the following columns: {columns_to_check}", error_type=logging.WARNING))
+        if len(non_integer_rows) > 0:
+            errors.append(LogicError(f"Non-integer values found in the following columns and rows: {non_integer_rows}", error_type=logging.WARNING))
 
-        def check_all_integers_start_by_one(df, columns):
+        def check_all_integers_higher_than_one(df, columns):
             """
             This method check that all the values in the columns (if they are numbers) are higher than 0.
             :param df: The dataframe to check
             :param columns: The columns to check
             :return: A dataframe containing the rows that do not contain only integers in the specified columns
             """
-
-            all_integers = pd.Series([True] * len(df))
-
+            non_integer_rows = {}
             for column in columns:
-                all_integers &= df[column].apply(lambda x: isinstance(x, int) and x > 0)
-
-            non_integer_rows = df[~all_integers]
+                # Check if the column contains only integers
+                non_integers = df[~df[column].apply(lambda x: check_if_integer(x) and int(x) > 0)].index.tolist()
+                if non_integers:
+                    non_integer_rows[column] = non_integers
             return non_integer_rows
 
-        lower_than_one = check_all_integers_start_by_one(self, columns_to_check)
-        if not lower_than_one.empty:
-            errors.append(LogicError(f"Values lower than 1 found in the following columns: {columns_to_check}", error_type=logging.WARNING))
+        lower_than_one = check_all_integers_higher_than_one(self, columns_to_check)
+        if len(lower_than_one) > 0:
+            errors.append(LogicError(f"Values lower than 1 found in the following columns and rows: {lower_than_one}", error_type=logging.WARNING))
 
         return errors
