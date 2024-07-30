@@ -232,7 +232,7 @@ class SdrfDataFrame(pd.DataFrame):
             non_integer_rows = {}
             for column in columns:
                 # Check if the column contains only integers
-                non_integers = df[~df[column].apply(lambda x: check_if_integer(x))].index.tolist()
+                non_integers = df[~df[column].apply(check_if_integer)].index.tolist()
                 if non_integers:
                     non_integer_rows[column] = non_integers
             return non_integer_rows
