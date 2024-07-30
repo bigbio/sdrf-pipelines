@@ -239,6 +239,9 @@ class SdrfDataFrame(pd.DataFrame):
         # Specify the columns to check
         columns_to_check = ["comment[technical replicate]", "characteristics[biological replicate]", "comment[fraction identifier]"]
 
+        ## Remove columns that are not present in the dataframe
+        columns_to_check = [col for col in columns_to_check if col in self.columns]
+
         # Find rows that do not contain only integers in the specified columns
         non_integer_rows = check_integer_columns(self, columns_to_check)
 
