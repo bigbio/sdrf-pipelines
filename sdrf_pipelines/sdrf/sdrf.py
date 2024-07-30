@@ -135,6 +135,8 @@ class SdrfDataFrame(pd.DataFrame):
 
         errors = self.check_unique_sample_file_combinations(errors)
 
+        errors = self.check_accessions_conventions(errors)
+
         return errors
 
     def check_inconsistencies_assay_file(self, errors: List[LogicError]) -> List[LogicError]:
@@ -195,5 +197,62 @@ class SdrfDataFrame(pd.DataFrame):
         if duplicates.any():
             error_message = f"Duplicate samples found in the SDRF for the combinations of the following columns: {cols}"
             errors.append(LogicError(error_message, error_type=logging.ERROR))
+
+        return errors
+
+    def check_accessions_conventions(self, errors):
+        """
+        Check that the accessions in the SDRF follow the conventions for the different templates.
+        :return: A list of LogicError objects if the accessions do not follow the conventions, otherwise an empty list.
+        """
+        errors = []
+
+        def check_integer_columns(df, columns):
+            """
+            This method checks that all the values in the given columns are integers.
+            :param df: The dataframe to check
+            :param columns: The columns to check
+            :return: A dataframe containing the rows that do not contain only integers in the specified columns
+            """
+            # Initialize a boolean series that is True for all rows
+            all_integers = pd.Series([True] * len(df))
+
+            # Check each specified column
+            for column in columns:
+                # Check if the column contains only integers
+                all_integers &= df[column].apply(lambda x: isinstance(x, int))
+
+            # Return rows that do not meet the integer requirement
+            non_integer_rows = df[~all_integers]
+            return non_integer_rows
+
+        # Specify the columns to check
+        columns_to_check = ["comment[technical replicate]", "characteristics[biological replicate]", "comment[fraction identifier]"]
+
+        # Find rows that do not contain only integers in the specified columns
+        non_integer_rows = check_integer_columns(self, columns_to_check)
+
+        if not non_integer_rows.empty:
+            errors.append(LogicError(f"Non-integer values found in the following columns: {columns_to_check}", error_type=logging.WARNING))
+
+        def check_all_integers_start_by_one(df, columns):
+            """
+            This method check that all the values in the columns (if they are numbers) are higher than 0.
+            :param df: The dataframe to check
+            :param columns: The columns to check
+            :return: A dataframe containing the rows that do not contain only integers in the specified columns
+            """
+
+            all_integers = pd.Series([True] * len(df))
+
+            for column in columns:
+                all_integers &= df[column].apply(lambda x: isinstance(x, int) and x > 0)
+
+            non_integer_rows = df[~all_integers]
+            return non_integer_rows
+
+        lower_than_one = check_all_integers_start_by_one(self, columns_to_check)
+        if not lower_than_one.empty:
+            errors.append(LogicError(f"Values lower than 1 found in the following columns: {columns_to_check}", error_type=logging.WARNING))
 
         return errors
