@@ -39,7 +39,7 @@ jobs:
         conda activate sdrf-pipelines
         conda build recipe
         conda remove sdrf-pipelines --force
-        conda install --use-local /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/ sdrf-pipelines
+        conda install --use-local sdrf-pipelines
       shell: bash -l {0}
 
     - name: Test the installed package
