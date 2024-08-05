@@ -6,3 +6,5 @@ include LICENSE
 
 # Include the data files
 recursive-include sdrf_pipelines *.xml *.yml *.parquet
+recursive-include sdrf_pipelines *.parquet
+include sdrf_pipelines/ols/*.parquet
