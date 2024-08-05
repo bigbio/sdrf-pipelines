@@ -53,8 +53,14 @@ jobs:
         parse_sdrf --help
       shell: bash -l {0}
 
-    - name: Test other commands
+    - name: Test validation of SDRF file
       run: |
         conda activate sdrf-pipelines
         parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
+      shell: bash -l {0}
+
+    - name: Test validation of SDRF file with cache only
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
       shell: bash -l {0}
