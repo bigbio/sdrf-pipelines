@@ -92,6 +92,11 @@ class SDRFColumn(Column):
                 warnings.append(w)
         return warnings
 
+    def set_ols_strategy(self, use_ols_cache_only: bool = False):
+        for validation in self.validations:
+            if isinstance(validation, OntologyTerm):
+                validation.set_ols_strategy(use_ols_cache_only=use_ols_cache_only)
+
 
 class OntologyTerm(_SeriesValidation):
     """
@@ -100,6 +105,7 @@ class OntologyTerm(_SeriesValidation):
 
     def __init__(self, ontology_name: str = None, not_available: bool = False, not_applicable: bool = False, **kwargs):
         super().__init__(**kwargs)
+        self._use_ols_cache_only = False
         self._ontology_name = ontology_name
         self._not_available = not_available
         self._not_applicable = not_applicable
@@ -140,9 +146,16 @@ class OntologyTerm(_SeriesValidation):
                 ontology_terms = None
             else:
                 if self._ontology_name is not None:
-                    ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name, exact="true")
+                    ontology_terms = client.search(
+                        term[TERM_NAME],
+                        ontology=self._ontology_name,
+                        exact="true",
+                        use_ols_cache_only=self._use_ols_cache_only,
+                    )
                 else:
-                    ontology_terms = client.search(term[TERM_NAME], exact="true")
+                    ontology_terms = client.search(
+                        term=term[TERM_NAME], exact="true", use_cache_only=self._use_ols_cache_only
+                    )
 
             if ontology_terms is not None:
                 query_labels = [o["label"].lower() for o in ontology_terms]
@@ -153,6 +166,13 @@ class OntologyTerm(_SeriesValidation):
         if self._not_applicable:
             labels.append(NOT_APPLICABLE)
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+
+    def set_ols_strategy(self, use_ols_cache_only: bool = False):
+        """
+        Set the strategy to use the OLS cache only
+        :param use_ols_cache_only: boolean
+        """
+        self._use_ols_cache_only = use_ols_cache_only
 
 
 class SDRFSchema(Schema):
@@ -168,7 +188,7 @@ class SDRFSchema(Schema):
         obj._min_columns = min_columns
         return obj
 
-    def validate(self, panda_sdrf: sdrf = None) -> typing.List[LogicError]:
+    def validate(self, panda_sdrf: sdrf = None, use_ols_cache_only: bool = False) -> typing.List[LogicError]:
         errors = []
 
         # Check the minimum number of columns
@@ -195,7 +215,7 @@ class SDRFSchema(Schema):
             errors.extend(error_columns_order)
 
         # Check that the term is present in ontology
-        error_ontology_terms = self.validate_columns(panda_sdrf)
+        error_ontology_terms = self.validate_columns(panda_sdrf, use_ols_cache_only=use_ols_cache_only)
         if error_ontology_terms is not None:
             for error in error_ontology_terms:
                 errors.append(error)
@@ -301,10 +321,11 @@ class SDRFSchema(Schema):
                 column_pairs.append((panda_sdrf[column.name], column))
         return column_pairs, errors
 
-    def validate_columns(self, panda_sdrf):
+    def validate_columns(self, panda_sdrf, use_ols_cache_only: bool = False):
         # Iterate over each pair of schema columns and data frame series and run validations
         column_pairs, errors = self._get_column_pairs(panda_sdrf)
         for series, column in column_pairs:
+            column.set_ols_strategy(use_ols_cache_only=use_ols_cache_only)
             errors += column.validate(series)
         return sorted(errors, key=lambda e: e.row)
 
