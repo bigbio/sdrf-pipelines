@@ -38,12 +38,6 @@ jobs:
         source $CONDA/etc/profile.d/conda.sh
         conda activate sdrf-pipelines
         conda build recipe
-      shell: bash -l {0}
-
-    - name: Install the built package
-      run: |
-        source $CONDA/etc/profile.d/conda.sh
-        conda activate sdrf-pipelines
         conda install --use-local sdrf-pipelines
       shell: bash -l {0}
 
