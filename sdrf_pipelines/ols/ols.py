@@ -275,7 +275,7 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(self, term: str, ontology: str, exact=True, use_ols_cache_only: bool = False, **kwargs):
+    def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
         @:param term: The name of the term
