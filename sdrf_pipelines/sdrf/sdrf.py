@@ -69,27 +69,27 @@ class SdrfDataFrame(pd.DataFrame):
 
         return SdrfDataFrame(df)
 
-    def validate(self, template: str):
+    def validate(self, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
         """
         Validate a corresponding SDRF
         :return:
         """
         errors = []
         if template != MASS_SPECTROMETRY:
-            errors = default_schema.validate(self)
+            errors = default_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
 
         if template == HUMAN_TEMPLATE:
-            errors = errors + human_schema.validate(self)
+            errors = errors + human_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == VERTEBRATES_TEMPLATE:
-            errors = errors + vertebrates_chema.validate(self)
+            errors = errors + vertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == NON_VERTEBRATES_TEMPLATE:
-            errors = errors + nonvertebrates_chema.validate(self)
+            errors = errors + nonvertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == PLANTS_TEMPLATE:
-            errors = errors + plants_chema.validate(self)
+            errors = errors + plants_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == CELL_LINES_TEMPLATE:
-            errors = errors + cell_lines_schema.validate(self)
+            errors = errors + cell_lines_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == MASS_SPECTROMETRY:
-            errors = mass_spectrometry_schema.validate(self)
+            errors = mass_spectrometry_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
 
         return errors
 

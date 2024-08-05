@@ -275,16 +275,19 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(self, term: str, ontology: str, exact=True, **kwargs):
+    def search(self, term: str, ontology: str, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
         @:param term: The name of the term
         @:param ontology: The name of the ontology
         @:param exact: Forces exact match if not `None`
         """
-        terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-        if terms is None and self.use_cache:
+        if use_ols_cache_only:
             terms = self.cache_search(term, ontology)
+        else:
+            terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
+            if terms is None and self.use_cache:
+                terms = self.cache_search(term, ontology)
         return terms
 
     def _perform_ols_search(self, params, name, exact, retry_num=0):

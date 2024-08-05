@@ -156,7 +156,7 @@ def validate_sdrf(
     skip_ms_validation: bool,
     skip_factor_validation: bool,
     skip_experimental_design_validation: bool,
-    use_cache_only: bool,
+    use_ols_cache_only: bool,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
@@ -169,6 +169,7 @@ def validate_sdrf(
     @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
     @param skip_factor_validation: flag to skip the validation of factor values
     @param skip_experimental_design_validation: flag to skip the validation of experimental design
+    @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
     """
 
     if sdrf_file is None:
@@ -180,10 +181,10 @@ def validate_sdrf(
         template = DEFAULT_TEMPLATE
 
     df = SdrfDataFrame.parse(sdrf_file)
-    errors = df.validate(template)
+    errors = df.validate(template, use_ols_cache_only)
 
     if not skip_ms_validation:
-        errors = errors + df.validate(MASS_SPECTROMETRY)
+        errors = errors + df.validate(MASS_SPECTROMETRY, use_ols_cache_only)
 
     if not skip_factor_validation:
         errors = errors + df.validate_factor_values()
