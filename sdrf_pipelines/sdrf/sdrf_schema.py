@@ -154,7 +154,7 @@ class OntologyTerm(_SeriesValidation):
                     )
                 else:
                     ontology_terms = client.search(
-                        term = term[TERM_NAME], exact="true", use_cache_only=self._use_ols_cache_only
+                        term=term[TERM_NAME], exact="true", use_cache_only=self._use_ols_cache_only
                     )
 
             if ontology_terms is not None:
