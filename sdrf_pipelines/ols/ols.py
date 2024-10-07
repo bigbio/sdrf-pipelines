@@ -237,17 +237,17 @@ class OlsClient:
             df = pd.DataFrame(terms)
 
         # Convert to lowercase as needed
-        df['accession'] = df['accession'].str.lower()
-        df['label'] = df['label'].str.lower()
-        df['ontology'] = df['ontology'].str.lower()
+        df["accession"] = df["accession"].str.lower()
+        df["label"] = df["label"].str.lower()
+        df["ontology"] = df["ontology"].str.lower()
 
         # Enforce data types (schema)
-        df['accession'] = df['accession'].astype('string')  # Ensuring a string type
-        df['label'] = df['label'].astype('string')  # Ensuring a string type
-        df['ontology'] = df['ontology'].astype('string')  # Ensuring a string type
+        df["accession"] = df["accession"].astype("string")  # Ensuring a string type
+        df["label"] = df["label"].astype("string")  # Ensuring a string type
+        df["ontology"] = df["ontology"].astype("string")  # Ensuring a string type
 
         # Remove terms with no label or accession and print a warning
-        df = df.dropna(subset=['label', 'accession'])
+        df = df.dropna(subset=["label", "accession"])
         if df.empty:
             logger.warning("No terms found in %s", ontology_file)
             raise ValueError(f"No terms found in {ontology_file}")
@@ -436,7 +436,7 @@ class OlsClient:
                    FROM read_parquet(?) 
                    WHERE lower(CAST(label AS VARCHAR)) = lower(?) 
                      AND lower(CAST(ontology AS VARCHAR)) = lower(?)""",
-                (self.parquet_files, term, ontology)
+                (self.parquet_files, term, ontology),
             )
         else:
             # Query for case-insensitive search without ontology
@@ -446,7 +446,7 @@ class OlsClient:
                           CAST(ontology AS VARCHAR) AS ontology 
                    FROM read_parquet(?) 
                    WHERE lower(CAST(label AS VARCHAR)) = lower(?)""",
-                (self.parquet_files, term)
+                (self.parquet_files, term),
             )
         df = duckdb_conn.fetchdf()
 
