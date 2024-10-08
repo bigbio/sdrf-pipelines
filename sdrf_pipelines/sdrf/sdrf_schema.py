@@ -59,7 +59,7 @@ def ontology_term_parser(cell_value: str = None):
             value_terms = name.split("=", 1)
             if len(value_terms) == 1:
                 raise ValueError("Not a key-value pair: " + name)
-            if "=" in value_terms[1] and value_terms[0].lower() != 'cs':
+            if "=" in value_terms[1] and value_terms[0].lower() != "cs":
                 raise ValueError(
                     f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
                 )
