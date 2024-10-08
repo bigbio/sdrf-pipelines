@@ -12,3 +12,4 @@ defusedxml
 pyarrow
 duckdb
 rdflib
+setuptools
