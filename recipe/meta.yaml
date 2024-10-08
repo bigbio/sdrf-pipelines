@@ -17,6 +17,7 @@ requirements:
   host:
     - pip
     - python >=3.5
+    - setuptools
   run:
     - click
     - requests
@@ -29,7 +30,6 @@ requirements:
     - duckdb
     - rdflib
     - pyarrow
-    - setuptools
 
 test:
   imports:
