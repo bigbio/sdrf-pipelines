@@ -17,6 +17,8 @@ jobs:
 
       - name: Check code lints with Black
         uses: psf/black@stable
+        with:
+          use_pyproject: true
 
       # If the above check failed, post a comment on the PR explaining the failure
       - name: Post PR comment
