@@ -12,9 +12,11 @@ on:
 jobs:
   PythonBlack:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+    permissions:
+      pull-requests: write
 
+    steps:
+      - uses: actions/checkout@v4
       - name: Check code lints with Black
         uses: psf/black@stable
 
