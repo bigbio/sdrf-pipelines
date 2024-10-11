@@ -280,19 +280,31 @@ class SDRFSchema(Schema):
         error_columns_order = []
         if "assay name" in list(panda_sdrf):
             cnames = list(panda_sdrf)
-            index = cnames.index("assay name")
+            assay_index = cnames.index("assay name")
             factor_tag = False
-            for column in cnames:
-                if ("comment" in column or "technology type" in column) and cnames.index(column) < index:
-                    error_message = "The column " + column + "cannot be before the assay name"
-                    error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if (
-                    "characteristics" in column or ("material type" in column and "factor value" not in column)
-                ) and cnames.index(column) > index:
-                    error_message = "The column " + column + "cannot be after the assay name"
-                    error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
+            for idx, column in enumerate(cnames):
+                error_message, error_type = "", None
+                if idx < assay_index:
+                    if "comment" in column:
+                        error_message = "The column " + column + " cannot be before the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column:
+                        error_message = "The column " + column + " must be immediately after the assay name"
+                        if assay_index - idx > 1:
+                            error_type = logging.ERROR
+                        else:
+                            error_type = logging.WARNING
+                else:
+                    if "characteristics" in column or ("material type" in column and "factor value" not in column):
+                        error_message = "The column " + column + " cannot be after the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column and idx > assay_index + 1:
+                        error_message = "The column " + column + " must be immediately after the assay name"
+                        error_type = logging.ERROR
+                if error_type is not None:
+                    error_columns_order.append(LogicError(error_message, error_type=error_type))
                 if "factor value" in column and not factor_tag:
-                    factor_index = cnames.index(column)
+                    factor_index = idx
                     factor_tag = True
             if factor_tag:
                 temp = []
