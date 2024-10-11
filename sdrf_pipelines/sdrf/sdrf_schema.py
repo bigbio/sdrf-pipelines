@@ -283,7 +283,7 @@ class SDRFSchema(Schema):
             assay_index = cnames.index("assay name")
             factor_tag = False
             for idx, column in enumerate(cnames):
-                error_message, error_type = '', None
+                error_message, error_type = "", None
                 if idx < assay_index:
                     if "comment" in column:
                         error_message = "The column " + column + " cannot be before the assay name"
@@ -295,10 +295,7 @@ class SDRFSchema(Schema):
                         else:
                             error_type = logging.WARNING
                 else:
-                    if (
-                        "characteristics" in column
-                        or ("material type" in column and "factor value" not in column)
-                    ):
+                    if "characteristics" in column or ("material type" in column and "factor value" not in column):
                         error_message = "The column " + column + " cannot be after the assay name"
                         error_type = logging.ERROR
                     if "technology type" in column and idx > assay_index + 1:
