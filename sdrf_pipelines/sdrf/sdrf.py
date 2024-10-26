@@ -21,11 +21,24 @@ from sdrf_pipelines.sdrf.sdrf_schema import vertebrates_chema
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
+def check_if_integer(x):
+    """
+    Check if value x from panda cell can be converted to an integer.
+    :param x: value to check
+    :return: True if x can be converted to an integer, False otherwise
+    """
+    try:
+        int(x)
+        return True
+    except ValueError:
+        return False
+
+
 class SdrfDataFrame(pd.DataFrame):
     @property
     def _constructor(self):
         """
-        This method is makes it so our methods return an instance
+        This method is making it so our methods return an instance
         :return:
         """
         return SdrfDataFrame
@@ -56,27 +69,27 @@ class SdrfDataFrame(pd.DataFrame):
 
         return SdrfDataFrame(df)
 
-    def validate(self, template: str):
+    def validate(self, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
         """
         Validate a corresponding SDRF
         :return:
         """
         errors = []
         if template != MASS_SPECTROMETRY:
-            errors = default_schema.validate(self)
+            errors = default_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
 
         if template == HUMAN_TEMPLATE:
-            errors = errors + human_schema.validate(self)
+            errors = errors + human_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == VERTEBRATES_TEMPLATE:
-            errors = errors + vertebrates_chema.validate(self)
+            errors = errors + vertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == NON_VERTEBRATES_TEMPLATE:
-            errors = errors + nonvertebrates_chema.validate(self)
+            errors = errors + nonvertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == PLANTS_TEMPLATE:
-            errors = errors + plants_chema.validate(self)
+            errors = errors + plants_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == CELL_LINES_TEMPLATE:
-            errors = errors + cell_lines_schema.validate(self)
+            errors = errors + cell_lines_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
         elif template == MASS_SPECTROMETRY:
-            errors = mass_spectrometry_schema.validate(self)
+            errors = mass_spectrometry_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
 
         return errors
 
@@ -134,6 +147,8 @@ class SdrfDataFrame(pd.DataFrame):
         errors = self.check_inconsistencies_assay_file(errors)
 
         errors = self.check_unique_sample_file_combinations(errors)
+
+        errors = self.check_accessions_conventions(errors)
 
         return errors
 
@@ -195,5 +210,76 @@ class SdrfDataFrame(pd.DataFrame):
         if duplicates.any():
             error_message = f"Duplicate samples found in the SDRF for the combinations of the following columns: {cols}"
             errors.append(LogicError(error_message, error_type=logging.ERROR))
+
+        return errors
+
+    def check_accessions_conventions(self, errors):
+        """
+        Check that the accessions in the SDRF follow the conventions for the different templates.
+        :return: A list of LogicError objects if the accessions do not follow the conventions, otherwise an empty list.
+        """
+        errors = []
+
+        def check_integer_columns(df, columns):
+            """
+            This method checks that all the values in the given columns are integers. Retrieve a dictionary with the
+            columns as keys and the list of row indexes that do not contain integer as values.
+            :param df: The dataframe to check
+            :param columns: The columns to check
+            :return: A dataframe containing the rows that do not contain only integers in the specified columns
+            """
+
+            non_integer_rows = {}
+            for column in columns:
+                # Check if the column contains only integers
+                non_integers = df[~df[column].apply(check_if_integer)].index.tolist()
+                if non_integers:
+                    non_integer_rows[column] = non_integers
+            return non_integer_rows
+
+        # Specify the columns to check
+        columns_to_check = [
+            "comment[technical replicate]",
+            "characteristics[biological replicate]",
+            "comment[fraction identifier]",
+        ]
+
+        ## Remove columns that are not present in the dataframe
+        columns_to_check = [col for col in columns_to_check if col in self.columns]
+
+        # Find rows that do not contain only integers in the specified columns
+        non_integer_rows = check_integer_columns(self, columns_to_check)
+
+        if len(non_integer_rows) > 0:
+            errors.append(
+                LogicError(
+                    f"Non-integer values found in the following columns and rows: {non_integer_rows}",
+                    error_type=logging.WARNING,
+                )
+            )
+
+        def check_all_integers_higher_than_one(df, columns):
+            """
+            This method check that all the values in the columns (if they are numbers) are higher than 0.
+            :param df: The dataframe to check
+            :param columns: The columns to check
+            :return: A dataframe containing the rows that do not contain only integers in the specified columns
+            """
+            non_integer_rows = {}
+            for column in columns:
+                # Check if the column contains only integers
+                non_integers = df[~df[column].apply(lambda x: check_if_integer(x) and int(x) > 0)].index.tolist()
+                if non_integers:
+                    non_integer_rows[column] = non_integers
+            return non_integer_rows
+
+        lower_than_one = check_all_integers_higher_than_one(self, columns_to_check)
+        if len(lower_than_one) > 0:
+            errors.append(
+                LogicError(
+                    f"Values lower than 1 found in the following columns and rows: {lower_than_one}",
+                    error_type=logging.WARNING,
+                )
+            )
 
         return errors

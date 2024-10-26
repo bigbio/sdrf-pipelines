@@ -38,13 +38,8 @@ jobs:
         source $CONDA/etc/profile.d/conda.sh
         conda activate sdrf-pipelines
         conda build recipe
-      shell: bash -l {0}
-
-    - name: Install the built package
-      run: |
-        source $CONDA/etc/profile.d/conda.sh
-        conda activate sdrf-pipelines
-        conda install --use-local sdrf-pipelines
+        PACKAGE_PATH=$(find /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/noarch/ -name "sdrf-pipelines-*.tar.bz2" | head -n 1)
+        conda install --offline "$PACKAGE_PATH"
       shell: bash -l {0}
 
     - name: Test the installed package
@@ -53,8 +48,14 @@ jobs:
         parse_sdrf --help
       shell: bash -l {0}
 
-    - name: Test other commands
+    - name: Test validation of SDRF file
       run: |
         conda activate sdrf-pipelines
-        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --check_ms
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
+      shell: bash -l {0}
+
+    - name: Test validation of SDRF file with cache only
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
       shell: bash -l {0}

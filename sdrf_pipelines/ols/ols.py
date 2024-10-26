@@ -236,7 +236,24 @@ class OlsClient:
             terms = [term for term in terms if "label" in term]
             df = pd.DataFrame(terms)
 
-        df.to_parquet(output_file, compression="gzip")
+        # Convert to lowercase as needed
+        df["accession"] = df["accession"].str.lower()
+        df["label"] = df["label"].str.lower()
+        df["ontology"] = df["ontology"].str.lower()
+
+        # Enforce data types (schema)
+        df["accession"] = df["accession"].astype("string")  # Ensuring a string type
+        df["label"] = df["label"].astype("string")  # Ensuring a string type
+        df["ontology"] = df["ontology"].astype("string")  # Ensuring a string type
+
+        # Remove terms with no label or accession and print a warning
+        df = df.dropna(subset=["label", "accession"])
+        if df.empty:
+            logger.warning("No terms found in %s", ontology_file)
+            raise ValueError(f"No terms found in {ontology_file}")
+        logger.info("Terms found in %s: %s", ontology_file, len(df))
+
+        df.to_parquet(output_file, compression="gzip", index=False)
         logger.info("Index has finished, output file: %s", output_file)
 
     def besthit(self, name, **kwargs):
@@ -275,16 +292,19 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(self, term: str, ontology: str, exact=True, **kwargs):
+    def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
         @:param term: The name of the term
         @:param ontology: The name of the ontology
         @:param exact: Forces exact match if not `None`
         """
-        terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-        if terms is None and self.use_cache:
+        if use_ols_cache_only:
             terms = self.cache_search(term, ontology)
+        else:
+            terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
+            if terms is None and self.use_cache:
+                terms = self.cache_search(term, ontology)
         return terms
 
     def _perform_ols_search(self, params, name, exact, retry_num=0):
@@ -408,13 +428,25 @@ class OlsClient:
             return []
 
         if ontology is not None:
+            # Query for case-insensitive search and ensure all fields are cast to string
             duckdb_conn = duckdb.execute(
-                """SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?) AND lower(ontology) = lower(?)""",
+                """SELECT CAST(accession AS VARCHAR) AS accession, 
+                          CAST(label AS VARCHAR) AS label, 
+                          CAST(ontology AS VARCHAR) AS ontology 
+                   FROM read_parquet(?) 
+                   WHERE lower(CAST(label AS VARCHAR)) = lower(?) 
+                     AND lower(CAST(ontology AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term, ontology),
             )
         else:
+            # Query for case-insensitive search without ontology
             duckdb_conn = duckdb.execute(
-                """SELECT * FROM read_parquet(?) WHERE lower(label) = lower(?)""", (self.parquet_files, term)
+                """SELECT CAST(accession AS VARCHAR) AS accession, 
+                          CAST(label AS VARCHAR) AS label, 
+                          CAST(ontology AS VARCHAR) AS ontology 
+                   FROM read_parquet(?) 
+                   WHERE lower(CAST(label AS VARCHAR)) = lower(?)""",
+                (self.parquet_files, term),
             )
         df = duckdb_conn.fetchdf()
 

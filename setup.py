@@ -34,6 +34,7 @@ setup(
     data_files=[("", ["LICENSE", "sdrf_pipelines/openms/unimod.xml", "sdrf_pipelines/sdrf_merge/param2sdrf.yml"])],
     package_data={
         "sdrf-pipelines": ["*.xml", "*.parquet", "*.yml"],
+        "sdrf_pipelines": ["*.xml", "*.parquet", "*.yml"],
     },
     url="https://github.com/bigbio/sdrf-pipelines",
     packages=find_packages(),
@@ -48,6 +49,7 @@ setup(
         "pyarrow",
         "duckdb",
         "rdflib",
+        "setuptools",
     ],
     entry_points={"console_scripts": ["parse_sdrf = sdrf_pipelines.parse_sdrf:main"]},
     platforms=["any"],
