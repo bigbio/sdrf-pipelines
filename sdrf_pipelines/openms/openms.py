@@ -42,8 +42,9 @@ def get_openms_file_name(raw, extension_convert: str = None):
         # This is a backport of the function, remove it and use the
         # built-in function when we drop support for python 3.8
         # https://peps.python.org/pep-0616/
-        if suffix and x.endswith(suffix):
-            return x[: -len(suffix)]
+        if suffix and x.lower().endswith(suffix.lower()):
+            res = re.sub(suffix + "$", "", x, flags=re.I)
+            return res
         else:
             return x[:]
 
@@ -59,7 +60,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     raw_bkp = raw
     for current_extension, target_extension in extension_convert_dict.items():
-        if raw.endswith(current_extension):
+        if raw.lower().endswith(current_extension.lower()):
             raw = _removesuffix(raw, current_extension)
             raw += target_extension
             if not any(raw.endswith(x) for x in possible_extension):
