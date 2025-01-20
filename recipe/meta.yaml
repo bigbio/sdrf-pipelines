@@ -30,6 +30,7 @@ requirements:
     - duckdb
     - rdflib
     - pyarrow
+    - setuptools
 
 test:
   imports:
