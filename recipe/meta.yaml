@@ -16,20 +16,21 @@ build:
 requirements:
   host:
     - pip
-    - python >=3.5
+    - python >=3.10
     - setuptools
   run:
     - click
     - requests
     - pandas
     - pandas_schema
-    - python >=3.5
+    - python >=3.10
     - pyaml
     - defusedxml
     - pytest
     - duckdb
     - rdflib
     - pyarrow
+    - setuptools
 
 test:
   imports:
