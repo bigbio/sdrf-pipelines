@@ -27,10 +27,13 @@ jobs:
         run: |
           conda install conda-build conda-verify anaconda-client
 
-      - name: Build the package and install it
+      - name: Build the sdrf-pipelines package
+        run: |
+          conda build --no-anaconda-upload --package-format .tar.bz2 recipe
+
+      - name: Install the package
         run: |
           PACKAGE_PATH=$(conda build --package-format .tar.bz2 --output recipe)
-          conda build --no-anaconda-upload --package-format .tar.bz2 recipe
           conda install --offline "$PACKAGE_PATH"
 
       - name: Test install
