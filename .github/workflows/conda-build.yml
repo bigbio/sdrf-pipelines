@@ -38,7 +38,7 @@ jobs:
         run: |
           source $CONDA/etc/profile.d/conda.sh
           conda activate sdrf-pipelines
-          conda build --package-format .tar.bz2 recipe
+          conda build --no-anaconda-upload --package-format .tar.bz2 recipe
           PACKAGE_PATH=$(find /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/noarch/ -name "sdrf-pipelines-*.tar.bz2" | head -n 1)
           conda install --offline "$PACKAGE_PATH"
 
