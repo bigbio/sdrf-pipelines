@@ -16,43 +16,31 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
+          activate-environment: sdrf-pipelines
+          environment-file: environment.yml
+          auto-activate-base: false
           auto-update-conda: true
           python-version: '3.10'
-          channels: conda-forge,defaults,bioconda
-
-      - name: Create conda environment
-        run: conda env create -f environment.yml
-
-      - name: Activate conda environment
-        run: |
-          source $CONDA/etc/profile.d/conda.sh
-          conda activate sdrf-pipelines
+          channels: conda-forge,bioconda,defaults
 
       - name: Install conda-build
         run: |
-          source $CONDA/etc/profile.d/conda.sh
-          conda activate sdrf-pipelines
-          conda install -n sdrf-pipelines conda-build anaconda-client
+          conda install conda-build anaconda-client
 
       - name: Activate conda environment and build package
         run: |
-          source $CONDA/etc/profile.d/conda.sh
-          conda activate sdrf-pipelines
           conda build --no-anaconda-upload --package-format .tar.bz2 recipe
           PACKAGE_PATH=$(find /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/noarch/ -name "sdrf-pipelines-*.tar.bz2" | head -n 1)
           conda install --offline "$PACKAGE_PATH"
 
       - name: Test the installed package
         run: |
-          conda activate sdrf-pipelines
           parse_sdrf --help
 
       - name: Test validation of SDRF file
         run: |
-          conda activate sdrf-pipelines
           parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
 
       - name: Test validation of SDRF file with cache only
         run: |
-          conda activate sdrf-pipelines
           parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
