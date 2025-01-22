@@ -29,7 +29,7 @@ jobs:
 
       - name: Build the sdrf-pipelines package
         run: |
-          conda build --no-anaconda-upload --package-format .tar.bz2 recipe
+          conda build --package-format .tar.bz2 recipe
 
       - name: Install the package
         run: |
