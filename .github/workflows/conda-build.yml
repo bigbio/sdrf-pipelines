@@ -19,6 +19,8 @@ jobs:
           "Compare the version numers from the package and the conda recipe."
 
           # collect the package version
+          import sys
+          sys.path.append("/home/runner/work/sdrf-pipelines/sdrf-pipelines")
           import sdrf_pipelines
           package_version = sdrf_pipelines.__version__
 
