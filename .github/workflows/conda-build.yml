@@ -13,6 +13,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check version number consistency
+        shell: python {0}
+        run: |
+          "Compare the version numers from the package and the conda recipe."
+
+          # collect the package version
+          import sys
+          sys.path.append("/home/runner/work/sdrf-pipelines/sdrf-pipelines")
+          import sdrf_pipelines
+          package_version = sdrf_pipelines.__version__
+
+          # collect the version from the conda recipe
+          with open("./recipe/meta.yaml", encoding="utf-8") as f:
+              for line in f.readlines():
+                  if line.startswith("  version: "):
+                      recipe_version = line.lstrip("  version:").strip().strip('"')
+                      break
+
+          if package_version == recipe_version:
+              print(f"The package and recipe versions are consistent: {package_version}")
+          else:
+              raise ValueError(
+                  "ERROR: The versions are inconsistent."
+                  f"\nVersion in ./sdrf_pipelines/__init__.py: {package_version}"
+                  f"\nVersion in ./recipe/meta.yaml:           {recipe_version}"
+                  )
+
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -29,7 +56,7 @@ jobs:
 
       - name: Build the sdrf-pipelines package
         run: |
-          conda build --no-anaconda-upload --package-format .tar.bz2 recipe
+          conda build --package-format .tar.bz2 recipe
 
       - name: Install the package
         run: |
