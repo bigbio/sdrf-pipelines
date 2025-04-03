@@ -1,9 +1,12 @@
+import logging
 import re
 from collections import Counter
 
 import pandas as pd
 
 from sdrf_pipelines.openms.unimod import UnimodDatabase
+
+logger = logging.getLogger(__name__)
 
 # example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
@@ -306,8 +309,16 @@ class OpenMS:
                 source_name_list.append(source_name)
 
             if "comment[precursor mass tolerance]" in row:
-                pc_tol_str = row["comment[precursor mass tolerance]"]
-                if "ppm" in pc_tol_str or "Da" in pc_tol_str:
+                pc_tol_str = row["comment[precursor mass tolerance]"].strip()
+                if "ppm" in pc_tol_str:
+                    # ! move to function to avoid repeated code, and make check extendiable
+                    pc_tmp = pc_tol_str.split('ppm')[0]
+                    if not ' ppm' in pc_tol_str:
+                        msg = f'Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {pc_tmp} ppm'
+                        logger.warning(msg)
+                    f2c.file2pctol[raw] = pc_tmp
+                    f2c.file2pctolunit[raw] = "ppm"
+                elif "Da" in pc_tol_str:
                     pc_tmp = pc_tol_str.split(" ")
                     f2c.file2pctol[raw] = pc_tmp[0]
                     f2c.file2pctolunit[raw] = pc_tmp[1]
@@ -324,7 +335,7 @@ class OpenMS:
 
             if "comment[fragment mass tolerance]" in row:
                 f_tol_str = row["comment[fragment mass tolerance]"]
-                f_tol_str.replace("PPM", "ppm")  # workaround
+                f_tol_str.replace("PPM", "ppm")  # workaround # ? lower?
                 if "ppm" in f_tol_str or "Da" in f_tol_str:
                     f_tmp = f_tol_str.split(" ")
                     f2c.file2fragtol[raw] = f_tmp[0]
