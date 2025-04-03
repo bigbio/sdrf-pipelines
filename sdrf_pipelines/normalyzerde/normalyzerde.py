@@ -25,7 +25,6 @@ class NormalyzerDE:
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
         data = {}
         condition = []
-        replicates = []
         runs = sdrf["comment[data file]"].tolist()
         source_names = sdrf["source name"].tolist()
 

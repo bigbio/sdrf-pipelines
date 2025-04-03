@@ -13,6 +13,7 @@ from sdrf_pipelines import __version__
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
+from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES
@@ -136,22 +137,60 @@ def maxquant_from_sdrf(
     required=False,
 )
 @click.option(
-    "--check_ms", help="check mass spectrometry fields in SDRF (e.g. postranslational modifications)", is_flag=True
+    "--skip_ms_validation",
+    help="Disable the validation of mass spectrometry fields in SDRF (e.g. posttranslational modifications)",
+    is_flag=True,
+)
+@click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
+@click.option(
+    "--skip_experimental_design_validation", help="Disable the validation of experimental design", is_flag=True
+)
+@click.option(
+    "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
 )
 @click.pass_context
-def validate_sdrf(ctx, sdrf_file: str, template: str, check_ms):
+def validate_sdrf(
+    ctx,
+    sdrf_file: str,
+    template: str,
+    skip_ms_validation: bool,
+    skip_factor_validation: bool,
+    skip_experimental_design_validation: bool,
+    use_ols_cache_only: bool,
+):
+    """
+    Command to validate the SDRF file. The validation is based on the template provided by the user.
+    User can select the template to be used for validation. If no template is provided, the default template will be used.
+    Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
+    the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
+
+    @param sdrf_file: SDRF file to be validated
+    @param template: template to be used for a validation
+    @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
+    @param skip_factor_validation: flag to skip the validation of factor values
+    @param skip_experimental_design_validation: flag to skip the validation of experimental design
+    @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
+    """
+
     if sdrf_file is None:
         msg = "The config file for the pipeline is missing, please provide one "
         logging.error(msg)
         raise AppConfigException(msg)
+
     if template is None:
         template = DEFAULT_TEMPLATE
 
     df = SdrfDataFrame.parse(sdrf_file)
-    errors = df.validate(template)
+    errors = df.validate(template, use_ols_cache_only)
 
-    if check_ms:
-        errors = errors + df.validate(MASS_SPECTROMETRY)
+    if not skip_ms_validation:
+        errors = errors + df.validate(MASS_SPECTROMETRY, use_ols_cache_only)
+
+    if not skip_factor_validation:
+        errors = errors + df.validate_factor_values()
+
+    if not skip_experimental_design_validation:
+        errors = errors + df.validate_experimental_design()
 
     for error in errors:
         print(error)
@@ -226,12 +265,27 @@ def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcom
     )
 
 
+@click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
+@click.option("--ontology", "-in", help="ontology file")
+@click.option("--index", "-out", help="Output file in parquet format")
+@click.option("--ontology_name", "-name", help="ontology name")
+@click.pass_context
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
+    ols_client = OlsClient()
+
+    if ontology.lower().endswith(".owl") and ontology_name is None:
+        raise ValueError("Please provide the ontology name for the owl file")
+
+    ols_client.build_ontology_index(ontology, index, ontology_name)
+
+
 cli.add_command(validate_sdrf)
 cli.add_command(openms_from_sdrf)
 cli.add_command(maxquant_from_sdrf)
 cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
 cli.add_command(normalyzerde_from_sdrf)
+cli.add_command(build_index_ontology)
 
 
 def main():

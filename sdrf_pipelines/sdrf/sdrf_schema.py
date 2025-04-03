@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 import typing
 from typing import Any
 
@@ -12,9 +13,9 @@ from pandas_schema.validation import TrailingWhitespaceValidation
 from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import _SeriesValidation
 
+from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf import sdrf
 from sdrf_pipelines.utils.exceptions import LogicError
-from sdrf_pipelines.zooma.ols import OlsClient
 
 client = OlsClient()
 
@@ -55,24 +56,26 @@ def ontology_term_parser(cell_value: str = None):
         term[TERM_NAME] = values[0].lower()
     else:
         for name in values:
-            value_terms = name.split("=")
-            if len(value_terms) == 2:
-                term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
-            else:
+            value_terms = name.split("=", 1)
+            if len(value_terms) == 1:
+                raise ValueError("Not a key-value pair: " + name)
+            if "=" in value_terms[1] and value_terms[0].lower() != "cs":
                 raise ValueError(
                     f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
                 )
+            term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
+
     return term
 
 
 class SDRFColumn(Column):
     def __init__(
-            self,
-            name: str,
-            validations: typing.Iterable["_BaseValidation"] = None,
-            optional_validations: typing.Iterable["_BaseValidation"] = None,
-            allow_empty=False,
-            optional_type=True,
+        self,
+        name: str,
+        validations: typing.Iterable["_BaseValidation"] = None,
+        optional_validations: typing.Iterable["_BaseValidation"] = None,
+        allow_empty=False,
+        optional_type=True,
     ):
         if validations is None:
             validations = []
@@ -91,6 +94,11 @@ class SDRFColumn(Column):
                 warnings.append(w)
         return warnings
 
+    def set_ols_strategy(self, use_ols_cache_only: bool = False):
+        for validation in self.validations:
+            if isinstance(validation, OntologyTerm):
+                validation.set_ols_strategy(use_ols_cache_only=use_ols_cache_only)
+
 
 class OntologyTerm(_SeriesValidation):
     """
@@ -99,6 +107,7 @@ class OntologyTerm(_SeriesValidation):
 
     def __init__(self, ontology_name: str = None, not_available: bool = False, not_applicable: bool = False, **kwargs):
         super().__init__(**kwargs)
+        self._use_ols_cache_only = False
         self._ontology_name = ontology_name
         self._not_available = not_available
         self._not_applicable = not_applicable
@@ -139,9 +148,16 @@ class OntologyTerm(_SeriesValidation):
                 ontology_terms = None
             else:
                 if self._ontology_name is not None:
-                    ontology_terms = client.search(term[TERM_NAME], ontology=self._ontology_name, exact="true")
+                    ontology_terms = client.search(
+                        term[TERM_NAME],
+                        ontology=self._ontology_name,
+                        exact="true",
+                        use_ols_cache_only=self._use_ols_cache_only,
+                    )
                 else:
-                    ontology_terms = client.search(term[TERM_NAME], exact="true")
+                    ontology_terms = client.search(
+                        term=term[TERM_NAME], exact="true", use_cache_only=self._use_ols_cache_only
+                    )
 
             if ontology_terms is not None:
                 query_labels = [o["label"].lower() for o in ontology_terms]
@@ -152,6 +168,13 @@ class OntologyTerm(_SeriesValidation):
         if self._not_applicable:
             labels.append(NOT_APPLICABLE)
         return series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+
+    def set_ols_strategy(self, use_ols_cache_only: bool = False):
+        """
+        Set the strategy to use the OLS cache only
+        :param use_ols_cache_only: boolean
+        """
+        self._use_ols_cache_only = use_ols_cache_only
 
 
 class SDRFSchema(Schema):
@@ -167,7 +190,7 @@ class SDRFSchema(Schema):
         obj._min_columns = min_columns
         return obj
 
-    def validate(self, panda_sdrf: sdrf = None) -> typing.List[LogicError]:
+    def validate(self, panda_sdrf: sdrf = None, use_ols_cache_only: bool = False) -> typing.List[LogicError]:
         errors = []
 
         # Check the minimum number of columns
@@ -194,7 +217,7 @@ class SDRFSchema(Schema):
             errors.extend(error_columns_order)
 
         # Check that the term is present in ontology
-        error_ontology_terms = self.validate_columns(panda_sdrf)
+        error_ontology_terms = self.validate_columns(panda_sdrf, use_ols_cache_only=use_ols_cache_only)
         if error_ontology_terms is not None:
             for error in error_ontology_terms:
                 errors.append(error)
@@ -222,9 +245,9 @@ class SDRFSchema(Schema):
                 errors.append(cname)
             elif m.group().startswith("factor value"):
                 if (
-                        m.group().replace("factor value", "comment") not in panda_sdrf.columns
-                        and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
-                        and m.group() not in panda_sdrf.columns
+                    m.group().replace("factor value", "comment") not in panda_sdrf.columns
+                    and m.group().replace("factor value", "characteristics") not in panda_sdrf.columns
+                    and m.group() not in panda_sdrf.columns
                 ):
                     error_message = "The " + cname + " column should also be in the characteristics or comment"
                     logerror.append(LogicError(error_message, error_type=logging.ERROR))
@@ -257,19 +280,31 @@ class SDRFSchema(Schema):
         error_columns_order = []
         if "assay name" in list(panda_sdrf):
             cnames = list(panda_sdrf)
-            index = cnames.index("assay name")
+            assay_index = cnames.index("assay name")
             factor_tag = False
-            for column in cnames:
-                if ("comment" in column or "technology type" in column) and cnames.index(column) < index:
-                    error_message = "The column " + column + "cannot be before the assay name"
-                    error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
-                if (
-                        "characteristics" in column or ("material type" in column and "factor value" not in column)
-                ) and cnames.index(column) > index:
-                    error_message = "The column " + column + "cannot be after the assay name"
-                    error_columns_order.append(LogicError(error_message, error_type=logging.ERROR))
+            for idx, column in enumerate(cnames):
+                error_message, error_type = "", None
+                if idx < assay_index:
+                    if "comment" in column:
+                        error_message = "The column " + column + " cannot be before the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column:
+                        error_message = "The column " + column + " must be immediately after the assay name"
+                        if assay_index - idx > 1:
+                            error_type = logging.ERROR
+                        else:
+                            error_type = logging.WARNING
+                else:
+                    if "characteristics" in column or ("material type" in column and "factor value" not in column):
+                        error_message = "The column " + column + " cannot be after the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column and idx > assay_index + 1:
+                        error_message = "The column " + column + " must be immediately after the assay name"
+                        error_type = logging.ERROR
+                if error_type is not None:
+                    error_columns_order.append(LogicError(error_message, error_type=error_type))
                 if "factor value" in column and not factor_tag:
-                    factor_index = cnames.index(column)
+                    factor_index = idx
                     factor_tag = True
             if factor_tag:
                 temp = []
@@ -300,10 +335,11 @@ class SDRFSchema(Schema):
                 column_pairs.append((panda_sdrf[column.name], column))
         return column_pairs, errors
 
-    def validate_columns(self, panda_sdrf):
+    def validate_columns(self, panda_sdrf, use_ols_cache_only: bool = False):
         # Iterate over each pair of schema columns and data frame series and run validations
         column_pairs, errors = self._get_column_pairs(panda_sdrf)
         for series, column in column_pairs:
+            column.set_ols_strategy(use_ols_cache_only=use_ols_cache_only)
             errors += column.validate(series)
         return sorted(errors, key=lambda e: e.row)
 
@@ -325,12 +361,15 @@ class SDRFSchema(Schema):
         def validate_string(cell_value):
             return cell_value is not None and cell_value != "nan" and len(cell_value.strip()) > 0
 
-        # Apply the validation function element-wise
         validation_results = panda_sdrf.map(validate_string)
 
         # Get the indices where the validation fails
-        failed_indices = [(row, col) for row in validation_results.index for col in validation_results.columns if
-                          not validation_results.at[row, col]]
+        failed_indices = [
+            (row, col)
+            for row in validation_results.index
+            for col in validation_results.columns
+            if not validation_results.at[row, col]
+        ]
 
         for row, col in failed_indices:
             message = f"Empty value found Row: {row}, Column: {col}"
