@@ -42,8 +42,9 @@ def get_openms_file_name(raw, extension_convert: str = None):
         # This is a backport of the function, remove it and use the
         # built-in function when we drop support for python 3.8
         # https://peps.python.org/pep-0616/
-        if suffix and x.endswith(suffix):
-            return x[: -len(suffix)]
+        if suffix and x.lower().endswith(suffix.lower()):
+            res = re.sub(suffix + "$", "", x, flags=re.I)
+            return res
         else:
             return x[:]
 
@@ -59,7 +60,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     raw_bkp = raw
     for current_extension, target_extension in extension_convert_dict.items():
-        if raw.endswith(current_extension):
+        if raw.lower().endswith(current_extension.lower()):
             raw = _removesuffix(raw, current_extension)
             raw += target_extension
             if not any(raw.endswith(x) for x in possible_extension):
@@ -78,6 +79,26 @@ class OpenMS:
         super().__init__()
         self.warnings = {}
         self._unimod_database = UnimodDatabase()
+        self.tmt18plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131N": 10,
+            "TMT131C": 11,
+            "TMT132N": 12,
+            "TMT132C": 13,
+            "TMT133N": 14,
+            "TMT133C": 15,
+            "TMT134N": 16,
+            "TMT134C": 17,
+            "TMT135N": 18
+        }
         self.tmt16plex = {
             "TMT126": 1,
             "TMT127N": 2,
@@ -599,7 +620,9 @@ class OpenMS:
             if "label free sample" in label:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
-                if (
+                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                    choice = self.tmt18plex
+                elif (
                     len(label) > 11
                     or "TMT134N" in label
                     or "TMT133C" in label
@@ -852,7 +875,9 @@ class OpenMS:
                 label = "1"
 
             elif "TMT" in ",".join(file2label[raw]):
-                if (
+                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                    choice = self.tmt18plex
+                elif (
                     len(label) > 11
                     or "TMT134N" in label
                     or "TMT133C" in label
@@ -1001,6 +1026,7 @@ class OpenMS:
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
+            "tmt18plex": ["TMTpro (K)", "TMTpro (N-term)"]  # https://www.unimod.org/modifications_view.php?editid1=2016
         }
         ITRAQ_mod = {
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
@@ -1026,7 +1052,9 @@ class OpenMS:
             raws.append(raw)
             labels = f2c.file2label[raw]
             if "TMT" in ",".join(labels):
-                if (
+                if len(labels) > 16 or "TMT134C" in labels or "TMT135N" in labels:
+                    label = "tmt18plex"
+                elif (
                     len(labels) > 11
                     or "TMT134N" in labels
                     or "TMT133C" in labels
