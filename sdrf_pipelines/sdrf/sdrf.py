@@ -218,7 +218,12 @@ class SdrfDataFrame(BaseModel):
                         field_name = error["loc"][0]
                         sdrf_name_field = next((field for field in schema.fields if field.name == field_name), None)
                         if sdrf_name_field is not None:
-                           errors.append(LogicError(f"The following field, {sdrf_name_field.description} is required, use the column {sdrf_name_field.sdrf_name}", error_type=logging.ERROR))
+                            errors.append(
+                                LogicError(
+                                    f"The following field, {sdrf_name_field.description} is required, use the column {sdrf_name_field.sdrf_name}",
+                                    error_type=logging.ERROR,
+                                )
+                            )
                     else:
                         errors.append(LogicError(f"Error validating row {i}: {str(e)}", error_type=logging.ERROR))
             except Exception as e:

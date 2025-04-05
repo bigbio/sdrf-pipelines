@@ -63,21 +63,21 @@ def test_record_conversion():
     assert isinstance(records[0], DefaultRecord)
 
     # Check that the record has the right values
-    assert records[0].source_name == 'sample 1'
-    assert records[0].characteristics_organism == 'homo sapiens'
-    assert records[0].characteristics_organism_part == 'liver'
-    assert records[0].characteristics_disease == 'normal'
-    assert records[0].characteristics_cell_type == 'hepatocyte'
-    assert records[0].characteristics_biological_replicate == '1'
-    assert records[0].assay_name == 'run 1'
-    assert records[0].comment_technical_replicate == '1'
-    assert records[0].comment_fraction_identifier == '1'
-    assert records[0].comment_data_file == 'file1.raw'
+    assert records[0].source_name == "sample 1"
+    assert records[0].characteristics_organism == "homo sapiens"
+    assert records[0].characteristics_organism_part == "liver"
+    assert records[0].characteristics_disease == "normal"
+    assert records[0].characteristics_cell_type == "hepatocyte"
+    assert records[0].characteristics_biological_replicate == "1"
+    assert records[0].assay_name == "run 1"
+    assert records[0].comment_technical_replicate == "1"
+    assert records[0].comment_fraction_identifier == "1"
+    assert records[0].comment_data_file == "file1.raw"
 
-    #Convert back to DataFrame
+    # Convert back to DataFrame
     sdrf2 = SdrfDataFrame.from_records(records)
 
-    #Check that the columns are the same
+    # Check that the columns are the same
     assert set(sdrf2.get_sdrf_columns()) == set(test_df.columns)
 
 

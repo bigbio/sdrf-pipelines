@@ -12,7 +12,7 @@ class AppException(Exception):
 __all__ = ["LogicError"]
 
 
-class LogicError():
+class LogicError:
     def __init__(self, message: str, error_type: logging = None):
         self._error_type = error_type
         self.message = message
@@ -23,8 +23,7 @@ class LogicError():
     def __eq__(self, other):
         if not isinstance(other, LogicError):
             return False
-        return (self.message == other.message and
-                self._error_type == other._error_type)
+        return self.message == other.message and self._error_type == other._error_type
 
     def __hash__(self):
         return hash((self.message, self._error_type))
