@@ -6,7 +6,7 @@ fields:
 - name: characteristics_cell_line
   sdrf_name: characteristics[cell line]
   description: Cell line
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}

@@ -6,14 +6,14 @@ fields:
 - name: characteristics_ancestry_category
   sdrf_name: characteristics[ancestry category]
   description: Ancestry category
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_age
   sdrf_name: characteristics[age]
   description: Age
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
@@ -24,21 +24,21 @@ fields:
 - name: characteristics_sex
   sdrf_name: characteristics[sex]
   description: Sex
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_developmental_stage
   sdrf_name: characteristics[developmental stage]
   description: Developmental stage
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_individual
   sdrf_name: characteristics[individual]
   description: Individual
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}

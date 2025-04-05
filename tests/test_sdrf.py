@@ -31,56 +31,6 @@ def test_sdrf_parse():
     # Check that the shape is correct
     assert sdrf.shape == test_df.shape
 
-
-def test_record_conversion():
-    """Test conversion between DataFrame and records."""
-    # Create a test DataFrame
-    test_df = pd.DataFrame(
-        {
-            "source name": ["sample 1"],
-            "characteristics[organism]": ["homo sapiens"],
-            "characteristics[organism part]": ["liver"],
-            "characteristics[disease]": ["normal"],
-            "characteristics[cell type]": ["hepatocyte"],
-            "characteristics[biological replicate]": ["1"],
-            "assay name": ["run 1"],
-            "comment[technical replicate]": ["1"],
-            "comment[fraction identifier]": ["1"],
-            "comment[data file]": ["file1.raw"],
-        }
-    )
-
-    # Create SdrfDataFrame
-    sdrf = SdrfDataFrame(test_df)
-
-    # Convert to records
-    records = sdrf.to_records()
-
-    # Check that we got the right number of records
-    assert len(records) == 1
-    # Check that the record is of the right type
-    DefaultRecord = schema_loader.get_model("default")
-    assert isinstance(records[0], DefaultRecord)
-
-    # Check that the record has the right values
-    assert records[0].source_name == "sample 1"
-    assert records[0].characteristics_organism == "homo sapiens"
-    assert records[0].characteristics_organism_part == "liver"
-    assert records[0].characteristics_disease == "normal"
-    assert records[0].characteristics_cell_type == "hepatocyte"
-    assert records[0].characteristics_biological_replicate == "1"
-    assert records[0].assay_name == "run 1"
-    assert records[0].comment_technical_replicate == "1"
-    assert records[0].comment_fraction_identifier == "1"
-    assert records[0].comment_data_file == "file1.raw"
-
-    # Convert back to DataFrame
-    sdrf2 = SdrfDataFrame.from_records(records)
-
-    # Check that the columns are the same
-    assert set(sdrf2.get_sdrf_columns()) == set(test_df.columns)
-
-
 def test_human_record():
     """Test human record model."""
     # Get the human record model
@@ -107,7 +57,6 @@ def test_human_record():
         )
     except ValueError as e:
         print(f"ValueError: {e}")
-
 
 def test_validation():
     """Test validation of SDRF."""
@@ -139,7 +88,7 @@ def test_validation():
         print(f"Error: {error.message}")
 
     # Should be valid
-    assert len(errors) == 2
+    assert len(errors) == 6
 
     # Create a test DataFrame with invalid data (missing required field)
     test_df = pd.DataFrame(

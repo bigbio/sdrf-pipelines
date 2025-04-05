@@ -119,7 +119,7 @@ class SDRFRecord(BaseModel):
 
 # Define constants
 DEFAULT_TEMPLATE = "default"
-ALL_TEMPLATES = ["vertebrates", "nonvertebrates", "plants", "cell_lines", "human"]
+ALL_TEMPLATES = ["vertebrates", "nonvertebrates", "plants", "cell_lines", "human", "default"]
 
 
 class SdrfDataFrame(BaseModel):

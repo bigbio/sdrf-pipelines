@@ -5,14 +5,14 @@ fields:
 - name: source_name
   sdrf_name: source name
   description: Source name
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_organism
   sdrf_name: characteristics[organism]
   description: Organism
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
@@ -29,21 +29,21 @@ fields:
 - name: characteristics_organism_part
   sdrf_name: characteristics[organism part]
   description: Organism part
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_disease
   sdrf_name: characteristics[disease]
   description: Disease
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: characteristics_cell_type
   sdrf_name: characteristics[cell type]
   description: Cell type
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
@@ -64,42 +64,42 @@ fields:
 - name: characteristics_biological_replicate
   sdrf_name: characteristics[biological replicate]
   description: Biological replicate
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: assay_name
   sdrf_name: assay name
   description: Assay name
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: technology_type
   sdrf_name: technology type
   description: Technology type
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: comment_technical_replicate
   sdrf_name: comment[technical replicate]
   description: Technical replicate
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: comment_fraction_identifier
   sdrf_name: comment[fraction identifier]
   description: Fraction identifier
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: comment_label
   sdrf_name: comment[label]
   description: Label
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
@@ -118,14 +118,14 @@ fields:
 - name: comment_data_file
   sdrf_name: comment[data file]
   description: Data file
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
 - name: comment_instrument
   sdrf_name: comment[instrument]
   description: Instrument
-  required: true
+  requirement: required
   validators:
   - type: whitespace
     params: {}
@@ -143,7 +143,7 @@ fields:
 - name: comment_modification_parameters
   sdrf_name: comment[modification parameters]
   description: Modification parameters
-  required: false
+  requirement: recommended
   validators:
   - type: whitespace
     params: {}
@@ -159,7 +159,7 @@ fields:
 - name: comment_cleavage_agent_details
   sdrf_name: comment[cleavage agent details]
   description: Cleavage agent details
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
@@ -177,14 +177,14 @@ fields:
 - name: comment_fragment_mass_tolerance
   sdrf_name: comment[fragment mass tolerance]
   description: Fragment mass tolerance
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}
 - name: comment_precursor_mass_tolerance
   sdrf_name: comment[precursor mass tolerance]
   description: Precursor mass tolerance
-  required: false
+  requirement: optional
   validators:
   - type: whitespace
     params: {}

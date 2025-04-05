@@ -64,8 +64,8 @@ def test_validate_columns_and_rules():
     for error in errors:
         print(f"Error: {error.message}")
 
-    assert errors, "Expected validation errors, but found none"
-    missing_fields = ["characteristics_biological_replicate", "comment_technical_replicate", "technology_type"]
+    assert len(errors) == 2
+    missing_fields = ["technical replicate", "technology type"]
     for field in missing_fields:
         field_errors = [error for error in errors if field in error.message.lower()]
         assert field_errors, f"Expected errors related to {field}, but found none"
