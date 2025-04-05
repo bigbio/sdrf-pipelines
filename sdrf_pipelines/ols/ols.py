@@ -15,6 +15,7 @@ import glob
 import logging
 import os.path
 import urllib.parse
+from typing import Union
 
 import duckdb
 import pandas as pd
@@ -36,11 +37,16 @@ API_ANCESTORS = "/api/ontologies/{ontology}/terms/{iri}/ancestors"
 API_PROPERTIES = "/api/ontologies/{ontology}/properties?lang=en"
 
 
-def _concat_str_or_list(input_str):
+def _concat_str_or_list(input_str: Union[str, list]) -> str:
     """
     Always returns a comma joined list, whether the input is a
     single string or an iterable
-    @:param input_str String to join
+
+    Parameters:
+        input_str (str or list): The input string or list to be concatenated
+
+    Returns:
+        str: A comma-separated string if input_str is a list, or the input_str itself if it's a string
     """
 
     if isinstance(input_str, str):
@@ -49,15 +55,21 @@ def _concat_str_or_list(input_str):
     return ",".join(input_str)
 
 
-def _dparse(iri):
+def _dparse(iri: str) -> str:
     """
-    Double url encode the IRI, which is required
-    @:param iri in the OLS
+    Double url encode the IRI, which is required.
+
+    Parameters:
+        iri (str): The IRI to be encoded
+
+    Returns:
+        str: The double url encoded IRI
     """
     return urllib.parse.quote_plus(urllib.parse.quote_plus(iri))
 
 
 class OlsTerm:
+
     def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
         self._iri = iri
         self._term = term
@@ -67,10 +79,14 @@ class OlsTerm:
         return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
-def get_cache_parquet_files():
+def get_cache_parquet_files() -> tuple:
     """
     This function returns a list of parquet files in the cache directory.
+
+    Returns:
+        tuple: A tuple containing the parquet files pattern and a list of unique ontology names
     """
+
     parquet_files_pattern = pkg_resources.resource_filename(__name__, "*.parquet")
     parquet_files = glob.glob(parquet_files_pattern)
 
@@ -89,15 +105,25 @@ def get_cache_parquet_files():
     return parquet_files, ontologies
 
 
-def get_obo_accession(uri):
-    # Example: Convert 'http://www.ebi.ac.uk/efo/EFO_0000001' to 'EFO:0000001'
-    try:
-        if "#" in uri:
-            fragment = uri.split("#")[-1]
-        else:
-            fragment = uri.split("/")[-1]
+def get_obo_accession(uri: str) -> Union[str, None]:
+    """
+    Get the OBO accession from the URI.
+    The URI is expected to be in the form of 'http://www.ebi.ac.uk/efo/EFO_0000001'
+    Example: Convert 'http://www.ebi.ac.uk/efo/EFO_0000001' to 'EFO:0000001'
 
-        prefix, identifier = fragment.split("_")
+    Parameters:
+        uri (str): The URI to convert
+
+    Returns:
+        str: The OBO accession in the form of 'PREFIX:IDENTIFIER'
+    """
+    try:
+        fragment = uri.split("/")[-1]
+        if "#" in uri:
+            prefix, identifier = fragment.split("#")
+        else:
+            prefix, identifier = fragment.split("_")
+
         return f"{prefix}:{identifier}"
     except Exception as ex:
         logger.error("Error converting URI %s to OBO accession: %s", uri, ex)
@@ -105,11 +131,16 @@ def get_obo_accession(uri):
     return None
 
 
-def read_owl_file(ontology_file, ontology_name=None):
+def read_owl_file(ontology_file: str, ontology_name=None) -> list:
     """
     Reads an OWL file and returns a list of OlsTerms
-    @:param ontology_file: The name of the ontology
-    @:param ontology_name: The name of the ontology
+
+    Parameters:
+        ontology_file (str): The name of the ontology file
+        ontology_name (str): The name of the ontology
+
+    Returns:
+        list: A list of dictionaries containing the ontology terms
     """
     g = rdflib.Graph()
     g.parse(ontology_file, format="xml")
@@ -126,32 +157,36 @@ def read_owl_file(ontology_file, ontology_name=None):
     return terms_info
 
 
-def read_obo_file(ontology_file, ontology_name=None):
+def read_obo_file(ontology_file: str, ontology_name=None) -> list:
     """
     Reads an OBO file and returns a list of OlsTerms
-    @:param ontology_file: The name of the ontology
-    @:param ontology_name: The name of the ontology
+
+    Parameters:
+        ontology_file (str): The name of the ontology file
+        ontology_name (str): The name of the ontology
+
+    Returns:
+        list: A list of dictionaries containing the ontology terms
     """
 
-    def split_terms(content):
-        terms = content.split("[Term]")[1:]  # Skip the header and split by [Term]
-        return terms
+    def split_terms(content_str: str) -> list:
+        return content_str.split("[Term]")[1:]  # Skip the header and split by [Term]
 
-    def get_ontology_name(content):
-        lines = content.split("\n")
+    def get_ontology_name(content_str: str) -> Union[str, None]:
+        lines = content_str.split("\n")
         for line in lines:
             if line.startswith("ontology:"):
                 return line.split("ontology:")[1].strip()
         return None
 
-    def parse_term(term, ontology_name):
+    def parse_term(term: str, ontology_name_param: str) -> dict:
         term_info = {}
         lines = term.strip().split("\n")
         for line in lines:
-            if line.startswith("id:"):
+            if line.strip().startswith("id:"):
                 term_info["accession"] = line.split("id:")[1].strip()
-                term_info["ontology"] = ontology_name
-            elif line.startswith("name:"):
+                term_info["ontology"] = ontology_name_param
+            elif line.strip().startswith("name:"):
                 term_info["label"] = line.split("name:")[1].strip()
         return term_info
 
@@ -166,13 +201,23 @@ def read_obo_file(ontology_file, ontology_name=None):
 
 
 class OlsClient:
-    def __init__(self, ols_base=None, ontology=None, field_list=None, query_fields=None, use_cache=True):
+    def __init__(
+        self,
+        ols_base: str = None,
+        ontology: str = None,
+        field_list: list = None,
+        query_fields: list = None,
+        use_cache: bool = True,
+    ):
         """
-        @:param ols_base: The base URL for the OLS
-        @:param ontology: The name of the ontology
-        @:param field_list: The list of fields to return
-        @:param query_fields: The list of fields to query
-        @:param use_cache: Whether to use cache which are local files with the same terms
+        The Ols client is a wrapper around the OLS API.
+
+        Parameters:
+            ols_base (str): The base URL of the OLS API
+            ontology (str): The name of the ontology
+            field_list (list): A list of fields to return
+            query_fields (list): A list of fields to search
+            use_cache (bool): Whether to use the cache
         """
         self.base = (ols_base if ols_base else OLS).rstrip("/")
         self.session = requests.Session()
@@ -206,9 +251,12 @@ class OlsClient:
         - The name of the term.
         - The ontology in which the term is found (e.g. GO).
         All information should be in lower case and also the file will be compressed.
-        @:param ontology_file: The name of the ontology
-        @:param output_file: The name of the output file
-        @:param ontology_name: The name of the ontology
+
+        Parameters:
+            ontology_file (str): The name of the ontology file
+            output_file (str): The name of the output file
+            ontology_name (str): The name of the ontology
+
         """
 
         if ontology_file is None or not os.path.isfile(ontology_file):
@@ -256,7 +304,7 @@ class OlsClient:
         df.to_parquet(output_file, compression="gzip", index=False)
         logger.info("Index has finished, output file: %s", output_file)
 
-    def besthit(self, name, **kwargs):
+    def besthit(self, name, **kwargs) -> Union[dict, None]:
         """
         select a first element of the /search API response
         """
@@ -266,25 +314,34 @@ class OlsClient:
 
         return None
 
-    def get_term(self, ontology, iri):
+    def get_term(self, ontology: str, iri: str) -> dict:
         """
         Gets the data for a given term
-            Args:
-            ontology: The name of the ontology
-            iri: The IRI of a term
+
+        Parameters:
+            ontology (str): The name of the ontology
+            iri (str): The IRI of a term
+
+        Returns:
+            dict: The term data
         """
 
         url = self.ontology_term.format(ontology=ontology, iri=_dparse(iri))
         response = self.session.get(url)
         return response.json()
 
-    def get_ancestors(self, ont, iri):
+    def get_ancestors(self, ontology: str, iri: str):
         """
         Gets the data for a given term
-        @param ont: The name of the ontology
-        @param iri:The IRI of a term
+
+        Parameters:
+            ontology (str): The name of the ontology
+            iri (str): The IRI of a term
+
+        Returns:
+            dict: The term data
         """
-        url = self.ontology_ancestors.format(ontology=ont, iri=_dparse(iri))
+        url = self.ontology_ancestors.format(ontology=ontology, iri=_dparse(iri))
         response = self.session.get(url)
         try:
             return response.json()["_embedded"]["terms"]
@@ -295,9 +352,15 @@ class OlsClient:
     def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
-        @:param term: The name of the term
-        @:param ontology: The name of the ontology
-        @:param exact: Forces exact match if not `None`
+
+        Parameters:
+            term (str): The name of the term
+            ontology (str): The name of the ontology
+            exact (bool): Whether to search for an exact match
+            use_ols_cache_only (bool): Whether to use the cache only
+
+        Returns:
+            list: A list of terms found
         """
         if use_ols_cache_only:
             terms = self.cache_search(term, ontology)
@@ -307,7 +370,19 @@ class OlsClient:
                 terms = self.cache_search(term, ontology)
         return terms
 
-    def _perform_ols_search(self, params, name, exact, retry_num=0):
+    def _perform_ols_search(self, params, name: str, exact: bool, retry_num: int = 0):
+        """
+        Perform the OLS search and return the results.
+
+        Parameters:
+            params (dict): The search parameters
+            name (str): The name of the term
+            exact (bool): Whether to search for an exact match
+            retry_num (int): The number of retries
+
+        Returns:
+            list: A list of terms found
+        """
         try:
             req = self.session.get(self.ontology_search, params=params)
             logger.debug("Request to OLS search API term %s, status code %s", name, req.status_code)
@@ -341,6 +416,24 @@ class OlsClient:
         num_retries: int = 10,
         start: int = 0,
     ):
+        """
+        Search a term in the OLS API
+
+        Parameters:
+            name (str): The name of the term
+            query_fields (list): A list of fields to search
+            ontology (str): The name of the ontology
+            field_list (list): A list of fields to return
+            children_of (str): The IRI of a parent term
+            exact (bool): Whether to search for an exact match
+            bytype (str): The type of term to search for
+            rows (int): The number of rows to return
+            num_retries (int): The number of retries
+            start (int): The starting index for pagination
+
+        Returns:
+            list: A list of terms found
+        """
         params = {"q": name, "type": _concat_str_or_list(bytype), "rows": rows, "start": start}
         if ontology:
             params["ontology"] = _concat_str_or_list(ontology.lower())
@@ -377,46 +470,17 @@ class OlsClient:
 
         return docs_found
 
-    def suggest(self, name, ontology=None):
-        """Suggest terms from an optional list of ontologies
-
-        .. seealso:: https://www.ebi.ac.uk/ols/docs/api#_suggest_term
-        """
-        params = {"q": name}
-        if ontology:
-            params["ontology"] = ",".join(ontology)
-        response = self.session.get(self.ontology_suggest, params=params)
-        response.raise_for_status()
-
-        if response.json()["response"]["numFound"]:
-            return response.json()["response"]["docs"]
-        logger.debug("OLS suggest returned empty response for %s", name)
-        return None
-
-    def select(self, name, ontology=None, field_list=None):
-        """Select terms,
-        Tuned specifically to support applications such as autocomplete.
-
-        .. see also:: https://www.ebi.ac.uk/ols4/docs/api#_select
-        """
-        params = {"q": name}
-        if ontology:
-            params["ontology"] = ",".join(ontology)
-        if field_list:
-            params["fieldList"] = ",".join(field_list)
-        response = self.session.get(self.ontology_select, params=params)
-        response.raise_for_status()
-
-        if response.json()["response"]["numFound"]:
-            return response.json()["response"]["docs"]
-        logger.debug("OLS select returned empty response for %s", name)
-        return None
-
     def cache_search(self, term: str, ontology: str, full_search: bool = False) -> list:
         """
         Search a term in cache files and return them as list.
-        @param term: The name of the term
-        @param ontology: The name of the ontology
+
+        Parameters:
+            term (str): The name of the term
+            ontology (str): The name of the ontology
+            full_search (bool): Whether to perform a full search
+
+        Returns:
+            list: A list of terms found
         """
         is_cached = False
         if ontology is not None:

@@ -1,0 +1,12 @@
+name: vertebrates
+description: SDRF schema for vertebrate samples
+extends: default
+min_columns: 7
+fields:
+- name: characteristics_developmental_stage
+  sdrf_name: characteristics[developmental stage]
+  description: Developmental stage
+  required: false
+  validators:
+  - type: whitespace
+    params: {}

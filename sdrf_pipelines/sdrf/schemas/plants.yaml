@@ -1,0 +1,19 @@
+name: plants
+description: SDRF schema for plant samples
+extends: default
+min_columns: 7
+fields:
+- name: characteristics_developmental_stage
+  sdrf_name: characteristics[developmental stage]
+  description: Developmental stage
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_strain_breed
+  sdrf_name: characteristics[strain/breed]
+  description: Strain or breed
+  required: false
+  validators:
+  - type: whitespace
+    params: {}

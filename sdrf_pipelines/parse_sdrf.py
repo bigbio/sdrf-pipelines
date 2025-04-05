@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sys
+from typing import List
 
 import click
 import pandas as pd
@@ -15,11 +16,36 @@ from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
-from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES
-from sdrf_pipelines.sdrf.sdrf_schema import DEFAULT_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY
-from sdrf_pipelines.utils.exceptions import AppConfigException
+from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame, ALL_TEMPLATES
+from sdrf_pipelines.sdrf.sdrf import DEFAULT_TEMPLATE
+from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
+
+
+def parse_sdrf(sdrf_file: str) -> SdrfDataFrame:
+    """Parse an SDRF file.
+
+    Parameters:
+        sdrf_file (str): Path to the SDRF file
+    Returns:
+        SdrfDataFrame: A SdrfDataFrame instance
+    """
+    return SdrfDataFrame.parse(sdrf_file)
+
+
+def validate_sdrf_df(sdrf: SdrfDataFrame, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
+    """
+    Validate an SDRF DataFrame.
+
+    Parameters:
+        sdrf: SdrfDataFrame to validate
+        template: Template name to determine the validation rules
+        use_ols_cache_only: Whether to use only the cache for ontology validation
+
+    Returns:
+        List of validation errors
+    """
+    return sdrf.validate(template, use_ols_cache_only=use_ols_cache_only)
+
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -28,8 +54,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
-    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration
-    files.
+    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration files.
     """
     pass
 
@@ -136,11 +161,6 @@ def maxquant_from_sdrf(
     type=click.Choice(ALL_TEMPLATES, case_sensitive=False),
     required=False,
 )
-@click.option(
-    "--skip_ms_validation",
-    help="Disable the validation of mass spectrometry fields in SDRF (e.g. posttranslational modifications)",
-    is_flag=True,
-)
 @click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
 @click.option(
     "--skip_experimental_design_validation", help="Disable the validation of experimental design", is_flag=True
@@ -153,7 +173,6 @@ def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
-    skip_ms_validation: bool,
     skip_factor_validation: bool,
     skip_experimental_design_validation: bool,
     use_ols_cache_only: bool,
@@ -180,11 +199,8 @@ def validate_sdrf(
     if template is None:
         template = DEFAULT_TEMPLATE
 
-    df = SdrfDataFrame.parse(sdrf_file)
-    errors = df.validate(template, use_ols_cache_only)
-
-    if not skip_ms_validation:
-        errors = errors + df.validate(MASS_SPECTROMETRY, use_ols_cache_only)
+    df = parse_sdrf(sdrf_file)
+    errors = validate_sdrf_df(df, template, use_ols_cache_only)
 
     if not skip_factor_validation:
         errors = errors + df.validate_factor_values()
@@ -193,13 +209,12 @@ def validate_sdrf(
         errors = errors + df.validate_experimental_design()
 
     for error in errors:
-        print(error)
+        click.secho(f"ERROR: {error.message}", fg="red")
 
-    # provide some info to the user, as no info is confusing
     if not errors:
-        print("Everything seems to be fine. Well done.")
+        click.secho("Everything seems to be fine. Well done.", fg="green")
     else:
-        print("There were validation errors.")
+        click.secho("There were validation errors.", fg="red")
     sys.exit(bool(errors))
 
 
@@ -286,6 +301,36 @@ cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
 cli.add_command(normalyzerde_from_sdrf)
 cli.add_command(build_index_ontology)
+
+
+@click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file")
+@click.argument("sdrf_file", type=click.Path(exists=True))
+@click.option(
+    "--template", "-t", type=click.Choice(ALL_TEMPLATES), default="default", help="The template to validate against"
+)
+@click.option("--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation")
+def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
+    """
+    Simple command to validate an SDRF file.
+
+    This command provides a simpler interface for validating SDRF files,
+    without the additional options for skipping specific validations.
+    """
+    sdrf = parse_sdrf(sdrf_file)
+    errors = validate_sdrf_df(sdrf, template, use_ols_cache_only=use_ols_cache_only)
+
+    if errors:
+        for error in errors:
+            if error.error_type == logging.ERROR:
+                click.secho(f"ERROR: {error.message}", fg="red")
+            else:
+                click.secho(f"WARNING: {error.message}", fg="yellow")
+        sys.exit(1)
+    else:
+        click.secho("SDRF file is valid!", fg="green")
+
+
+cli.add_command(validate_sdrf_simple)
 
 
 def main():

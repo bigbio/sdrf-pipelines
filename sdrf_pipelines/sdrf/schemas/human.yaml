@@ -1,0 +1,44 @@
+name: human
+description: Human SDRF template with human-specific fields
+extends: default
+min_columns: 7
+fields:
+- name: characteristics_ancestry_category
+  sdrf_name: characteristics[ancestry category]
+  description: Ancestry category
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_age
+  sdrf_name: characteristics[age]
+  description: Age
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+  - type: pattern
+    params:
+      pattern: (?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)
+      case_sensitive: false
+- name: characteristics_sex
+  sdrf_name: characteristics[sex]
+  description: Sex
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_developmental_stage
+  sdrf_name: characteristics[developmental stage]
+  description: Developmental stage
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_individual
+  sdrf_name: characteristics[individual]
+  description: Individual
+  required: false
+  validators:
+  - type: whitespace
+    params: {}

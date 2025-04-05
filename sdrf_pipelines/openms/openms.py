@@ -97,7 +97,7 @@ class OpenMS:
             "TMT133C": 15,
             "TMT134N": 16,
             "TMT134C": 17,
-            "TMT135N": 18
+            "TMT135N": 18,
         }
         self.tmt16plex = {
             "TMT126": 1,
@@ -1026,7 +1026,10 @@ class OpenMS:
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
-            "tmt18plex": ["TMTpro (K)", "TMTpro (N-term)"]  # https://www.unimod.org/modifications_view.php?editid1=2016
+            "tmt18plex": [
+                "TMTpro (K)",
+                "TMTpro (N-term)",
+            ],  # https://www.unimod.org/modifications_view.php?editid1=2016
         }
         ITRAQ_mod = {
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],

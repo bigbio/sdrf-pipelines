@@ -25,7 +25,7 @@ VERTEBRATES_TEMPLATE = "vertebrates"
 NON_VERTEBRATES_TEMPLATE = "nonvertebrates"
 PLANTS_TEMPLATE = "plants"
 CELL_LINES_TEMPLATE = "cell_lines"
-MASS_SPECTROMETRY = "mass_spectrometry"
+DISEASE_EXAMPLE_TEMPLATE = "disease_example"
 ALL_TEMPLATES = [
     DEFAULT_TEMPLATE,
     HUMAN_TEMPLATE,
@@ -33,6 +33,7 @@ ALL_TEMPLATES = [
     NON_VERTEBRATES_TEMPLATE,
     PLANTS_TEMPLATE,
     CELL_LINES_TEMPLATE,
+    DISEASE_EXAMPLE_TEMPLATE,
 ]
 
 TERM_NAME = "NT"
@@ -560,72 +561,4 @@ cell_lines_schema = SDRFSchema(
     min_columns=7,
 )
 
-mass_spectrometry_schema = SDRFSchema(
-    [
-        SDRFColumn(
-            "assay name",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "technology type",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=True,
-        ),
-        SDRFColumn(
-            "comment[fraction identifier]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "comment[label]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("pride")],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "comment[technical replicate]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "comment[instrument]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms")],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "comment[modification parameters]",
-            [
-                LeadingWhitespaceValidation(),
-                TrailingWhitespaceValidation(),
-                OntologyTerm(ontology_name="unimod", not_available=True),
-            ],
-            allow_empty=True,
-            optional_type=True,
-        ),
-        SDRFColumn(
-            "comment[cleavage agent details]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation(), OntologyTerm("ms", not_applicable=True)],
-            allow_empty=True,
-            optional_type=False,
-        ),
-        SDRFColumn(
-            "comment[fragment mass tolerance]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=True,
-        ),
-        SDRFColumn(
-            "comment[precursor mass tolerance]",
-            [LeadingWhitespaceValidation(), TrailingWhitespaceValidation()],
-            allow_empty=True,
-            optional_type=True,
-        ),
-    ],
-    min_columns=7,
-)
+# Disease example schema will be loaded from the JSON file

@@ -889,7 +889,9 @@ class Maxquant:
             elif row["comment[label]"].lower() == "ibaq":
                 file2label[raw] = "iBAQ"
             elif row["comment[label]"].startswith("TMT"):
-                lt = self.extract_tmt_info(list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw])
+                lt = self.extract_tmt_info(
+                    list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw]
+                )
                 file2label[raw] = lt
 
             elif row["comment[label]"].startswith("SILAC"):

@@ -1,7 +1,5 @@
 import logging
 
-from pandas_schema import ValidationWarning
-
 
 class AppException(Exception):
     def __init__(self, value):
@@ -14,18 +12,22 @@ class AppException(Exception):
 __all__ = ["LogicError"]
 
 
-class LogicError(ValidationWarning):
-    def __init__(self, message: str, value: str = None, row: int = -1, column: str = None, error_type: logging = None):
-        super().__init__(message, value, row, column)
+class LogicError():
+    def __init__(self, message: str, error_type: logging = None):
         self._error_type = error_type
+        self.message = message
 
     def __str__(self) -> str:
-        if self.row is not None and self.column is not None and self.value is not None:
-            return '{{row: {}, column: "{}"}}: "{}" {} -- {}'.format(
-                self.row, self.column, self.value, self.message, logging.getLevelName(self._error_type)
-            )
-        else:
-            return f"{self.message} -- {logging.getLevelName(self._error_type)}"
+        return f"{self.message} -- {logging.getLevelName(self._error_type)}"
+
+    def __eq__(self, other):
+        if not isinstance(other, LogicError):
+            return False
+        return (self.message == other.message and
+                self._error_type == other._error_type)
+
+    def __hash__(self):
+        return hash((self.message, self._error_type))
 
 
 class AppConfigException(AppException):

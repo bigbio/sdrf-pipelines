@@ -1,0 +1,190 @@
+name: default
+description: Default SDRF template with common fields
+min_columns: 7
+fields:
+- name: source_name
+  sdrf_name: source name
+  description: Source name
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_organism
+  sdrf_name: characteristics[organism]
+  description: Organism
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontology_name: ncbitaxon
+      allow_not_applicable: true
+      allow_not_available: false
+      description: The organism should be a valid NCBI Taxonomy term
+      examples:
+      - homo sapiens
+      - mus musculus
+      - rattus norvegicus
+- name: characteristics_organism_part
+  sdrf_name: characteristics[organism part]
+  description: Organism part
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_disease
+  sdrf_name: characteristics[disease]
+  description: Disease
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: characteristics_cell_type
+  sdrf_name: characteristics[cell type]
+  description: Cell type
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontologies:
+      - cl
+      - bto
+      - clo
+      allow_not_applicable: true
+      allow_not_available: true
+      description: The cell type should be a valid Cell Ontology (CL), BRENDA Tissue
+        Ontology (BTO), or Cell Line Ontology (CLO) term
+      examples:
+      - hepatocyte
+      - neuron
+      - fibroblast
+- name: characteristics_biological_replicate
+  sdrf_name: characteristics[biological replicate]
+  description: Biological replicate
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: assay_name
+  sdrf_name: assay name
+  description: Assay name
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: technology_type
+  sdrf_name: technology type
+  description: Technology type
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: comment_technical_replicate
+  sdrf_name: comment[technical replicate]
+  description: Technical replicate
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: comment_fraction_identifier
+  sdrf_name: comment[fraction identifier]
+  description: Fraction identifier
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: comment_label
+  sdrf_name: comment[label]
+  description: Label
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontology_name: pride
+      allow_not_applicable: false
+      allow_not_available: false
+      description: The label should be a valid PRIDE ontology term
+      examples:
+      - label free sample
+      - SILAC light
+      - SILAC heavy
+      - TMT126
+      - iTRAQ114
+- name: comment_data_file
+  sdrf_name: comment[data file]
+  description: Data file
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+- name: comment_instrument
+  sdrf_name: comment[instrument]
+  description: Instrument
+  required: true
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontology_name: ms
+      allow_not_applicable: false
+      allow_not_available: false
+      description: The instrument should be a valid MS ontology term
+      examples:
+      - LTQ Orbitrap
+      - Q Exactive
+      - TripleTOF 5600
+      - Orbitrap Fusion Lumos
+- name: comment_modification_parameters
+  sdrf_name: comment[modification parameters]
+  description: Modification parameters
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontology_name: unimod
+      allow_not_applicable: false
+      allow_not_available: true
+      description: The modification parameters should be valid Unimod terms
+      examples:
+      - "NT=Oxidation;MT=Variable;TA=M;AC=Unimod:35"
+      - "NT=Carbamidomethyl;TA=C;MT=fixed;AC=UNIMOD:4"
+- name: comment_cleavage_agent_details
+  sdrf_name: comment[cleavage agent details]
+  description: Cleavage agent details
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+  - type: ontology
+    params:
+      ontology_name: ms
+      allow_not_applicable: true
+      allow_not_available: false
+      description: The cleavage agent details should be valid MS ontology terms
+      examples:
+      - Trypsin
+      - Lys-C
+      - Arg-C
+      - Chymotrypsin
+- name: comment_fragment_mass_tolerance
+  sdrf_name: comment[fragment mass tolerance]
+  description: Fragment mass tolerance
+  required: false
+  validators:
+  - type: whitespace
+    params: {}
+- name: comment_precursor_mass_tolerance
+  sdrf_name: comment[precursor mass tolerance]
+  description: Precursor mass tolerance
+  required: false
+  validators:
+  - type: whitespace
+    params: {}

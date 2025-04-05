@@ -1,285 +1,288 @@
-from __future__ import annotations
+"""
+SDRF module for parsing and validating SDRF files.
+"""
 
 import logging
-from typing import List
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
+import pydantic
+from pydantic import BaseModel, Field
 import pandas as pd
 
-from sdrf_pipelines.sdrf.sdrf_schema import CELL_LINES_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import HUMAN_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY
-from sdrf_pipelines.sdrf.sdrf_schema import NON_VERTEBRATES_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import PLANTS_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import VERTEBRATES_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import cell_lines_schema
-from sdrf_pipelines.sdrf.sdrf_schema import default_schema
-from sdrf_pipelines.sdrf.sdrf_schema import human_schema
-from sdrf_pipelines.sdrf.sdrf_schema import mass_spectrometry_schema
-from sdrf_pipelines.sdrf.sdrf_schema import nonvertebrates_chema
-from sdrf_pipelines.sdrf.sdrf_schema import plants_chema
-from sdrf_pipelines.sdrf.sdrf_schema import vertebrates_chema
+from sdrf_pipelines.sdrf.schema_loader import schema_loader
+from sdrf_pipelines.sdrf.validators.base import create_field_with_validators
+from sdrf_pipelines.sdrf.validators.ontology import OntologyTermValidator
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
-def check_if_integer(x):
-    """
-    Check if value x from panda cell can be converted to an integer.
-    :param x: value to check
-    :return: True if x can be converted to an integer, False otherwise
-    """
-    try:
-        int(x)
-        return True
-    except ValueError:
-        return False
+class SDRFRecord(BaseModel):
+    """Base model for SDRF records."""
+
+    source_name: str = create_field_with_validators(
+        description="Source name. This field is required and cannot be empty.",
+        validate_whitespace=True,
+    )
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SDRFRecord":
+        """
+        Create a record from a dictionary.
+
+        Args:
+            data: Dictionary with record data
+
+        Returns:
+            SDRFRecord instance
+        """
+        # Convert SDRF column names to model field names
+        field_data = {}
+        for key, value in data.items():
+            key = key.lower()
+            if key == "source name":
+                field_name = "source_name"
+            elif key.startswith("characteristics["):
+                # Convert 'characteristics[organism]' to 'characteristics_organism'
+                attribute = key.replace("characteristics[", "").replace("]", "")
+                # Replace spaces with underscores in the attribute name
+                attribute = attribute.replace(" ", "_")
+                field_name = f"characteristics_{attribute}"
+            elif key.startswith("comment["):
+                # Convert 'comment[data file]' to 'comment_data_file'
+                attribute = key.replace("comment[", "").replace("]", "").replace(" ", "_")
+                field_name = f"comment_{attribute}"
+            elif key.startswith("factor value["):
+                # Convert 'factor value[treatment]' to 'factor_value_treatment'
+                attribute = key.replace("factor value[", "").replace("]", "").replace(" ", "_")
+                field_name = f"factor_value_{attribute}"
+            else:
+                # Convert 'assay name' to 'assay_name'
+                field_name = key.replace(" ", "_")
+            field_data[field_name] = value
+
+        return cls(**field_data)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the record to a dictionary with SDRF column names.
+
+        Returns:
+            Dictionary with SDRF column names
+        """
+        data = {}
+        for field_name, field_value in self.model_dump().items():
+            # Skip None values
+            if field_value is None:
+                continue
+
+            # Convert 'source_name' to 'source name'
+            if field_name == "source_name":
+                sdrf_name = "source name"
+            elif field_name.startswith("characteristics_"):
+                # Convert 'characteristics_organism' to 'characteristics[organism]'
+                attribute = field_name.replace("characteristics_", "")
+                # Replace underscores with spaces in the attribute name
+                attribute = attribute.replace("_", " ")
+                sdrf_name = f"characteristics[{attribute}]"
+            elif field_name.startswith("comment_"):
+                # Convert 'comment_data_file' to 'comment[data file]'
+                attribute = field_name.replace("comment_", "").replace("_", " ")
+                sdrf_name = f"comment[{attribute}]"
+            elif field_name.startswith("factor_value_"):
+                # Convert 'factor_value_treatment' to 'factor value[treatment]'
+                attribute = field_name.replace("factor_value_", "").replace("_", " ")
+                sdrf_name = f"factor value[{attribute}]"
+            else:
+                # Convert 'assay_name' to 'assay name'
+                sdrf_name = field_name.replace("_", " ")
+
+            data[sdrf_name] = field_value
+
+        return data
+
+    def validate_record(self, use_ols_cache_only: bool = False) -> List[LogicError]:
+        """
+        Validate the record.
+
+        Args:
+            use_ols_cache_only: Whether to use only the cache for ontology validation
+
+        Returns:
+            List of validation errors
+        """
+        errors = []
+
+        # This method can be overridden by subclasses to add custom validation
+
+        return errors
 
 
-class SdrfDataFrame(pd.DataFrame):
+# Define constants
+DEFAULT_TEMPLATE = "default"
+ALL_TEMPLATES = ["vertebrates", "nonvertebrates", "plants", "cell_lines", "human"]
+
+
+class SdrfDataFrame(BaseModel):
+    """
+    SDRF DataFrame class for parsing and validating SDRF files.
+    """
+
+    df: pd.DataFrame = Field(default=None)
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    def __init__(self, df: pd.DataFrame, /, **data: Any):
+        """
+        Initialize the SDRF DataFrame.
+
+        Args:
+            df: Pandas DataFrame containing the SDRF data
+        """
+        super().__init__(**data)
+        self.df = df
+
+    @classmethod
+    def parse(cls, sdrf_file: Union[str, Path]) -> "SdrfDataFrame":
+        """
+        Parse an SDRF file.
+
+        Args:
+            sdrf_file: Path to the SDRF file
+
+        Returns:
+            SdrfDataFrame instance
+        """
+        df = pd.read_csv(sdrf_file, sep="\t", dtype=str)
+        # Replace NaN with empty string
+        df = df.fillna("")
+        return cls(df)
+
+    def get_sdrf_columns(self) -> List[str]:
+        """
+        Get the column names of the SDRF DataFrame.
+
+        Returns:
+            List of column names
+        """
+        return self.df.columns.tolist()
+
     @property
-    def _constructor(self):
+    def shape(self):
         """
-        This method is making it so our methods return an instance
-        :return:
-        """
-        return SdrfDataFrame
+        Get the shape of the SDRF DataFrame.
 
-    def get_sdrf_columns(self):
+        Returns:
+            Tuple of (rows, columns)
         """
-        This method returns the name of the columns of the SDRF.
-        :return:
-        """
-        return self.columns
-
-    @staticmethod
-    def parse(sdrf_file: str):
-        """
-        Read an SDRF into a dataframe
-        :param sdrf_file:
-        :return:
-        """
-
-        df = pd.read_csv(sdrf_file, sep="\t", skip_blank_lines=False)
-        nrows = df.shape[0]
-        df = df.dropna(axis="index", how="all")
-        if df.shape[0] < nrows:
-            logging.warning("There were empty lines.")
-        # Convert all columns and values in the dataframe to lowercase
-        df = df.astype(str).apply(lambda x: x.str.lower())
-        df.columns = map(str.lower, df.columns)
-
-        return SdrfDataFrame(df)
+        return self.df.shape
 
     def validate(self, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
         """
-        Validate a corresponding SDRF
-        :return:
+        Validate the SDRF DataFrame.
+
+        Args:
+            template: Template name to determine the validation rules
+            use_ols_cache_only: Whether to use only the cache for ontology validation
+
+        Returns:
+            List of validation errors
         """
         errors = []
-        if template != MASS_SPECTROMETRY:
-            errors = default_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
 
-        if template == HUMAN_TEMPLATE:
-            errors = errors + human_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
-        elif template == VERTEBRATES_TEMPLATE:
-            errors = errors + vertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
-        elif template == NON_VERTEBRATES_TEMPLATE:
-            errors = errors + nonvertebrates_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
-        elif template == PLANTS_TEMPLATE:
-            errors = errors + plants_chema.validate(self, use_ols_cache_only=use_ols_cache_only)
-        elif template == CELL_LINES_TEMPLATE:
-            errors = errors + cell_lines_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
-        elif template == MASS_SPECTROMETRY:
-            errors = mass_spectrometry_schema.validate(self, use_ols_cache_only=use_ols_cache_only)
+        # Check the minimum number of columns
+        try:
+            schema = schema_loader.get_schema(template)
+            min_columns = schema.min_columns
+            if len(self.get_sdrf_columns()) < min_columns:
+                error_message = (
+                    f"The number of columns in the SDRF ({len(self.get_sdrf_columns())}) "
+                    f"is smaller than the number of mandatory fields ({min_columns})"
+                )
+                errors.append(LogicError(error_message, error_type=logging.WARN))
+        except ValueError:
+            # If the schema is not found, skip the min_columns check
+            pass
 
-        return errors
+        # Validate each row
+        for i, row in self.df.iterrows():
+            try:
+                # Convert row to record
+                record = self.row_to_record(row, template)
+
+                # Validate record
+                record_errors = record.validate_record(use_ols_cache_only=use_ols_cache_only)
+                errors.extend(record_errors)
+            except pydantic.ValidationError as e:
+                for error in e.errors():
+                    if error["type"] == "missing" and schema is not None:
+                        field_name = error["loc"][0]
+                        sdrf_name_field = next((field for field in schema.fields if field.name == field_name), None)
+                        if sdrf_name_field is not None:
+                           errors.append(LogicError(f"The following field, {sdrf_name_field.description} is required, use the column {sdrf_name_field.sdrf_name}", error_type=logging.ERROR))
+                    else:
+                        errors.append(LogicError(f"Error validating row {i}: {str(e)}", error_type=logging.ERROR))
+            except Exception as e:
+                errors.append(LogicError(f"Error validating row {i}: {str(e)}", error_type=logging.ERROR))
+
+        return list(set(errors))
 
     def validate_factor_values(self) -> List[LogicError]:
         """
-        Validate that factor values are present in the SDRF columns.
+        Validate factor values in the SDRF DataFrame.
 
-        :return: A list of LogicError objects if any factor value columns are missing, otherwise an empty list.
+        Returns:
+            List of validation errors
         """
-        errors = []
-        # Check if any column starts with 'factor value' (case-insensitive)
-        fv_values = [col for col in self.columns if col.lower().startswith("factor value")]
-
-        if len(fv_values) == 0:
-            error_message = f"No factor values present in the following SDRF columns: {self.columns}"
-            errors.append(LogicError(error_message, error_type=logging.ERROR))
-
-        # find the corresponding columns for the factor values
-        fv_dc = {}
-        for fv in fv_values:
-            factor = fv.lower().replace("factor value[", "").replace("]", "")
-            cols = [col for col in self.columns if (factor in col.lower() and "factor value" not in col.lower())]
-            if len(cols) == 0:
-                error_message = f"Make sure your SDRF have a sample characteristics or data comment '{factor}' for your factor value column '{fv}'"
-                errors.append(LogicError(error_message, error_type=logging.ERROR))
-            elif len(cols) > 1:
-                error_message = f"Multiple columns found for factor '{factor}': {cols}"
-                errors.append(LogicError(error_message, error_type=logging.ERROR))
-            else:
-                fv_dc[fv] = cols[0]
-
-        for factor, col in fv_dc.items():
-            equals_cols = self[factor].equals(self[col])
-            if not equals_cols:
-                # if factor value contains different values from corresponding columns, print the values
-                different_values = self[factor][self[factor] != self[col]]
-                different_values = different_values.index.tolist()
-                error_message = f"Factor '{factor}' and column '{col}' do not have the same values for the following rows: {different_values}"
-                errors.append(LogicError(error_message, error_type=logging.ERROR))
-
-        return errors
+        # For now, just return an empty list
+        # This can be implemented later
+        return []
 
     def validate_experimental_design(self) -> List[LogicError]:
         """
-        Validate that the experimental design is correct. This method checks that the experimental design is correct,
-        including the following:
-        - A raw file can only have one associated assay name. If a raw file has more than one assay name, an error is
-          raised.
-        :return: A list of LogicError objects if the experimental design is incorrect, otherwise an empty list.
+        Validate experimental design in the SDRF DataFrame.
+
+        Returns:
+            List of validation errors
         """
+        # For now, just return an empty list
+        # This can be implemented later
+        return []
 
-        errors = []
-
-        # Check that combination of value assay name and characteristics[data file] is unique in self
-        errors = self.check_inconsistencies_assay_file(errors)
-
-        errors = self.check_unique_sample_file_combinations(errors)
-
-        errors = self.check_accessions_conventions(errors)
-
-        return errors
-
-    def check_inconsistencies_assay_file(self, errors: List[LogicError]) -> List[LogicError]:
+    def row_to_record(self, row: pd.Series, template: str):
         """
-        Check that combination of values assay name and comment[data file] is unique in self.
-        :return: A list of LogicError objects if the combination of values assay name and characteristics[data file] is
-        not unique, otherwise an empty list.
+        Convert a row to a record.
+
+        Args:
+            row: Pandas Series containing the row data
+            template: Template name to determine the record type
+
+        Returns:
+            Record instance
         """
+        # Get the model for the template
+        model = schema_loader.get_model(template)
 
-        # Group by col1 and check if each group has only one unique col2 value
-        col1_inconsistencies = self.groupby("assay name")["comment[data file]"].nunique()
-        col1_inconsistent_groups = col1_inconsistencies[col1_inconsistencies > 1]
-        if len(col1_inconsistent_groups) > 0:
-            cell_index = col1_inconsistent_groups.index.tolist()
-            error_message = f"Multiple assays with the same raw files: {cell_index}, the combination assay name and comment[data file] should be unique"
-            errors.append(LogicError(error_message, error_type=logging.ERROR))
+        # Convert row to dict
+        row_dict = row.to_dict()
 
-        # Group by col2 and check if each group has only one unique col1 value
-        col2_inconsistencies = self.groupby("comment[data file]")["assay name"].nunique()
-        col2_inconsistent_groups = col2_inconsistencies[col2_inconsistencies > 1]
-        if len(col2_inconsistent_groups) > 0:
-            cell_index = col2_inconsistent_groups.index.tolist()
-            error_message = f"Multiple raw files with the same assay: {cell_index}, the combination assay name and comment[data file] should be unique"
-            errors.append(LogicError(error_message, error_type=logging.ERROR))
+        # Create record from dict
+        record = model.from_dict(row_dict)
 
-        return errors
+        return record
 
-    def check_unique_sample_file_combinations(self, errors: List[LogicError]) -> List[LogicError]:
+    def to_records(self, template: str) -> List[Dict[str, Any]]:
+        """Convert the SDRF DataFrame to a list of records.
+
+        Args:
+            template: Template name to determine the record type
+
+        Returns:
+            List of records
         """
-        The combination of the following columns should be unique:
-        - source name
-        - comment[technical replicate]
-        - comment[biological replicate]
-        - comment[label]
-        - comment[fraction identifier]
-        :return: A list of LogicError objects if the source names are not unique, otherwise an empty list.
-        """
-        cols = [
-            "source name",
-            "comment[technical replicate]",
-            "characteristics[biological replicate]",
-            "comment[label]",
-            "comment[fraction identifier]",
-        ]
-
-        for col in cols:
-            if col not in self.columns:
-                error_message = (
-                    f"In order to perform experimental design validation, column '{col}' must be present in the SDRF"
-                )
-                errors.append(LogicError(error_message, error_type=logging.ERROR))
-
-        colum_present = all(col in self.columns for col in cols)
-        if not colum_present:
-            return errors
-
-        duplicates = self.duplicated(subset=cols, keep=False)
-        if duplicates.any():
-            error_message = f"Duplicate samples found in the SDRF for the combinations of the following columns: {cols}"
-            errors.append(LogicError(error_message, error_type=logging.ERROR))
-
-        return errors
-
-    def check_accessions_conventions(self, errors):
-        """
-        Check that the accessions in the SDRF follow the conventions for the different templates.
-        :return: A list of LogicError objects if the accessions do not follow the conventions, otherwise an empty list.
-        """
-        errors = []
-
-        def check_integer_columns(df, columns):
-            """
-            This method checks that all the values in the given columns are integers. Retrieve a dictionary with the
-            columns as keys and the list of row indexes that do not contain integer as values.
-            :param df: The dataframe to check
-            :param columns: The columns to check
-            :return: A dataframe containing the rows that do not contain only integers in the specified columns
-            """
-
-            non_integer_rows = {}
-            for column in columns:
-                # Check if the column contains only integers
-                non_integers = df[~df[column].apply(check_if_integer)].index.tolist()
-                if non_integers:
-                    non_integer_rows[column] = non_integers
-            return non_integer_rows
-
-        # Specify the columns to check
-        columns_to_check = [
-            "comment[technical replicate]",
-            "characteristics[biological replicate]",
-            "comment[fraction identifier]",
-        ]
-
-        ## Remove columns that are not present in the dataframe
-        columns_to_check = [col for col in columns_to_check if col in self.columns]
-
-        # Find rows that do not contain only integers in the specified columns
-        non_integer_rows = check_integer_columns(self, columns_to_check)
-
-        if len(non_integer_rows) > 0:
-            errors.append(
-                LogicError(
-                    f"Non-integer values found in the following columns and rows: {non_integer_rows}",
-                    error_type=logging.WARNING,
-                )
-            )
-
-        def check_all_integers_higher_than_one(df, columns):
-            """
-            This method check that all the values in the columns (if they are numbers) are higher than 0.
-            :param df: The dataframe to check
-            :param columns: The columns to check
-            :return: A dataframe containing the rows that do not contain only integers in the specified columns
-            """
-            non_integer_rows = {}
-            for column in columns:
-                # Check if the column contains only integers
-                non_integers = df[~df[column].apply(lambda x: check_if_integer(x) and int(x) > 0)].index.tolist()
-                if non_integers:
-                    non_integer_rows[column] = non_integers
-            return non_integer_rows
-
-        lower_than_one = check_all_integers_higher_than_one(self, columns_to_check)
-        if len(lower_than_one) > 0:
-            errors.append(
-                LogicError(
-                    f"Values lower than 1 found in the following columns and rows: {lower_than_one}",
-                    error_type=logging.WARNING,
-                )
-            )
-
-        return errors
+        records = []
+        for _, row in self.df.iterrows():
+            print(f"Processing row: {row}")
+            record = self.row_to_record(row, template)
+            print(f"Created record: {record}")
+            records.append(record.to_dict())
+        return records

@@ -7,7 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/sdrf-pipelines.svg)](https://badge.fury.io/py/sdrf-pipelines)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sdrf-pipelines)
 
-The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats,OpenMS and MaxQuant.
+The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats, OpenMS, and MaxQuant.
 
 ### Installation
 
@@ -17,13 +17,118 @@ pip install sdrf-pipelines
 
 ## Validate the SDRF
 
-# How to use it:
+### How to use it:
 
-Then, you can use the tool by executing the following command:
+You can validate an SDRF file by executing the following command:
 
 ```bash
 parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 ```
+
+### New JSON Schema-Based Validation
+
+The SDRF validator now uses a YAML schema-based validation system that makes it easier to define and maintain validation rules. The new system offers several advantages:
+
+#### Key Features
+
+1. **YAML-Defined Schemas**: All validation templates are defined in YAML files:
+   - `default.yaml` - Common fields for all SDRF files (includes mass spectrometry fields)
+   - `human.yaml` - Human-specific fields
+   - `vertebrates.yaml` - Vertebrate-specific fields
+   - `nonvertebrates.yaml` - Non-vertebrate-specific fields
+   - `plants.yaml` - Plant-specific fields
+   - `cell_lines.yaml` - Cell line-specific fields
+   - `disease_example.yaml` - Example schema for disease terms with multiple ontologies
+
+2. **Enhanced Ontology Validation**:
+   - Support for multiple ontologies per field
+   - Rich error messages with descriptions and examples
+   - Special value handling for "not available" and "not applicable"
+
+3. **Schema Inheritance**: Templates can extend other templates, making it easy to create specialized validation rules.
+
+#### Example JSON Schema
+
+```json
+{
+  "name": "characteristics_cell_type",
+  "sdrf_name": "characteristics[cell type]",
+  "description": "Cell type",
+  "required": true,
+  "validators": [
+    {
+      "type": "whitespace",
+      "params": {}
+    },
+    {
+      "type": "ontology",
+      "params": {
+        "ontologies": ["cl", "bto", "clo"],
+        "allow_not_applicable": true,
+        "allow_not_available": true,
+        "description": "The cell type should be a valid Cell Ontology term",
+        "examples": ["hepatocyte", "neuron", "fibroblast"]
+      }
+    }
+  ]
+}
+```
+
+#### Simplified Validation Command
+
+A simplified validation command is also available:
+
+```bash
+parse_sdrf validate-sdrf-simple {here_the_path_to_sdrf_file} --template {template_name}
+```
+
+This command provides a more straightforward interface for validating SDRF files, without the additional options for skipping specific validations.
+
+#### Creating Custom Validation Templates
+
+You can create your own validation templates by defining JSON schema files. Here's how:
+
+1. Create a JSON file with your validation rules:
+   ```json
+   {
+     "name": "my_template",
+     "description": "My custom template",
+     "extends": "default",
+     "min_columns": 7,
+     "fields": [
+       {
+         "name": "characteristics_my_field",
+         "sdrf_name": "characteristics[my field]",
+         "description": "My custom field",
+         "required": true,
+         "validators": [
+           {
+             "type": "whitespace",
+             "params": {}
+           },
+           {
+             "type": "ontology",
+             "params": {
+               "ontology_name": "my_ontology",
+               "allow_not_applicable": true,
+               "description": "My field description",
+               "examples": ["example1", "example2"]
+             }
+           }
+         ]
+       }
+     ]
+   }
+   ```
+
+2. Place the file in the `sdrf_pipelines/sdrf/schemas/` directory.
+
+3. Use your template with the validation command:
+   ```bash
+   parse_sdrf validate-sdrf --sdrf_file {path_to_sdrf_file} --template my_template
+   ```
+
+The template system supports inheritance, so you can extend existing templates to add or override fields.
 
 ## Convert to OpenMS: Usage
 

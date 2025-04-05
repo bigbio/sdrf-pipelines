@@ -229,7 +229,7 @@ sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
 # Verify with sdrf-parser
 check_sdrf = SdrfDataFrame()
 check_sdrf.parse("sdrf_local.tsv")
-check_sdrf.validate("mass_spectrometry")
+check_sdrf.validate("default")
 
 print("########## SUMMARY #########")
 print("--- The following parameters have been overwritten in the sdrf file: ---")
