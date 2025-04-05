@@ -3,9 +3,10 @@ Test to ensure the minimum number of columns is 7 using the default schema.
 Also tests that the validator checks that all the columns and rules in the schema are valid.
 """
 
-import os
 from pathlib import Path
+
 import pandas as pd
+
 from sdrf_pipelines.sdrf.schema_loader import schema_loader
 from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.sdrf.validators.base import SDRFValidator

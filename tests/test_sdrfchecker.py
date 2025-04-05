@@ -1,7 +1,6 @@
 import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
-
 from .helpers import run_and_check_status_code
 
 

@@ -1,7 +1,8 @@
-import pytest
-from sdrf_pipelines.ols.ols import OlsClient, get_obo_accession, read_obo_file, read_owl_file
-from rdflib import Graph, URIRef, Literal, RDF, RDFS, OWL
 import pandas as pd
+import pytest
+from rdflib import Graph, URIRef, Literal, RDF, RDFS, OWL
+
+from sdrf_pipelines.ols.ols import OlsClient, get_obo_accession, read_obo_file, read_owl_file
 
 
 class TestOlsClientReal:

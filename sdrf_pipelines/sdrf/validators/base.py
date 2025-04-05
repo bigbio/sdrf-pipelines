@@ -1,5 +1,5 @@
-from typing import List, Optional
 import re
+from typing import List, Optional
 
 from pydantic import Field
 from pydantic.fields import FieldInfo

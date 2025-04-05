@@ -1,6 +1,5 @@
 import logging
 import re
-import sys
 import typing
 from typing import Any
 

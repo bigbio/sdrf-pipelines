@@ -1,7 +1,7 @@
 import pandas as pd
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 
 from sdrf_pipelines.sdrf.schema_loader import schema_loader
+from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 
 
 def test_sdrf_parse():
@@ -31,6 +31,7 @@ def test_sdrf_parse():
     # Check that the shape is correct
     assert sdrf.shape == test_df.shape
 
+
 def test_human_record():
     """Test human record model."""
     # Get the human record model
@@ -57,6 +58,7 @@ def test_human_record():
         )
     except ValueError as e:
         print(f"ValueError: {e}")
+
 
 def test_validation():
     """Test validation of SDRF."""

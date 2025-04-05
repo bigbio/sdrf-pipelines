@@ -5,14 +5,13 @@ Schema loader for SDRF Pipelines v2.
 import json
 import logging
 import os
+from typing import Any, Dict, List, Optional, Type
+
 import yaml
-from typing import Any, Dict, List, Optional, Set, Type, Union
-
-from sdrf_pipelines.utils.exceptions import LogicError
-
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, create_model
 
 from sdrf_pipelines.sdrf.validators.base import create_field_with_validators
+from sdrf_pipelines.utils.exceptions import LogicError
 
 
 class SchemaField(BaseModel):

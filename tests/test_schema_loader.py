@@ -2,8 +2,8 @@
 Tests for the schema loader.
 """
 
-import os
 import json
+import os
 import tempfile
 
 from sdrf_pipelines.sdrf.schema_loader import schema_loader, SchemaLoader

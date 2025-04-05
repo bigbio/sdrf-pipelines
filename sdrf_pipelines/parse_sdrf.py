@@ -16,8 +16,8 @@ from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame, ALL_TEMPLATES
 from sdrf_pipelines.sdrf.sdrf import DEFAULT_TEMPLATE
+from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame, ALL_TEMPLATES
 from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
 
 

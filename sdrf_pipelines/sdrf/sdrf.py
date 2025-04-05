@@ -4,15 +4,14 @@ SDRF module for parsing and validating SDRF files.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
+import pandas as pd
 import pydantic
 from pydantic import BaseModel, Field
-import pandas as pd
 
 from sdrf_pipelines.sdrf.schema_loader import schema_loader
 from sdrf_pipelines.sdrf.validators.base import create_field_with_validators
-from sdrf_pipelines.sdrf.validators.ontology import OntologyTermValidator
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
