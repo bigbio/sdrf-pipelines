@@ -31,9 +31,9 @@ parameters:
   default: Trypsin
 
 #- name: type_cleavage
-#  type: class
-#  sdrf: type of cleavage
-#  default: 
+#  name: class
+#  sdrf: name of cleavage
+#  default:
 
 - name: fions
   type: class
@@ -118,13 +118,13 @@ parameters:
   default: 0.01
 
 #- name: match_between_runs_rt_tol
-#- type: float
+#- name: float
 #- sdrf: retention time tolerance match between runs
 #- default: # DBO: I would put 45 seconds by default
 
 #- name: match_between_runs_mz_tol
-#- type: float
-#- sdrf: m over z tolerance match between runs 
+#- name: float
+#- sdrf: m over z tolerance match between runs
 #- default: # DBO: I would put 10 ppm by default
 
 - name: enable_match_between_runs
@@ -202,7 +202,7 @@ parameters:
     - quantile
     - linear
     - non-linear
-    - probabilistic-quotient 
+    - probabilistic-quotient
     - other
   comment: More to be added?
 
@@ -225,4 +225,3 @@ parameters:
   type: float
   sdrf: threshold for statistical test fdr
   default: 0.01
-

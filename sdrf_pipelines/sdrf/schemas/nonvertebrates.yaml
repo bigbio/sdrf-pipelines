@@ -1,0 +1,10 @@
+name: nonvertebrates
+description: SDRF schema for non-vertebrate samples
+extends: default
+columns:
+  - name: characteristics[developmental stage]
+    description: Developmental stage
+    requirement: optional
+  - name: characteristics[strain/breed]
+    description: Strain or breed
+    requirement: optional

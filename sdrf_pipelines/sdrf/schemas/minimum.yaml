@@ -1,0 +1,151 @@
+name: minimum
+description: Minimum SDRF template with common fields
+validators:
+  - type: min_columns
+    params:
+      min_columns: 12
+  - type: trailing_whitespace_validator
+    params: {}
+columns:
+  - name: source name
+    description: Source name
+    requirement: required
+    cardinality: unique
+  - name: characteristics[organism]
+    description: Organism
+    requirement: required
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - ncbitaxon
+          allow_not_applicable: true
+          allow_not_available: false
+          description: The organism should be a valid NCBI Taxonomy term
+          examples:
+            - homo sapiens
+            - mus musculus
+            - rattus norvegicus
+  - name: characteristics[organism part]
+    description: Organism part
+    requirement: required
+    cardinality: multiple
+  - name: characteristics[cell type]
+    description: Cell type
+    requirement: required
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - cl
+            - bto
+            - clo
+          allow_not_applicable: true
+          allow_not_available: true
+          description: The cell name should be a valid Cell Ontology (CL), BRENDA Tissue Ontology (BTO), or Cell Line Ontology (CLO) term
+          examples:
+            - hepatocyte
+            - neuron
+            - fibroblast
+  - name: characteristics[biological replicate]
+    description: Biological replicate
+    requirement: required
+    cardinality: unique
+  - name: assay name
+    description: Assay name
+    requirement: required
+    cardinality: unique
+  - name: technology name
+    description: Technology name
+    requirement: required
+    cardinality: unique
+  - name: comment[technical replicate]
+    description: Technical replicate
+    requirement: required
+    cardinality: unique
+  - name: comment[fraction identifier]
+    description: Fraction identifier
+    requirement: required
+    cardinality: unique
+    type: integer
+  - name: comment[label]
+    description: Label
+    requirement: required
+    cardinality: unique
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - pride
+          allow_not_applicable: false
+          allow_not_available: false
+          description: The label should be a valid PRIDE ontology term
+          examples:
+            - label free sample
+            - SILAC light
+            - SILAC heavy
+            - TMT126
+            - iTRAQ114
+  - name: comment[data file]
+    description: Data file
+    requirement: required
+    cardinality: unique
+  - name: comment[instrument]
+    description: Instrument
+    requirement: required
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - ms
+          allow_not_applicable: false
+          allow_not_available: false
+          description: The instrument should be a valid MS ontology term
+          examples:
+            - LTQ Orbitrap
+            - Q Exactive
+            - TripleTOF 5600
+            - Orbitrap Fusion Lumos
+  - name: comment[modification parameters]
+    description: Modification parameters
+    requirement: recommended
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - unimod
+          allow_not_applicable: false
+          allow_not_available: true
+          description: The modification parameters should be valid Unimod terms
+          examples:
+            - "NT=Oxidation;MT=Variable;TA=M;AC=Unimod:35"
+            - "NT=Carbamidomethyl;TA=C;MT=fixed;AC=UNIMOD:4"
+  - name: comment[cleavage agent details]
+    description: Cleavage agent details
+    requirement: optional
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - ms
+          allow_not_applicable: true
+          allow_not_available: false
+          description: The cleavage agent details should be valid MS ontology terms
+          examples:
+            - Trypsin
+            - Lys-C
+            - Arg-C
+            - Chymotrypsin
+  - name: comment[fragment mass tolerance]
+    description: Fragment mass tolerance
+    requirement: optional
+    cardinality: unique
+  - name: comment[precursor mass tolerance]
+    description: Precursor mass tolerance
+    requirement: optional
+    cardinality: unique

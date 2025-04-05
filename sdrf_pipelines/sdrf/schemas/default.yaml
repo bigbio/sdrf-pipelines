@@ -1,0 +1,20 @@
+name: default
+description: Default SDRF template with common fields
+extends: minimum
+columns:
+  - name: characteristics[disease]
+    description: Disease
+    requirement: required
+    cardinality: multiple
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - mondo
+            - efo
+          allow_not_applicable: true
+          allow_not_available: false
+          description: The disease should be a valid MONDO or EFO ontology term
+          examples:
+            - breast cancer
+            - diabetes mellitus

@@ -1,0 +1,10 @@
+name: plants
+description: SDRF schema for plant samples
+extends: minimum
+fields:
+  - name: characteristics[developmental stage]
+    description: Developmental stage
+    required: false
+  - name: characteristics[strain/breed]
+    description: Strain or breed
+    required: false

@@ -1,0 +1,20 @@
+name: cell_lines
+description: SDRF schema for cell line samples
+extends: human
+columns:
+  - name: characteristics[cell line]
+    description: Cell line
+    requirement: optional
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - clo
+            - bto
+          allow_not_applicable: true
+          allow_not_available: true
+          description: The cell line should be a valid Cell Line Ontology (CLO) or BRENDA Tissue Ontology (BTO) term
+          examples:
+            - HeLa
+            - HEK293
+            - MCF7

@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sys
+from typing import List
 
 import click
 import pandas as pd
@@ -15,21 +16,51 @@ from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
-from sdrf_pipelines.sdrf.sdrf_schema import ALL_TEMPLATES
-from sdrf_pipelines.sdrf.sdrf_schema import DEFAULT_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf_schema import MASS_SPECTROMETRY
-from sdrf_pipelines.utils.exceptions import AppConfigException
+from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
+from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
+
+
+def parse_sdrf(sdrf_file: str) -> SDRFDataFrame:
+    """Parse an SDRF file.
+
+    Parameters:
+        sdrf_file (str): Path to the SDRF file
+    Returns:
+        SDRFDataFrame: A SdrfDataFrame instance
+    """
+    return SDRFDataFrame.parse(sdrf_file)
+
+
+def validate_sdrf_df(
+    sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False
+) -> List[LogicError]:
+    """
+    Validate an SDRF DataFrame.
+
+    Parameters:
+        sdrf: SDRFDataFrame to validate
+        template: Template name to determine the validation rules
+        use_ols_cache_only: Whether to use only the cache for ontology validation
+
+    Returns:
+        List of validation errors
+    """
+    return sdrf.validate(template, use_ols_cache_only=use_ols_cache_only)
+
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-@click.version_option(version=__version__, package_name="sdrf_pipelines", message="%(package)s %(version)s")
+@click.version_option(
+    version=__version__,
+    package_name="sdrf_pipelines",
+    message="%(package)s %(version)s",
+)
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
-    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration
-    files.
+    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration files.
     """
     pass
 
@@ -37,15 +68,29 @@ def cli():
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
 @click.option("--sdrf", "-s", help="SDRF file")
 @click.option(
-    "--legacy/--modern", "-l/-m", default=False, help="legacy=Create artificial sample column not needed in OpenMS 2.6."
+    "--legacy/--modern",
+    "-l/-m",
+    default=False,
+    help="legacy=Create artificial sample column not needed in OpenMS 2.6.",
 )
-@click.option("--onetable/--twotables", "-t1/-t2", help="Create one-table or two-tables format.", default=False)
-@click.option("--verbose/--quiet", "-v/-q", help="Output debug information.", default=False)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--onetable/--twotables",
+    "-t1/-t2",
+    help="Create one-table or two-tables format.",
+    default=False,
+)
+@click.option(
+    "--verbose/--quiet", "-v/-q", help="Output debug information.", default=False
+)
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
+    help="convert extensions of files from one name to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
 )
 @click.pass_context
 def openms_from_sdrf(
@@ -60,28 +105,45 @@ def openms_from_sdrf(
     if sdrf is None:
         help()
     try:
-        OpenMS().openms_convert(sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert)
+        OpenMS().openms_convert(
+            sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert
+        )
     except Exception as ex:
         msg = "Error: " + str(ex)
         raise ValueError(msg) from ex
 
 
 @click.command(
-    "convert-maxquant", short_help="convert sdrf to maxquant parameters file and generate an experimental design file"
+    "convert-maxquant",
+    short_help="convert sdrf to maxquant parameters file and generate an experimental design file",
 )
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
 @click.option("--fastafilepath", "-f", help="protein database file path", required=True)
 @click.option("--mqconfdir", "-mcf", help="MaxQuant default configure path")
 @click.option(
-    "--matchbetweenruns", "-m", help="via matching between runs to boosts number of identifications", default="True"
+    "--matchbetweenruns",
+    "-m",
+    help="via matching between runs to boosts number of identifications",
+    default="True",
 )
 @click.option(
-    "--peptidefdr", "-pef", help="posterior error probability calculation based on target-decoy search", default=0.01
+    "--peptidefdr",
+    "-pef",
+    help="posterior error probability calculation based on target-decoy search",
+    default=0.01,
 )
 @click.option(
-    "--proteinfdr", "-prf", help="protein score = product of peptide PEPs (one for each sequence)", default=0.01
+    "--proteinfdr",
+    "-prf",
+    help="protein score = product of peptide PEPs (one for each sequence)",
+    default=0.01,
 )
-@click.option("--tempfolder", "-t", help="temporary folder: place on SSD (if possible) for faster search", default="")
+@click.option(
+    "--tempfolder",
+    "-t",
+    help="temporary folder: place on SSD (if possible) for faster search",
+    default="",
+)
 @click.option("--raw_folder", "-r", help="spectrum raw data folder", required=True)
 @click.option(
     "--numthreads",
@@ -91,8 +153,18 @@ def openms_from_sdrf(
     "(otherwise, MaxQuant can crash)",
     default=1,
 )
-@click.option("--output1", "-o1", help="parameters .xml file  output file path", default="./mqpar.xml")
-@click.option("--output2", "-o2", help="maxquant experimental design .txt file", default="./exp_design.xml")
+@click.option(
+    "--output1",
+    "-o1",
+    help="parameters .xml file  output file path",
+    default="./mqpar.xml",
+)
+@click.option(
+    "--output2",
+    "-o2",
+    help="maxquant experimental design .txt file",
+    default="./exp_design.xml",
+)
 @click.pass_context
 def maxquant_from_sdrf(
     ctx,
@@ -133,27 +205,28 @@ def maxquant_from_sdrf(
     "-t",
     help="select the template that will be use to validate the file (default: default)",
     default="default",
-    type=click.Choice(ALL_TEMPLATES, case_sensitive=False),
     required=False,
 )
 @click.option(
-    "--skip_ms_validation",
-    help="Disable the validation of mass spectrometry fields in SDRF (e.g. posttranslational modifications)",
+    "--skip_factor_validation",
+    help="Disable the validation of factor values in SDRF",
     is_flag=True,
 )
-@click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
 @click.option(
-    "--skip_experimental_design_validation", help="Disable the validation of experimental design", is_flag=True
+    "--skip_experimental_design_validation",
+    help="Disable the validation of experimental design",
+    is_flag=True,
 )
 @click.option(
-    "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
+    "--use_ols_cache_only",
+    help="Use ols cache for validation of the terms and not OLS internet service",
+    is_flag=True,
 )
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
-    skip_ms_validation: bool,
     skip_factor_validation: bool,
     skip_experimental_design_validation: bool,
     use_ols_cache_only: bool,
@@ -178,34 +251,32 @@ def validate_sdrf(
         raise AppConfigException(msg)
 
     if template is None:
-        template = DEFAULT_TEMPLATE
+        template = "default"
 
-    df = SdrfDataFrame.parse(sdrf_file)
-    errors = df.validate(template, use_ols_cache_only)
+    registry = SchemaRegistry()  # Default registry, but users can create their own
+    validator = SchemaValidator(registry)
+    sdrf_df = SDRFDataFrame(sdrf_file)
 
-    if not skip_ms_validation:
-        errors = errors + df.validate(MASS_SPECTROMETRY, use_ols_cache_only)
-
-    if not skip_factor_validation:
-        errors = errors + df.validate_factor_values()
-
-    if not skip_experimental_design_validation:
-        errors = errors + df.validate_experimental_design()
+    errors = validator.validate(sdrf_df, template)
 
     for error in errors:
-        print(error)
+        click.secho(f"ERROR: {error.message}", fg="red")
 
-    # provide some info to the user, as no info is confusing
     if not errors:
-        print("Everything seems to be fine. Well done.")
+        click.secho("Everything seems to be fine. Well done.", fg="green")
     else:
-        print("There were validation errors.")
+        click.secho("There were validation errors.", fg="red")
     sys.exit(bool(errors))
 
 
 @click.command("split-sdrf", short_help="Command to split the sdrf file")
 @click.option("--sdrf_file", "-s", help="SDRF file to be splited", required=True)
-@click.option("--attribute", "-a", help="property to split, Multiple attributes are separated by commas", required=True)
+@click.option(
+    "--attribute",
+    "-a",
+    help="property to split, Multiple attributes are separated by commas",
+    required=True,
+)
 @click.option("--prefix", "-p", help="file prefix to be added to the sdrf file name")
 @click.pass_context
 def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
@@ -238,20 +309,43 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
 
 @click.command("convert-msstats", short_help="convert sdrf to msstats annotation file")
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option("--outpath", "-o", help="annotation out file path", required=True)
-@click.option("--openswathtomsstats", "-swath", help="from openswathtomsstats output to msstats", default=False)
-@click.option("--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False)
+@click.option(
+    "--openswathtomsstats",
+    "-swath",
+    help="from openswathtomsstats output to msstats",
+    default=False,
+)
+@click.option(
+    "--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False
+)
 @click.pass_context
-def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats):
-    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats)
+def msstats_from_sdrf(
+    ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
+):
+    Msstats().convert_msstats_annotation(
+        sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
+    )
 
 
-@click.command("convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file")
+@click.command(
+    "convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file"
+)
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option("--outpath", "-o", help="annotation out file path", required=True)
-@click.option("--outpathcomparisons", "-oc", help="out file path for comparisons", default="")
+@click.option(
+    "--outpathcomparisons", "-oc", help="out file path for comparisons", default=""
+)
 @click.option(
     "--maxquant_exp_design_file",
     "-mq",
@@ -259,13 +353,26 @@ def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsst
     default="",
 )
 @click.pass_context
-def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file):
+def normalyzerde_from_sdrf(
+    ctx,
+    sdrf,
+    conditionsfromcolumns,
+    outpath,
+    outpathcomparisons,
+    maxquant_exp_design_file,
+):
     NormalyzerDE().convert_normalyzerde_design(
-        sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file
+        sdrf,
+        conditionsfromcolumns,
+        outpath,
+        outpathcomparisons,
+        maxquant_exp_design_file,
     )
 
 
-@click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
+@click.command(
+    "build-index-ontology", short_help="Convert an ontology file to an index file"
+)
 @click.option("--ontology", "-in", help="ontology file")
 @click.option("--index", "-out", help="Output file in parquet format")
 @click.option("--ontology_name", "-name", help="ontology name")
@@ -286,6 +393,42 @@ cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
 cli.add_command(normalyzerde_from_sdrf)
 cli.add_command(build_index_ontology)
+
+
+@click.command(
+    "validate-sdrf-simple", short_help="Simple command to validate the sdrf file"
+)
+@click.argument("sdrf_file", type=click.Path(exists=True))
+@click.option(
+    "--template", "-t", default="default", help="The template to validate against"
+)
+@click.option(
+    "--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation"
+)
+def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
+    """
+    Simple command to validate an SDRF file.
+
+    This command provides a simpler interface for validating SDRF files,
+    without the additional options for skipping specific validations.
+    """
+    registry = SchemaRegistry()  # Default registry, but users can create their own
+    validator = SchemaValidator(registry)
+    sdrf_df = SDRFDataFrame(sdrf_file)
+
+    errors = validator.validate(sdrf_df, template)
+    if errors:
+        for error in errors:
+            if error.error_type == logging.ERROR:
+                click.secho(f"ERROR: {error.message}", fg="red")
+            else:
+                click.secho(f"WARNING: {error.message}", fg="yellow")
+        sys.exit(1)
+    else:
+        click.secho("SDRF file is valid!", fg="green")
+
+
+cli.add_command(validate_sdrf_simple)
 
 
 def main():

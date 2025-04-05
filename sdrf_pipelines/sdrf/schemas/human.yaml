@@ -1,0 +1,60 @@
+name: human
+description: Human SDRF template with human-specific fields
+extends: default
+columns:
+  - name: characteristics[ancestry category]
+    description: Ancestry category
+    requirement: optional
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - hancestro
+          allow_not_applicable: true
+          allow_not_available: true
+          description: The ancestry category should be a valid HANCESTRO ontology term
+          examples:
+            - European
+            - African
+            - Asian
+  - name: characteristics[age]
+    description: Age
+    requirement: optional
+    validators:
+      - type: pattern
+        params:
+          pattern: (?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)
+          case_sensitive: false
+  - name: characteristics[sex]
+    description: Sex
+    requirement: optional
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - pco
+          allow_not_applicable: true
+          allow_not_available: true
+          description: The sex should be a valid PCO ontology term
+          examples:
+            - male
+            - female
+            - intersex
+  - name: characteristics[developmental stage]
+    description: Developmental stage
+    requirement: optional
+    validators:
+      - type: ontology
+        params:
+          ontologies:
+            - hsapdv
+          allow_not_applicable: true
+          allow_not_available: true
+          description: The developmental stage should be a valid HSAPDV ontology term
+          examples:
+            - adult
+            - embryo
+            - fetus
+  - name: characteristics[individual]
+    description: Individual
+    requirement: optional

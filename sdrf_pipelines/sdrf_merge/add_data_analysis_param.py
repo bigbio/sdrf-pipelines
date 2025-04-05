@@ -6,7 +6,7 @@ import yaml
 
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.unimod import UnimodDatabase
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 
 # Accessing ontologies and CVs
 unimod = UnimodDatabase()
@@ -18,8 +18,8 @@ field_types = {"boolean": bool, "str": str, "integer": int, "float": (float, int
 
 # Function for consistency checks
 def verify_content(pname, pvalue, ptype):
-    # for each type: check consistency
-    # print(type(pvalue))
+    # for each name: check consistency
+    # print(name(pvalue))
     if ptype in field_types.keys():
         if not isinstance(pvalue, field_types[ptype]):
             exit("ERROR: " + pname + " needs to be " + ptype + "!!")
@@ -109,11 +109,25 @@ used space between the comma separated modifications'
         if re.fullmatch("[A-Z]", modpos):
             print(modpos)
             mod_columns[len(mod_columns.columns) + 1] = (
-                "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";TA=" + modpos
+                "NT="
+                + modname
+                + ";AC="
+                + found[0].get_accession()
+                + ";MT="
+                + modtype
+                + ";TA="
+                + modpos
             )
         elif modpos in ["Protein N-term", "Protein C-term", "Any N-term", "Any C-term"]:
             mod_columns[len(mod_columns.columns) + 1] = (
-                "NT=" + modname + ";AC=" + found[0].get_accession() + ";MT=" + modtype + ";PP=" + modpos
+                "NT="
+                + modname
+                + ";AC="
+                + found[0].get_accession()
+                + ";MT="
+                + modtype
+                + ";PP="
+                + modpos
             )
         else:
             exit(
@@ -154,11 +168,19 @@ if has_sdrf:
     sdrf_content["comment[modification parameters]"] = None
     # delete columns with fixed/variable modification info
     if "fixed_mods" in params_in.keys():
-        ttt = [x for x in mod_columns.columns if any(mod_columns[x].str.contains("MT=fixed"))]
+        ttt = [
+            x
+            for x in mod_columns.columns
+            if any(mod_columns[x].str.contains("MT=fixed"))
+        ]
         mod_columns.drop(ttt, axis=1, inplace=True)
         overwritten.add("fixed_mods")
     if "variable_mods" in params_in.keys():
-        ttt = [x for x in mod_columns.columns if any(mod_columns[x].str.contains("MT=variable"))]
+        ttt = [
+            x
+            for x in mod_columns.columns
+            if any(mod_columns[x].str.contains("MT=variable"))
+        ]
         mod_columns.drop(ttt, axis=1, inplace=True)
         overwritten.add("variable_mods")
 else:
@@ -175,7 +197,7 @@ see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-prot
 # IF NOT GIVEN, WRITE COLUMN
 for p in mapping:
     pname = p["name"]
-    ptype = p["type"]
+    ptype = p["name"]
     print("---- Parameter: " + pname + ": ----")
 
     pvalue = new_or_default(params_in, pname, p)
@@ -195,13 +217,20 @@ the file into parts with the same data analysis parameters"
         # Modifications: look up in Unimod
         if pname in ["fixed_mods", "variable_mods"] and pname in overwritten:
             mods = pvalue.split(",")
-            print("WARNING: Overwriting " + pname + " values in sdrf file with " + pvalue)
+            print(
+                "WARNING: Overwriting " + pname + " values in sdrf file with " + pvalue
+            )
             mod_columns = add_ptms(mods, pname, mod_columns)
 
         # Now finally writing the value
         elif pname not in ["fixed_mods", "variable_mods"]:
             if pname in list(params_in.keys()):
-                print("WARNING: Overwriting " + pname + " values in sdrf file with " + str(pvalue))
+                print(
+                    "WARNING: Overwriting "
+                    + pname
+                    + " values in sdrf file with "
+                    + str(pvalue)
+                )
                 overwritten.add(pname)
                 sdrf_content[psdrf] = pvalue
 
@@ -215,7 +244,9 @@ the file into parts with the same data analysis parameters"
 # WRITE EXPERIMENTAL DESIGN IF NO SDRF?
 
 # adding modification columns
-colnames = list(sdrf_content.columns) + ["comment[modification parameters]"] * len(mod_columns.columns)
+colnames = list(sdrf_content.columns) + ["comment[modification parameters]"] * len(
+    mod_columns.columns
+)
 
 sdrf_content = pd.concat([sdrf_content, mod_columns], axis=1)
 sdrf_content.columns = colnames
@@ -227,9 +258,9 @@ print("--- Writing sdrf file into sdrf_local.tsv ---")
 sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
 
 # Verify with sdrf-parser
-check_sdrf = SdrfDataFrame()
+check_sdrf = SDRFDataFrame()
 check_sdrf.parse("sdrf_local.tsv")
-check_sdrf.validate("mass_spectrometry")
+check_sdrf.validate("default")
 
 print("########## SUMMARY #########")
 print("--- The following parameters have been overwritten in the sdrf file: ---")

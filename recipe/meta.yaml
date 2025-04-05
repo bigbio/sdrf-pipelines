@@ -1,7 +1,7 @@
 # recipe/meta.yaml
 package:
   name: sdrf-pipelines
-  version: "0.0.31"
+  version: "0.0.32"
 
 source:
   path: ../
@@ -15,14 +15,13 @@ build:
 
 requirements:
   host:
-    - pip
     - python >=3.10
-    - setuptools
+    - pip
+    - poetry-core >=1.2.0
   run:
     - click
     - requests
     - pandas
-    - pandas_schema
     - python >=3.10
     - pyaml
     - defusedxml
@@ -30,7 +29,7 @@ requirements:
     - duckdb
     - rdflib
     - pyarrow
-    - setuptools
+    - pydantic
 
 test:
   imports:
