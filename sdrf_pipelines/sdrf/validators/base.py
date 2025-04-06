@@ -97,3 +97,9 @@ def create_field_with_validators(
         )
 
     return Field(description=description, json_schema_extra={"validators": validators}, **kwargs)
+
+    @staticmethod
+    def validate_min_columns(value: int, min: int) -> int:
+        if value < min:
+            raise ValueError(f"Value must be at least {min}")
+        return value
