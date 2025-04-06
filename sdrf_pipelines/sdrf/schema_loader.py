@@ -31,6 +31,7 @@ class SchemaDefinition(BaseModel):
     description: str
     extends: Optional[str] = None
     fields: List[SchemaField]
+    validators: List[Dict[str, Any]] = []
 
     @property
     def min_columns(self) -> int:
@@ -80,6 +81,8 @@ class SchemaLoader:
                         schema_data = yaml.safe_load(f)
 
                 schema = SchemaDefinition(**schema_data)
+                schema.validators.extend(schema_data.get("validators", []))
+
                 self.schemas[schema_name] = schema
 
     def get_schema(self, name: str) -> SchemaDefinition:
@@ -184,6 +187,7 @@ class SchemaLoader:
         # Create the model
         model_name = f"{name.capitalize()}Record"
         model = create_model(model_name, __doc__=schema.description, **field_definitions)
+        model.validators = schema.validators
 
         # Print the model fields for debugging
         print(f"Model {model_name} fields: {list(model.model_fields.keys())}")
