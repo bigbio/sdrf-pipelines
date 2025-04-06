@@ -1,21 +1,21 @@
 name: default
 description: Default SDRF template with common fields
-min_columns: 7
+validators:
+ - type: min_columns
+   params:
+     min: 7
+ - type: whitespace
+   params: {}
 fields:
 - name: source_name
   sdrf_name: source name
   description: Source name
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: characteristics_organism
   sdrf_name: characteristics[organism]
   description: Organism
   requirement: required
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontology_name: ncbitaxon
@@ -30,23 +30,15 @@ fields:
   sdrf_name: characteristics[organism part]
   description: Organism part
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: characteristics_disease
   sdrf_name: characteristics[disease]
   description: Disease
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: characteristics_cell_type
   sdrf_name: characteristics[cell type]
   description: Cell type
   requirement: required
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontologies:
@@ -65,44 +57,27 @@ fields:
   sdrf_name: characteristics[biological replicate]
   description: Biological replicate
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: assay_name
   sdrf_name: assay name
   description: Assay name
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: technology_type
   sdrf_name: technology type
   description: Technology type
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: comment_technical_replicate
   sdrf_name: comment[technical replicate]
   description: Technical replicate
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: comment_fraction_identifier
   sdrf_name: comment[fraction identifier]
   description: Fraction identifier
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: comment_label
   sdrf_name: comment[label]
   description: Label
   requirement: required
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontology_name: pride
@@ -119,16 +94,11 @@ fields:
   sdrf_name: comment[data file]
   description: Data file
   requirement: required
-  validators:
-  - type: whitespace
-    params: {}
 - name: comment_instrument
   sdrf_name: comment[instrument]
   description: Instrument
   requirement: required
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontology_name: ms
@@ -145,8 +115,6 @@ fields:
   description: Modification parameters
   requirement: recommended
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontology_name: unimod
@@ -161,8 +129,6 @@ fields:
   description: Cleavage agent details
   requirement: optional
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontology_name: ms
@@ -178,13 +144,7 @@ fields:
   sdrf_name: comment[fragment mass tolerance]
   description: Fragment mass tolerance
   requirement: optional
-  validators:
-  - type: whitespace
-    params: {}
 - name: comment_precursor_mass_tolerance
   sdrf_name: comment[precursor mass tolerance]
   description: Precursor mass tolerance
   requirement: optional
-  validators:
-  - type: whitespace
-    params: {}

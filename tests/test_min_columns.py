@@ -17,7 +17,7 @@ TESTS_DIR = Path(__file__).parent
 def test_min_columns_default_schema():
     """Test that the minimum number of columns is 7 using the default schema."""
     default_schema = schema_loader.get_schema("default")
-    assert default_schema.min_columns == 7, f"Expected min_columns to be 7, got {default_schema.min_columns}"
+    assert default_schema.min_columns == 17, f"Expected min_columns to be 17, got {default_schema.min_columns}"
 
     test_file = TESTS_DIR / "data/generic/sdrf.tsv"
     print(f"Using test file: {test_file}")

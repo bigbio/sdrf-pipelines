@@ -30,8 +30,18 @@ class SchemaDefinition(BaseModel):
     name: str
     description: str
     extends: Optional[str] = None
-    min_columns: int = 0
     fields: List[SchemaField]
+
+    @property
+    def min_columns(self) -> int:
+        """
+        Get the minimum number of columns in an Schema
+
+        Returns:
+            Minimum number of columns
+        """
+
+        return len(self.fields)
 
 
 class SchemaLoader:

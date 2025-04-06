@@ -90,7 +90,7 @@ def test_validation():
         print(f"Error: {error.message}")
 
     # Should be valid
-    assert len(errors) == 6
+    assert len(errors) == 7
 
     # Create a test DataFrame with invalid data (missing required field)
     test_df = pd.DataFrame(

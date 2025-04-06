@@ -1,15 +1,12 @@
 name: cell_lines
 description: SDRF schema for cell line samples
 extends: default
-min_columns: 7
 fields:
 - name: characteristics_cell_line
   sdrf_name: characteristics[cell line]
   description: Cell line
   requirement: optional
   validators:
-  - type: whitespace
-    params: {}
   - type: ontology
     params:
       ontologies:
