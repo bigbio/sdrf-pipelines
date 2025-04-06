@@ -52,7 +52,7 @@ class SchemaLoader:
         """
         Initialize the schema loader.
 
-        Args:
+        Parameters:
             schema_dir: Directory containing schema files
         """
         if schema_dir is None:
@@ -89,7 +89,7 @@ class SchemaLoader:
         """
         Get a schema by name.
 
-        Args:
+        Parameters:
             name: Schema name
 
         Returns:
@@ -107,7 +107,7 @@ class SchemaLoader:
         """
         Get a Pydantic model for a schema.
 
-        Args:
+        Parameters:
             name: Schema name
 
         Returns:
@@ -197,7 +197,7 @@ class SchemaLoader:
             """
             Create a record from a dictionary.
 
-            Args:
+            Parameters:
                 data: Dictionary with record data
 
             Returns:
@@ -273,7 +273,7 @@ class SchemaLoader:
             """
             Validate the record.
 
-            Args:
+            Parameters:
                 use_ols_cache_only: Whether to use only the cache for ontology validation
 
             Returns:
