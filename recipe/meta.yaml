@@ -1,7 +1,7 @@
 # recipe/meta.yaml
 package:
   name: sdrf-pipelines
-  version: "0.0.31"
+  version: "0.0.32"
 
 source:
   path: ../
@@ -22,7 +22,6 @@ requirements:
     - click
     - requests
     - pandas
-    - pandas_schema
     - python >=3.10
     - pyaml
     - defusedxml
