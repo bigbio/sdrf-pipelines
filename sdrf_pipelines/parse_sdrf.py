@@ -16,28 +16,28 @@ from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
-from sdrf_pipelines.sdrf.sdrf import DEFAULT_TEMPLATE
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame, ALL_TEMPLATES
+from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
 
 
-def parse_sdrf(sdrf_file: str) -> SdrfDataFrame:
+def parse_sdrf(sdrf_file: str) -> SDRFDataFrame:
     """Parse an SDRF file.
 
     Parameters:
         sdrf_file (str): Path to the SDRF file
     Returns:
-        SdrfDataFrame: A SdrfDataFrame instance
+        SDRFDataFrame: A SdrfDataFrame instance
     """
-    return SdrfDataFrame.parse(sdrf_file)
+    return SDRFDataFrame.parse(sdrf_file)
 
 
-def validate_sdrf_df(sdrf: SdrfDataFrame, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
+def validate_sdrf_df(sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
     """
     Validate an SDRF DataFrame.
 
     Parameters:
-        sdrf: SdrfDataFrame to validate
+        sdrf: SDRFDataFrame to validate
         template: Template name to determine the validation rules
         use_ols_cache_only: Whether to use only the cache for ontology validation
 
@@ -70,7 +70,7 @@ def cli():
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
+    help="convert extensions of files from one name to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
 )
 @click.pass_context
 def openms_from_sdrf(
@@ -158,7 +158,6 @@ def maxquant_from_sdrf(
     "-t",
     help="select the template that will be use to validate the file (default: default)",
     default="default",
-    type=click.Choice(ALL_TEMPLATES, case_sensitive=False),
     required=False,
 )
 @click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
@@ -197,16 +196,13 @@ def validate_sdrf(
         raise AppConfigException(msg)
 
     if template is None:
-        template = DEFAULT_TEMPLATE
+        template = "default"
 
-    df = parse_sdrf(sdrf_file)
-    errors = validate_sdrf_df(df, template, use_ols_cache_only)
+    registry = SchemaRegistry()  # Default registry, but users can create their own
+    validator = SchemaValidator(registry)
+    sdrf_df = SDRFDataFrame(sdrf_file)
 
-    if not skip_factor_validation:
-        errors = errors + df.validate_factor_values()
-
-    if not skip_experimental_design_validation:
-        errors = errors + df.validate_experimental_design()
+    errors = validator.validate(sdrf_df, template)
 
     for error in errors:
         click.secho(f"ERROR: {error.message}", fg="red")
@@ -306,7 +302,7 @@ cli.add_command(build_index_ontology)
 @click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file")
 @click.argument("sdrf_file", type=click.Path(exists=True))
 @click.option(
-    "--template", "-t", type=click.Choice(ALL_TEMPLATES), default="default", help="The template to validate against"
+    "--template", "-t", default="default", help="The template to validate against"
 )
 @click.option("--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation")
 def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
@@ -316,9 +312,11 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
     This command provides a simpler interface for validating SDRF files,
     without the additional options for skipping specific validations.
     """
-    sdrf = parse_sdrf(sdrf_file)
-    errors = validate_sdrf_df(sdrf, template, use_ols_cache_only=use_ols_cache_only)
+    registry = SchemaRegistry()  # Default registry, but users can create their own
+    validator = SchemaValidator(registry)
+    sdrf_df = SDRFDataFrame(sdrf_file)
 
+    errors = validator.validate(sdrf_df, template)
     if errors:
         for error in errors:
             if error.error_type == logging.ERROR:

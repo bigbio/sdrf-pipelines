@@ -6,7 +6,7 @@ import yaml
 
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.unimod import UnimodDatabase
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 
 # Accessing ontologies and CVs
 unimod = UnimodDatabase()
@@ -18,8 +18,8 @@ field_types = {"boolean": bool, "str": str, "integer": int, "float": (float, int
 
 # Function for consistency checks
 def verify_content(pname, pvalue, ptype):
-    # for each type: check consistency
-    # print(type(pvalue))
+    # for each name: check consistency
+    # print(name(pvalue))
     if ptype in field_types.keys():
         if not isinstance(pvalue, field_types[ptype]):
             exit("ERROR: " + pname + " needs to be " + ptype + "!!")
@@ -175,7 +175,7 @@ see https://github.com/bigbio/proteomics-metadata-standard/tree/master/sdrf-prot
 # IF NOT GIVEN, WRITE COLUMN
 for p in mapping:
     pname = p["name"]
-    ptype = p["type"]
+    ptype = p["name"]
     print("---- Parameter: " + pname + ": ----")
 
     pvalue = new_or_default(params_in, pname, p)
@@ -227,7 +227,7 @@ print("--- Writing sdrf file into sdrf_local.tsv ---")
 sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
 
 # Verify with sdrf-parser
-check_sdrf = SdrfDataFrame()
+check_sdrf = SDRFDataFrame()
 check_sdrf.parse("sdrf_local.tsv")
 check_sdrf.validate("default")
 

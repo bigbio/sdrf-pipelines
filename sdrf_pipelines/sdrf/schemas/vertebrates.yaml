@@ -1,8 +1,7 @@
 name: vertebrates
 description: SDRF schema for vertebrate samples
 extends: default
-fields:
-- name: characteristics_developmental_stage
-  sdrf_name: characteristics[developmental stage]
-  description: Developmental stage
-  requirement: optional
+columns:
+  - name: characteristics[developmental stage]
+    description: Developmental stage
+    requirement: optional

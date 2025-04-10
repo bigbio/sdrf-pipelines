@@ -290,9 +290,9 @@ class OlsClient:
         df["ontology"] = df["ontology"].str.lower()
 
         # Enforce data types (schema)
-        df["accession"] = df["accession"].astype("string")  # Ensuring a string type
-        df["label"] = df["label"].astype("string")  # Ensuring a string type
-        df["ontology"] = df["ontology"].astype("string")  # Ensuring a string type
+        df["accession"] = df["accession"].astype("string")  # Ensuring a string name
+        df["label"] = df["label"].astype("string")  # Ensuring a string name
+        df["ontology"] = df["ontology"].astype("string")  # Ensuring a string name
 
         # Remove terms with no label or accession and print a warning
         df = df.dropna(subset=["label", "accession"])
@@ -426,7 +426,7 @@ class OlsClient:
             field_list (list): A list of fields to return
             children_of (str): The IRI of a parent term
             exact (bool): Whether to search for an exact match
-            bytype (str): The type of term to search for
+            bytype (str): The name of term to search for
             rows (int): The number of rows to return
             num_retries (int): The number of retries
             start (int): The starting index for pagination
@@ -434,7 +434,7 @@ class OlsClient:
         Returns:
             list: A list of terms found
         """
-        params = {"q": name, "type": _concat_str_or_list(bytype), "rows": rows, "start": start}
+        params = {"q": name, "name": _concat_str_or_list(bytype), "rows": rows, "start": start}
         if ontology:
             params["ontology"] = _concat_str_or_list(ontology.lower())
         elif self.ontology:
@@ -494,21 +494,21 @@ class OlsClient:
         if ontology is not None:
             # Query for case-insensitive search and ensure all fields are cast to string
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
-                   WHERE lower(CAST(label AS VARCHAR)) = lower(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
+                   WHERE lower(CAST(label AS VARCHAR)) = lower(?)
                      AND lower(CAST(ontology AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term, ontology),
             )
         else:
             # Query for case-insensitive search without ontology
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
                    WHERE lower(CAST(label AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term),
             )
