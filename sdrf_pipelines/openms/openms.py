@@ -76,6 +76,23 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     return raw
 
+def parse_tolerance(pc_tol_str:str, units=("ppm", "da")) -> tuple[str, str]:
+    """Find tolerance in string."""
+    # check that only one unit is specified?
+    pc_tol_str = pc_tol_str.lower()
+    for unit in units:
+        if unit in pc_tol_str:
+            tol = pc_tol_str.split(unit)[0].strip()
+            if not f' {unit}' in pc_tol_str:
+                msg = (
+                    f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
+                )
+                logger.warning(msg)
+            _ = int(tol) # should be an integer
+            if unit == "da":
+                unit = unit.capitalize()
+            return tol, unit
+    return None, None
 
 class OpenMS:
     def __init__(self) -> None:
@@ -308,25 +325,31 @@ class OpenMS:
             if source_name not in source_name_list:
                 source_name_list.append(source_name)
 
+
+
             if "comment[precursor mass tolerance]" in row:
                 pc_tol_str = row["comment[precursor mass tolerance]"].strip()
-                if "ppm" in pc_tol_str:
-                    # ! move to function to avoid repeated code, and make check extendiable
-                    pc_tmp = pc_tol_str.split('ppm')[0]
-                    if not ' ppm' in pc_tol_str:
-                        msg = f'Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {pc_tmp} ppm'
-                        logger.warning(msg)
-                    f2c.file2pctol[raw] = pc_tmp
-                    f2c.file2pctolunit[raw] = "ppm"
-                elif "Da" in pc_tol_str:
-                    pc_tmp = pc_tol_str.split(" ")
-                    f2c.file2pctol[raw] = pc_tmp[0]
-                    f2c.file2pctolunit[raw] = pc_tmp[1]
-                else:
-                    warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2pctol[raw] = "10"
-                    f2c.file2pctolunit[raw] = "ppm"
+
+                tol, unit = parse_tolerance(pc_tol_str)
+                # if "ppm" in pc_tol_str:
+                #     # ! move to function to avoid repeated code, and make check extendiable
+                #     pc_tmp = pc_tol_str.split('ppm')[0]
+                #     if not ' ppm' in pc_tol_str:
+                #         msg = f'Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {pc_tmp} ppm'
+                #         logger.warning(msg)
+                #     f2c.file2pctol[raw] = pc_tmp
+                #     f2c.file2pctolunit[raw] = "ppm"
+                # elif "Da" in pc_tol_str:
+                #     pc_tmp = pc_tol_str.split(" ")
+                #     f2c.file2pctol[raw] = pc_tmp[0]
+                #     f2c.file2pctolunit[raw] = pc_tmp[1]
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(pc_tol_str))
+                # else:
+                # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                # f2c.file2pctol[raw] = "10"
+                # f2c.file2pctolunit[raw] = "ppm"
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
