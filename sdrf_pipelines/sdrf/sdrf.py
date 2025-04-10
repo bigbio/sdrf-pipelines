@@ -8,6 +8,7 @@ from typing import Union, Any, List
 import pandas as pd
 from pydantic import BaseModel, Field
 
+
 class SDRFDataFrame(BaseModel):
 
     df: pd.DataFrame = Field(default=None)

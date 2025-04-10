@@ -40,7 +40,9 @@ def _check_output_file_extensions(out_dir: Path, expected_extension):
 
     content = content[1 : content.index("\n")]
     files = [line.split("\t")[2] for line in content]
-    assert all([file.endswith(expected_extension) for file in files]), str(files) + "\n" + str(content)
+    assert all([file.endswith(expected_extension) for file in files]), (
+        str(files) + "\n" + str(content)
+    )
 
 
 def test_convert_openms(shared_datadir, on_tmpdir):
@@ -97,7 +99,9 @@ def test_convert_openms_file_extensions_dotd(shared_datadir, on_tmpdir):
 
 
 @pytest.mark.parametrize("convertsion_flag", [True, False])
-def test_nocovnersion_openms_file_extensions_dotd(shared_datadir, on_tmpdir, convertsion_flag):
+def test_nocovnersion_openms_file_extensions_dotd(
+    shared_datadir, on_tmpdir, convertsion_flag
+):
     test_sdrf = shared_datadir / "generic/quantms_dia_dotd_sample_converted.sdrf"
     cmd = ["convert-openms", "-t2", "-s", test_sdrf]
     if convertsion_flag:

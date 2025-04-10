@@ -96,7 +96,9 @@ def get_cache_parquet_files() -> tuple:
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
-    df = duckdb.execute("""SELECT DISTINCT ontology FROM read_parquet(?)""", (parquet_files,)).fetchdf()
+    df = duckdb.execute(
+        """SELECT DISTINCT ontology FROM read_parquet(?)""", (parquet_files,)
+    ).fetchdf()
 
     if df is None or df.empty:
         return parquet_files, []
@@ -150,10 +152,18 @@ def read_owl_file(ontology_file: str, ontology_name=None) -> list:
         term_id = str(s)
         for _, _, name in g.triples((s, rdflib.RDFS.label, None)):
             term_name = str(name)
-            terms_info.append({"accession": get_obo_accession(term_id), "label": term_name, "ontology": ontology_name})
+            terms_info.append(
+                {
+                    "accession": get_obo_accession(term_id),
+                    "label": term_name,
+                    "ontology": ontology_name,
+                }
+            )
 
     # remove terms with no label or accession
-    terms_info = [term for term in terms_info if "label" in term and "accession" in term]
+    terms_info = [
+        term for term in terms_info if "label" in term and "accession" in term
+    ]
     return terms_info
 
 
@@ -194,7 +204,9 @@ def read_obo_file(ontology_file: str, ontology_name=None) -> list:
         content = file.read()
 
     terms = split_terms(content)
-    ontology_name = get_ontology_name(content) if ontology_name is None else ontology_name
+    ontology_name = (
+        get_ontology_name(content) if ontology_name is None else ontology_name
+    )
     terms_info = [parse_term(term, ontology_name) for term in terms]
 
     return terms_info
@@ -244,7 +256,9 @@ class OlsClient:
             self.use_cache = False
 
     @staticmethod
-    def build_ontology_index(ontology_file: str, output_file: str = None, ontology_name: str = None):
+    def build_ontology_index(
+        ontology_file: str, output_file: str = None, ontology_name: str = None
+    ):
         """
         Builds an index of an ontology file OBO format. The output file will be a parquet file containing only three columns:
         - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) the name of the term and the number.
@@ -346,10 +360,20 @@ class OlsClient:
         try:
             return response.json()["_embedded"]["terms"]
         except KeyError as ex:
-            logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
+            logger.warning(
+                "Term was found but ancestor lookup returned an empty response: %s",
+                response.json(),
+            )
             raise ex
 
-    def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
+    def search(
+        self,
+        term: str,
+        ontology: str = None,
+        exact=True,
+        use_ols_cache_only: bool = False,
+        **kwargs,
+    ):
         """
         Search a term in the OLS
 
@@ -385,10 +409,16 @@ class OlsClient:
         """
         try:
             req = self.session.get(self.ontology_search, params=params)
-            logger.debug("Request to OLS search API term %s, status code %s", name, req.status_code)
+            logger.debug(
+                "Request to OLS search API term %s, status code %s",
+                name,
+                req.status_code,
+            )
 
             if req.status_code != 200:
-                logger.error("OLS search term %s error, retry number %s", name, retry_num)
+                logger.error(
+                    "OLS search term %s error, retry number %s", name, retry_num
+                )
                 req.raise_for_status()
 
             response_json = req.json()
@@ -396,7 +426,11 @@ class OlsClient:
             docs = response_json["response"]["docs"]
 
             if num_found == 0:
-                logger.debug("OLS %s search returned empty response for %s", "exact" if exact else "", name)
+                logger.debug(
+                    "OLS %s search returned empty response for %s",
+                    "exact" if exact else "",
+                    name,
+                )
                 return []
 
             return docs
@@ -434,7 +468,12 @@ class OlsClient:
         Returns:
             list: A list of terms found
         """
-        params = {"q": name, "name": _concat_str_or_list(bytype), "rows": rows, "start": start}
+        params = {
+            "q": name,
+            "name": _concat_str_or_list(bytype),
+            "rows": rows,
+            "start": start,
+        }
         if ontology:
             params["ontology"] = _concat_str_or_list(ontology.lower())
         elif self.ontology:
@@ -459,7 +498,9 @@ class OlsClient:
         docs_found = []
 
         for retry_num in range(num_retries):
-            docs = self._perform_ols_search(params, name=name, exact=exact, retry_num=retry_num)
+            docs = self._perform_ols_search(
+                params, name=name, exact=exact, retry_num=retry_num
+            )
             if docs:
                 docs_found.extend(docs)
                 if len(docs) < rows:
@@ -519,6 +560,12 @@ class OlsClient:
 
         terms = []
         for _, row in df.iterrows():
-            terms.append({"ontology_name": row.ontology, "label": row.label, "obo_id": row.accession})
+            terms.append(
+                {
+                    "ontology_name": row.ontology,
+                    "label": row.label,
+                    "obo_id": row.accession,
+                }
+            )
 
         return terms

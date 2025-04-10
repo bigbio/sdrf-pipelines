@@ -32,7 +32,9 @@ def parse_sdrf(sdrf_file: str) -> SDRFDataFrame:
     return SDRFDataFrame.parse(sdrf_file)
 
 
-def validate_sdrf_df(sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
+def validate_sdrf_df(
+    sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False
+) -> List[LogicError]:
     """
     Validate an SDRF DataFrame.
 
@@ -50,7 +52,11 @@ def validate_sdrf_df(sdrf: SDRFDataFrame, template: str, use_ols_cache_only: boo
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-@click.version_option(version=__version__, package_name="sdrf_pipelines", message="%(package)s %(version)s")
+@click.version_option(
+    version=__version__,
+    package_name="sdrf_pipelines",
+    message="%(package)s %(version)s",
+)
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
@@ -62,11 +68,25 @@ def cli():
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
 @click.option("--sdrf", "-s", help="SDRF file")
 @click.option(
-    "--legacy/--modern", "-l/-m", default=False, help="legacy=Create artificial sample column not needed in OpenMS 2.6."
+    "--legacy/--modern",
+    "-l/-m",
+    default=False,
+    help="legacy=Create artificial sample column not needed in OpenMS 2.6.",
 )
-@click.option("--onetable/--twotables", "-t1/-t2", help="Create one-table or two-tables format.", default=False)
-@click.option("--verbose/--quiet", "-v/-q", help="Output debug information.", default=False)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--onetable/--twotables",
+    "-t1/-t2",
+    help="Create one-table or two-tables format.",
+    default=False,
+)
+@click.option(
+    "--verbose/--quiet", "-v/-q", help="Output debug information.", default=False
+)
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option(
     "--extension_convert",
     "-e",
@@ -85,28 +105,45 @@ def openms_from_sdrf(
     if sdrf is None:
         help()
     try:
-        OpenMS().openms_convert(sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert)
+        OpenMS().openms_convert(
+            sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert
+        )
     except Exception as ex:
         msg = "Error: " + str(ex)
         raise ValueError(msg) from ex
 
 
 @click.command(
-    "convert-maxquant", short_help="convert sdrf to maxquant parameters file and generate an experimental design file"
+    "convert-maxquant",
+    short_help="convert sdrf to maxquant parameters file and generate an experimental design file",
 )
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
 @click.option("--fastafilepath", "-f", help="protein database file path", required=True)
 @click.option("--mqconfdir", "-mcf", help="MaxQuant default configure path")
 @click.option(
-    "--matchbetweenruns", "-m", help="via matching between runs to boosts number of identifications", default="True"
+    "--matchbetweenruns",
+    "-m",
+    help="via matching between runs to boosts number of identifications",
+    default="True",
 )
 @click.option(
-    "--peptidefdr", "-pef", help="posterior error probability calculation based on target-decoy search", default=0.01
+    "--peptidefdr",
+    "-pef",
+    help="posterior error probability calculation based on target-decoy search",
+    default=0.01,
 )
 @click.option(
-    "--proteinfdr", "-prf", help="protein score = product of peptide PEPs (one for each sequence)", default=0.01
+    "--proteinfdr",
+    "-prf",
+    help="protein score = product of peptide PEPs (one for each sequence)",
+    default=0.01,
 )
-@click.option("--tempfolder", "-t", help="temporary folder: place on SSD (if possible) for faster search", default="")
+@click.option(
+    "--tempfolder",
+    "-t",
+    help="temporary folder: place on SSD (if possible) for faster search",
+    default="",
+)
 @click.option("--raw_folder", "-r", help="spectrum raw data folder", required=True)
 @click.option(
     "--numthreads",
@@ -116,8 +153,18 @@ def openms_from_sdrf(
     "(otherwise, MaxQuant can crash)",
     default=1,
 )
-@click.option("--output1", "-o1", help="parameters .xml file  output file path", default="./mqpar.xml")
-@click.option("--output2", "-o2", help="maxquant experimental design .txt file", default="./exp_design.xml")
+@click.option(
+    "--output1",
+    "-o1",
+    help="parameters .xml file  output file path",
+    default="./mqpar.xml",
+)
+@click.option(
+    "--output2",
+    "-o2",
+    help="maxquant experimental design .txt file",
+    default="./exp_design.xml",
+)
 @click.pass_context
 def maxquant_from_sdrf(
     ctx,
@@ -160,12 +207,20 @@ def maxquant_from_sdrf(
     default="default",
     required=False,
 )
-@click.option("--skip_factor_validation", help="Disable the validation of factor values in SDRF", is_flag=True)
 @click.option(
-    "--skip_experimental_design_validation", help="Disable the validation of experimental design", is_flag=True
+    "--skip_factor_validation",
+    help="Disable the validation of factor values in SDRF",
+    is_flag=True,
 )
 @click.option(
-    "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
+    "--skip_experimental_design_validation",
+    help="Disable the validation of experimental design",
+    is_flag=True,
+)
+@click.option(
+    "--use_ols_cache_only",
+    help="Use ols cache for validation of the terms and not OLS internet service",
+    is_flag=True,
 )
 @click.pass_context
 def validate_sdrf(
@@ -216,7 +271,12 @@ def validate_sdrf(
 
 @click.command("split-sdrf", short_help="Command to split the sdrf file")
 @click.option("--sdrf_file", "-s", help="SDRF file to be splited", required=True)
-@click.option("--attribute", "-a", help="property to split, Multiple attributes are separated by commas", required=True)
+@click.option(
+    "--attribute",
+    "-a",
+    help="property to split, Multiple attributes are separated by commas",
+    required=True,
+)
 @click.option("--prefix", "-p", help="file prefix to be added to the sdrf file name")
 @click.pass_context
 def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
@@ -249,20 +309,43 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
 
 @click.command("convert-msstats", short_help="convert sdrf to msstats annotation file")
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option("--outpath", "-o", help="annotation out file path", required=True)
-@click.option("--openswathtomsstats", "-swath", help="from openswathtomsstats output to msstats", default=False)
-@click.option("--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False)
+@click.option(
+    "--openswathtomsstats",
+    "-swath",
+    help="from openswathtomsstats output to msstats",
+    default=False,
+)
+@click.option(
+    "--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False
+)
 @click.pass_context
-def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats):
-    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats)
+def msstats_from_sdrf(
+    ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
+):
+    Msstats().convert_msstats_annotation(
+        sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
+    )
 
 
-@click.command("convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file")
+@click.command(
+    "convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file"
+)
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
-@click.option("--conditionsfromcolumns", "-c", help="Create conditions from provided (e.g., factor) columns.")
+@click.option(
+    "--conditionsfromcolumns",
+    "-c",
+    help="Create conditions from provided (e.g., factor) columns.",
+)
 @click.option("--outpath", "-o", help="annotation out file path", required=True)
-@click.option("--outpathcomparisons", "-oc", help="out file path for comparisons", default="")
+@click.option(
+    "--outpathcomparisons", "-oc", help="out file path for comparisons", default=""
+)
 @click.option(
     "--maxquant_exp_design_file",
     "-mq",
@@ -270,13 +353,26 @@ def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsst
     default="",
 )
 @click.pass_context
-def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file):
+def normalyzerde_from_sdrf(
+    ctx,
+    sdrf,
+    conditionsfromcolumns,
+    outpath,
+    outpathcomparisons,
+    maxquant_exp_design_file,
+):
     NormalyzerDE().convert_normalyzerde_design(
-        sdrf, conditionsfromcolumns, outpath, outpathcomparisons, maxquant_exp_design_file
+        sdrf,
+        conditionsfromcolumns,
+        outpath,
+        outpathcomparisons,
+        maxquant_exp_design_file,
     )
 
 
-@click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
+@click.command(
+    "build-index-ontology", short_help="Convert an ontology file to an index file"
+)
 @click.option("--ontology", "-in", help="ontology file")
 @click.option("--index", "-out", help="Output file in parquet format")
 @click.option("--ontology_name", "-name", help="ontology name")
@@ -299,12 +395,16 @@ cli.add_command(normalyzerde_from_sdrf)
 cli.add_command(build_index_ontology)
 
 
-@click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file")
+@click.command(
+    "validate-sdrf-simple", short_help="Simple command to validate the sdrf file"
+)
 @click.argument("sdrf_file", type=click.Path(exists=True))
 @click.option(
     "--template", "-t", default="default", help="The template to validate against"
 )
-@click.option("--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation")
+@click.option(
+    "--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation"
+)
 def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
     """
     Simple command to validate an SDRF file.

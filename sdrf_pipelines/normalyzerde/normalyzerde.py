@@ -19,11 +19,18 @@ class NormalyzerDE:
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
-        self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        comparisons_path,
+        maxquant_exp_design_file,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = map(
+            str.lower, sdrf.columns
+        )  # convert column names to lower-case
         data = {}
         condition = []
         runs = sdrf["comment[data file]"].tolist()
@@ -45,7 +52,9 @@ class NormalyzerDE:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith("factor value[")]
+            factor_cols = [
+                c for ind, c in enumerate(sdrf) if c.startswith("factor value[")
+            ]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
@@ -74,7 +83,9 @@ class NormalyzerDE:
         sample_id_map = {}
         sample_id = 1
 
-        replicates = self.get_replicates(sdrf, sample_identifier_re, sample_id_map, sample_id)
+        replicates = self.get_replicates(
+            sdrf, sample_identifier_re, sample_id_map, sample_id
+        )
 
         # For MaxQuant mapping
         if maxquant_exp_design_file != "":
@@ -108,7 +119,13 @@ class NormalyzerDE:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 
-    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map=None, sample_id=1):
+    def get_replicates(
+        self,
+        sdrf,
+        sample_identifier_re="comment[organism]",
+        sample_id_map=None,
+        sample_id=1,
+    ):
         replicates = []
         value = []
         BioReplicate = []
@@ -125,7 +142,9 @@ class NormalyzerDE:
                     BioReplicate.append(sample)
             else:
                 warning_message = "No sample number identifier"
-                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                self.warnings[warning_message] = (
+                    self.warnings.get(warning_message, 0) + 1
+                )
 
                 # Solve non-sample id expression models
                 if source_name in sample_id_map.keys():
@@ -150,7 +169,10 @@ class NormalyzerDE:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
-            warning_message = "No factors specified. Adding Source Name as factor. Will be used " "as condition. "
+            warning_message = (
+                "No factors specified. Adding Source Name as factor. Will be used "
+                "as condition. "
+            )
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             combined_factors = row["source name"]
         return combined_factors

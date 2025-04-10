@@ -29,7 +29,13 @@ class OntologyTerm:
 
 
 class PostTranslationalModification:
-    def __init__(self, ontology_term: OntologyTerm, delta_composition: str, sites, delta_mono_mass) -> None:
+    def __init__(
+        self,
+        ontology_term: OntologyTerm,
+        delta_composition: str,
+        sites,
+        delta_mono_mass,
+    ) -> None:
         self._ontology_term = ontology_term
         self._delta_composition = delta_composition
         self._site = sites
@@ -73,7 +79,11 @@ class UnimodDatabase:
     def search_mods_by_keyword(self, keyword: str = None):
         found_list = self.modifications
         if keyword is not None and len(keyword) > 0:
-            found_list = [x for x in self.modifications if re.search(keyword, x.to_str(), re.IGNORECASE)]
+            found_list = [
+                x
+                for x in self.modifications
+                if re.search(keyword, x.to_str(), re.IGNORECASE)
+            ]
         return found_list
 
     def _get_elements(self, node):
@@ -81,7 +91,9 @@ class UnimodDatabase:
             ea = e.attrib
             self.elements[ea["title"]] = ea
             if re.match(r"[A-Z]", ea["title"][:1]):
-                self.elements["{}{}".format(int(round(float(ea["mono_mass"]))), ea["title"])] = ea
+                self.elements[
+                    "{}{}".format(int(round(float(ea["mono_mass"]))), ea["title"])
+                ] = ea
 
     def _get_modifications(self, node):
         for e in node.findall(f"{self.xmlns}modifications/{self.xmlns}mod"):
@@ -108,7 +120,9 @@ class UnimodDatabase:
                         ]
 
                     if r.attrib["spec_group"] in ma["spec_group"]:
-                        ma["spec_group"][r.attrib["spec_group"]].append(r.attrib["site"])
+                        ma["spec_group"][r.attrib["spec_group"]].append(
+                            r.attrib["site"]
+                        )
                     else:
                         ma["spec_group"][r.attrib["spec_group"]] = [
                             r.attrib["site"],
@@ -120,7 +134,9 @@ class UnimodDatabase:
             for old_site in ma["sites"].values():
                 site = PTMSite(old_site["site"], old_site["position"])
                 sites.append(site)
-            mod = PostTranslationalModification(ontology_term, ma["delta_composition"], sites, ma["delta_mono_mass"])
+            mod = PostTranslationalModification(
+                ontology_term, ma["delta_composition"], sites, ma["delta_mono_mass"]
+            )
             self.modifications.append(mod)
 
     def get_by_accession(self, accession):

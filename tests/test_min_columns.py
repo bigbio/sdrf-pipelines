@@ -44,5 +44,9 @@ def test_min_columns_with_reduced_columns():
     errors = validator.validate(sdrf_df, "default")
     numb_column = sdrf_df.get_sdrf_columns()
     print(f"Using dataframe with {len(numb_column)} columns")
-    min_column_errors = [error for error in errors if "number of columns" in error.message.lower()]
-    assert min_column_errors, "Expected errors related to minimum columns, but found none"
+    min_column_errors = [
+        error for error in errors if "number of columns" in error.message.lower()
+    ]
+    assert (
+        min_column_errors
+    ), "Expected errors related to minimum columns, but found none"

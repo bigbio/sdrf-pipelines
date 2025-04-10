@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Union, Type, Optional
 from pydantic import BaseModel
 from sdrf_pipelines.utils.exceptions import LogicError
 
+
 class SDRFValidator(BaseModel):
     params: Dict[str, Any] = {}
 
@@ -13,12 +14,16 @@ class SDRFValidator(BaseModel):
         if params:
             self.params = params
 
-    def validate(self, value: Union[str, pd.DataFrame, pd.Series, List[str]]) -> List[LogicError]:
+    def validate(
+        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+    ) -> List[LogicError]:
         """Validate a value."""
         raise NotImplementedError("Subclasses must implement this method")
 
+
 # Global validator registry
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
+
 
 def register_validator(validator_name=None):
     """Register a validator class in the global registry with an explicit type."""
@@ -29,7 +34,7 @@ def register_validator(validator_name=None):
         # If no type is provided, try to get it from the class
         if validator_name is None:
             # Try to access the type attribute
-            if hasattr(cls, 'type'):
+            if hasattr(cls, "type"):
                 validator_name = cls.type
             else:
                 # Fallback to class name
@@ -49,6 +54,7 @@ def register_validator(validator_name=None):
 
     return decorator
 
+
 def get_validator(validator_type: str) -> Optional[Type[SDRFValidator]]:
     """Get a validator class by type."""
     return _VALIDATOR_REGISTRY.get(validator_type)
@@ -58,10 +64,13 @@ def get_all_validators() -> Dict[str, Type[SDRFValidator]]:
     """Get all registered validators."""
     return _VALIDATOR_REGISTRY.copy()
 
+
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
-    def validate(self, value: Union[str, pd.DataFrame, pd.Series, List[str]]) -> List[LogicError]:
+    def validate(
+        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+    ) -> List[LogicError]:
         """
         This method validates if the provided value contains a TrailingWhiteSpace and return it
         as LogicError. If the column, row information is present, it returns the other.
@@ -70,13 +79,23 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
         if isinstance(value, str):
             if value and value.rstrip() != value:
-                errors.append(LogicError(message="Trailing whitespace detected", value=value, error_type=logging.ERROR))
+                errors.append(
+                    LogicError(
+                        message="Trailing whitespace detected",
+                        value=value,
+                        error_type=logging.ERROR,
+                    )
+                )
 
         elif isinstance(value, pd.DataFrame):
             for col in value.columns:
                 if value[col].dtype == object:  # Check string columns
                     for idx, cell_value in enumerate(value[col]):
-                        if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
+                        if (
+                            isinstance(cell_value, str)
+                            and cell_value
+                            and cell_value.rstrip() != cell_value
+                        ):
                             errors.append(
                                 LogicError(
                                     message="Trailing whitespace detected",
@@ -90,7 +109,11 @@ class TrailingWhitespaceValidator(SDRFValidator):
         elif isinstance(value, pd.Series):
             if value.dtype == object:  # Check if Series contains strings
                 for idx, cell_value in enumerate(value):
-                    if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
+                    if (
+                        isinstance(cell_value, str)
+                        and cell_value
+                        and cell_value.rstrip() != cell_value
+                    ):
                         errors.append(
                             LogicError(
                                 message="Trailing whitespace detected",
@@ -105,7 +128,10 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 if isinstance(item, str) and item and item.rstrip() != item:
                     errors.append(
                         LogicError(
-                            message="Trailing whitespace detected", value=item, row=idx, error_type=logging.ERROR
+                            message="Trailing whitespace detected",
+                            value=item,
+                            row=idx,
+                            error_type=logging.ERROR,
                         )
                     )
 
@@ -139,7 +165,9 @@ class MinimumColumns(SDRFValidator):
 @register_validator(validator_name="ontology")
 class OntologyValidator(SDRFValidator):
 
-    def validate(self, value: Union[str, pd.DataFrame, pd.Series, List[str]]) -> List[LogicError]:
+    def validate(
+        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+    ) -> List[LogicError]:
         errors = []
         ontologies = self.params.get("ontologies", [])
         allow_not_applicable = self.params.get("allow_not_applicable", False)

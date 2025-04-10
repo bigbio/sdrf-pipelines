@@ -1,8 +1,48 @@
-[tool.black]
-line-length = 120
-target_version = ["py38","py39","py310"]
+[tool.poetry]
+name = "sdrf-pipelines"
+version = "0.0.32"  # You can set your preferred version here
+description = "Translate, convert SDRF to configuration pipelines"
+readme = "README.md"
+authors = ["BigBio Team <ypriverol@gmail.com>"]
+license = "Apache 2.0"
+repository = "https://github.com/bigbio/sdrf-pipelines"
+keywords = ["sdrf", "python", "multiomics", "proteomics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+packages = [
+    { include = "sdrf_pipelines" }
+]
 
-[tool.isort]
-profile = "black"
-known_first_party = ["sdrf_pipelines"]
-force_single_line = true
+[tool.poetry.dependencies]
+python = ">=3.8"
+click = "*"
+pandas = "*"
+pandas_schema = "*"
+requests = "*"
+pytest = "*"
+pyyaml = "*"
+defusedxml = "*"
+pyarrow = "*"
+duckdb = "*"
+rdflib = "*"
+
+[tool.poetry.scripts]
+parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
+
+# Ensure data files are included
+[tool.poetry.include]
+files = [
+    "LICENSE",
+    "sdrf_pipelines/openms/unimod.xml",
+    "sdrf_pipelines/sdrf_merge/param2sdrf.yml",
+    "**/*.xml",
+    "**/*.parquet",
+    "**/*.yml"
+]
+[build-system]
+requires = ["poetry-core>=1.2.0"]
+build-backend = "poetry.core.masonry.api"

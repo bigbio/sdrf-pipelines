@@ -32,11 +32,14 @@ class SchemaDefinition(BaseModel):
     validators: List[ValidatorConfig] = []
     columns: List[ColumnDefinition] = []
 
+
 class SchemaRegistry:
 
     def __init__(self, schema_dir: Optional[str] = None):
         self.schemas: Dict[str, SchemaDefinition] = {}
-        self.raw_schema_data: Dict[str, Dict[str, Any]] = {}  # Store raw schema data for inheritance resolution
+        self.raw_schema_data: Dict[str, Dict[str, Any]] = (
+            {}
+        )  # Store raw schema data for inheritance resolution
         if schema_dir is None:
             # Use the default schema directory
             current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -74,7 +77,9 @@ class SchemaRegistry:
             self.schemas[schema_name] = schema
             logging.info(f"Added schema '{schema_name}' to registry")
 
-    def _process_schema_inheritance(self, schema_name: str, schema_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_schema_inheritance(
+        self, schema_name: str, schema_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Process schema inheritance by merging with parent schemas."""
         # Create a copy to avoid modifying the original data
         processed_data = schema_data.copy()
@@ -83,12 +88,13 @@ class SchemaRegistry:
         parent_schema_name = schema_data.get("extends")
         if parent_schema_name:
             if parent_schema_name not in self.raw_schema_data:
-                raise ValueError(f"Schema '{schema_name}' extends non-existent schema '{parent_schema_name}'")
+                raise ValueError(
+                    f"Schema '{schema_name}' extends non-existent schema '{parent_schema_name}'"
+                )
 
             # Get the processed parent schema (recursively handling multi-level inheritance)
             parent_schema = self._process_schema_inheritance(
-                parent_schema_name,
-                self.raw_schema_data[parent_schema_name]
+                parent_schema_name, self.raw_schema_data[parent_schema_name]
             )
 
             # Merge parent and child schemas
@@ -96,7 +102,9 @@ class SchemaRegistry:
 
         return processed_data
 
-    def _merge_schemas(self, parent_schema: Dict[str, Any], child_schema: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge_schemas(
+        self, parent_schema: Dict[str, Any], child_schema: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Merge a child schema with its parent schema."""
         result = parent_schema.copy()
 
@@ -119,7 +127,9 @@ class SchemaRegistry:
                 result["columns"] = []
 
             # Create a lookup of columns by name for faster access
-            parent_columns_by_name = {col["name"]: (i, col) for i, col in enumerate(result["columns"])}
+            parent_columns_by_name = {
+                col["name"]: (i, col) for i, col in enumerate(result["columns"])
+            }
 
             for child_col in child_schema["columns"]:
                 col_name = child_col["name"]
@@ -135,7 +145,9 @@ class SchemaRegistry:
                             merged_col["validators"] = []
                         parent_validators = parent_col.get("validators", [])
                         # Replace parent validators with merged ones
-                        merged_col["validators"] = parent_validators + child_col["validators"]
+                        merged_col["validators"] = (
+                            parent_validators + child_col["validators"]
+                        )
 
                     result["columns"][idx] = merged_col
                 else:
@@ -175,7 +187,9 @@ class SchemaValidator:
     def __init__(self, registry: SchemaRegistry):
         self.registry = registry
 
-    def _create_validator_instance(self, validator_config: ValidatorConfig) -> Optional[SDRFValidator]:
+    def _create_validator_instance(
+        self, validator_config: ValidatorConfig
+    ) -> Optional[SDRFValidator]:
         """Create a validator instance from a configuration."""
         validator_type = validator_config.type
         validator_params = validator_config.params
@@ -187,7 +201,9 @@ class SchemaValidator:
 
         return validator_class(params=validator_params)
 
-    def validate(self, df: Union[pd.DataFrame, SDRFDataFrame], schema_name: str) -> List[LogicError]:
+    def validate(
+        self, df: Union[pd.DataFrame, SDRFDataFrame], schema_name: str
+    ) -> List[LogicError]:
         """Validate a DataFrame against a schema."""
         schema = self.registry.get_schema(schema_name)
         if not schema:
@@ -205,13 +221,19 @@ class SchemaValidator:
                 errors.extend(validator.validate(df))
 
         # Validate required columns exist
-        required_columns = [col.name for col in schema.columns if col.requirement == RequirementLevel.REQUIRED]
+        required_columns = [
+            col.name
+            for col in schema.columns
+            if col.requirement == RequirementLevel.REQUIRED
+        ]
         for col_name in required_columns:
             if col_name not in df.columns:
-                errors.append(LogicError(
-                    message=f"Required column '{col_name}' is missing",
-                    error_type=logging.ERROR
-                ))
+                errors.append(
+                    LogicError(
+                        message=f"Required column '{col_name}' is missing",
+                        error_type=logging.ERROR,
+                    )
+                )
 
         # Apply column-specific validators
         for column_def in schema.columns:
@@ -233,7 +255,9 @@ class SchemaValidator:
 
         return errors
 
-    def validate_with_multiple_schemas(self, df: pd.DataFrame, schema_names: List[str]) -> Dict[str, List[LogicError]]:
+    def validate_with_multiple_schemas(
+        self, df: pd.DataFrame, schema_names: List[str]
+    ) -> Dict[str, List[LogicError]]:
         """Validate a DataFrame against multiple schemas."""
         results = {}
         for schema_name in schema_names:
@@ -241,11 +265,14 @@ class SchemaValidator:
                 errors = self.validate(df, schema_name)
                 results[schema_name] = errors
             except Exception as e:
-                logging.error(f"Error validating against schema '{schema_name}': {str(e)}")
-                results[schema_name] = [LogicError(
-                    message=f"Validation error: {str(e)}",
-                    error_type=logging.ERROR
-                )]
+                logging.error(
+                    f"Error validating against schema '{schema_name}': {str(e)}"
+                )
+                results[schema_name] = [
+                    LogicError(
+                        message=f"Validation error: {str(e)}", error_type=logging.ERROR
+                    )
+                ]
 
         return results
 
@@ -270,11 +297,13 @@ class SchemaValidator:
         return {
             "best_schema": best_schema,
             "errors": all_results[best_schema],
-            "all_results": all_results
+            "all_results": all_results,
         }
 
 
-def load_and_validate_sdrf(sdrf_path: str, schema_dir: str = None, schema_name: str = None):
+def load_and_validate_sdrf(
+    sdrf_path: str, schema_dir: str = None, schema_name: str = None
+):
     """
     Load an SDRF file and validate it against a schema.
 
@@ -286,7 +315,7 @@ def load_and_validate_sdrf(sdrf_path: str, schema_dir: str = None, schema_name: 
     Returns:
         Tuple of (DataFrame, validation results)
     """
-    df = pd.read_csv(sdrf_path, sep='\t')
+    df = pd.read_csv(sdrf_path, sep="\t")
 
     # Initialize registry and load schemas
     registry = SchemaRegistry(schema_dir)

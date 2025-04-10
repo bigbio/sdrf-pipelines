@@ -6,7 +6,9 @@ class ValidationWarning:
     Represents a difference between the schema and data frame, found during the validation of the data frame
     """
 
-    def __init__(self, message: str, value: str = None, row: int = -1, column: str = None):
+    def __init__(
+        self, message: str, value: str = None, row: int = -1, column: str = None
+    ):
         """
         Validation Warning in the SDRF, The warning contains the following information.
 
@@ -26,7 +28,9 @@ class ValidationWarning:
         The entire warning message as a string
         """
         if self.row is not None and self.column is not None and self.value is not None:
-            return '{{row: {}, column: "{}"}}: "{}" {}'.format(self.row, self.column, self.value, self.message)
+            return '{{row: {}, column: "{}"}}: "{}" {}'.format(
+                self.row, self.column, self.value, self.message
+            )
         else:
             return self.message
 
@@ -43,7 +47,14 @@ __all__ = ["LogicError"]
 
 
 class LogicError(ValidationWarning):
-    def __init__(self, message: str, value: str = None, row: int = -1, column: str = None, error_type: logging = None):
+    def __init__(
+        self,
+        message: str,
+        value: str = None,
+        row: int = -1,
+        column: str = None,
+        error_type: logging = None,
+    ):
         """
         Initialize an instance of AppException with a specified value.
 
@@ -57,7 +68,11 @@ class LogicError(ValidationWarning):
     def __str__(self) -> str:
         if self.row is not None and self.column is not None and self.value is not None:
             return '{{row: {}, column: "{}"}}: "{}" {} -- {}'.format(
-                self.row, self.column, self.value, self.message, logging.getLevelName(self._error_type)
+                self.row,
+                self.column,
+                self.value,
+                self.message,
+                logging.getLevelName(self._error_type),
             )
         else:
             return f"{self.message} -- {logging.getLevelName(self._error_type)}"

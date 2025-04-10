@@ -2,7 +2,12 @@ import pandas as pd
 import pytest
 from rdflib import Graph, URIRef, Literal, RDF, RDFS, OWL
 
-from sdrf_pipelines.ols.ols import OlsClient, get_obo_accession, read_obo_file, read_owl_file
+from sdrf_pipelines.ols.ols import (
+    OlsClient,
+    get_obo_accession,
+    read_obo_file,
+    read_owl_file,
+)
 
 
 class TestOlsClientReal:
@@ -99,9 +104,17 @@ class TestOlsClientReal:
 
     def test_get_obo_accession(self):
         """Test get_obo_accession function."""
-        assert get_obo_accession("http://www.ebi.ac.uk/efo/EFO_0000001") == "EFO:0000001"
-        assert get_obo_accession("http://purl.obolibrary.org/obo/GO_0000001") == "GO:0000001"
-        assert get_obo_accession("http://purl.obolibrary.org/obo/GO#0000001") == "GO:0000001"
+        assert (
+            get_obo_accession("http://www.ebi.ac.uk/efo/EFO_0000001") == "EFO:0000001"
+        )
+        assert (
+            get_obo_accession("http://purl.obolibrary.org/obo/GO_0000001")
+            == "GO:0000001"
+        )
+        assert (
+            get_obo_accession("http://purl.obolibrary.org/obo/GO#0000001")
+            == "GO:0000001"
+        )
 
     def test_read_obo_file(self, tmp_path):
         """Test read_obo_file function."""
@@ -157,7 +170,9 @@ class TestOlsClientReal:
         obo_file = tmp_path / "test.obo"
         obo_file.write_text(obo_content)
         output_file = tmp_path / "test.parquet"
-        OlsClient.build_ontology_index(str(obo_file), str(output_file), ontology_name="test_ontology")
+        OlsClient.build_ontology_index(
+            str(obo_file), str(output_file), ontology_name="test_ontology"
+        )
         assert output_file.exists()
         df = pd.read_parquet(output_file)
         assert len(df) == 2
@@ -175,7 +190,9 @@ class TestOlsClientReal:
         owl_file = tmp_path / "test.owl"
         g.serialize(destination=str(owl_file), format="xml")
         output_file = tmp_path / "test.parquet"
-        OlsClient.build_ontology_index(str(owl_file), str(output_file), ontology_name="test_ontology")
+        OlsClient.build_ontology_index(
+            str(owl_file), str(output_file), ontology_name="test_ontology"
+        )
         assert output_file.exists()
         df = pd.read_parquet(output_file)
         assert len(df) == 2
