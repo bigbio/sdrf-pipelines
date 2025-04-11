@@ -10,7 +10,7 @@ Original code borrowed from
 TODO: check input parameters are valid
 TODO: handle requests.exceptions.ConnectionError when traffic is too high and API goes down
 """
-
+import glob
 import logging
 import os.path
 import urllib.parse
@@ -88,7 +88,7 @@ def get_cache_parquet_files() -> tuple:
 
     # For getting a pattern string
     parquet_files_pattern = str(files(__package__).joinpath("*.parquet"))
-    parquet_files = list(files(__package__).glob("*.parquet"))
+    parquet_files = glob.glob(parquet_files_pattern)
 
     if not parquet_files:
         logger.info("No parquet files found in %s", parquet_files_pattern)
