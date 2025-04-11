@@ -50,3 +50,5 @@ def test_min_columns_with_reduced_columns():
     assert (
         min_column_errors
     ), "Expected errors related to minimum columns, but found none"
+
+    assert len(errors) == 10
