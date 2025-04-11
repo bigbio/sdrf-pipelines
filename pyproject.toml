@@ -16,6 +16,14 @@ classifiers = [
 packages = [
     { include = "sdrf_pipelines" }
 ]
+include = [
+    "LICENSE",
+    "sdrf_pipelines/openms/unimod.xml",
+    "sdrf_pipelines/sdrf_merge/param2sdrf.yml",
+    "**/*.xml",
+    "**/*.parquet",
+    "**/*.yml"
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
@@ -33,16 +41,6 @@ rdflib = "*"
 [tool.poetry.scripts]
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
-# Ensure data files are included
-[tool.poetry.include]
-files = [
-    "LICENSE",
-    "sdrf_pipelines/openms/unimod.xml",
-    "sdrf_pipelines/sdrf_merge/param2sdrf.yml",
-    "**/*.xml",
-    "**/*.parquet",
-    "**/*.yml"
-]
 [build-system]
 requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
