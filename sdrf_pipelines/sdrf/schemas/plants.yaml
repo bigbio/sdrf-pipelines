@@ -1,7 +1,7 @@
 name: plants
 description: SDRF schema for plant samples
 extends: minimum
-fields:
+columns:
   - name: characteristics[developmental stage]
     description: Developmental stage
     required: false
