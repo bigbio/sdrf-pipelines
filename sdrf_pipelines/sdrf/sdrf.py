@@ -1,7 +1,3 @@
-"""
-SDRF module for parsing and validating SDRF files.
-"""
-
 from pathlib import Path
 from typing import Union, Any, List
 

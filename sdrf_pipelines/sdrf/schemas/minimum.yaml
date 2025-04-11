@@ -1,10 +1,10 @@
 name: minimum
 description: Minimum SDRF template with common fields
 validators:
-  - type: min_columns
+  - validator_name: min_columns
     params:
       min_columns: 12
-  - type: trailing_whitespace_validator
+  - validator_name: trailing_whitespace_validator
     params: {}
 columns:
   - name: source name
@@ -16,7 +16,7 @@ columns:
     requirement: required
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - ncbitaxon
@@ -36,7 +36,7 @@ columns:
     requirement: required
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - cl
@@ -75,7 +75,7 @@ columns:
     requirement: required
     cardinality: unique
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - pride
@@ -97,7 +97,7 @@ columns:
     requirement: required
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - ms
@@ -114,7 +114,7 @@ columns:
     requirement: recommended
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - unimod
@@ -129,7 +129,7 @@ columns:
     requirement: optional
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - ms

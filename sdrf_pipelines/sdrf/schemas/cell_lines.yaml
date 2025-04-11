@@ -6,7 +6,7 @@ columns:
     description: Cell line
     requirement: optional
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - clo

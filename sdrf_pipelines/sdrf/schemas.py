@@ -15,7 +15,7 @@ class RequirementLevel(str, Enum):
 
 
 class ValidatorConfig(BaseModel):
-    type: str
+    validator_name: str
     params: Dict[str, Any] = {}
 
 
@@ -191,12 +191,12 @@ class SchemaValidator:
         self, validator_config: ValidatorConfig
     ) -> Optional[SDRFValidator]:
         """Create a validator instance from a configuration."""
-        validator_type = validator_config.type
+        validator_name = validator_config.validator_name
         validator_params = validator_config.params
 
-        validator_class = get_validator(validator_type)
+        validator_class = get_validator(validator_name)
         if not validator_class:
-            logging.warning(f"Validator type '{validator_type}' not found in registry")
+            logging.warning(f"Validator type '{validator_name}' not found in registry")
             return None
 
         return validator_class(params=validator_params)
@@ -242,7 +242,7 @@ class SchemaValidator:
 
                 # Apply trailing whitespace validator to all columns by default
                 whitespace_validator = self._create_validator_instance(
-                    ValidatorConfig(type="trailing_whitespace_validator", params={})
+                    ValidatorConfig(validator_name="trailing_whitespace_validator", params={})
                 )
                 if whitespace_validator:
                     errors.extend(whitespace_validator.validate(column_series))

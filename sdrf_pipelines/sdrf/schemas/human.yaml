@@ -6,7 +6,7 @@ columns:
     description: Ancestry category
     requirement: optional
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - hancestro
@@ -21,7 +21,7 @@ columns:
     description: Age
     requirement: optional
     validators:
-      - type: pattern
+      - validator_name: pattern
         params:
           pattern: (?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)
           case_sensitive: false
@@ -29,7 +29,7 @@ columns:
     description: Sex
     requirement: optional
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - pco
@@ -44,7 +44,7 @@ columns:
     description: Developmental stage
     requirement: optional
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - hsapdv

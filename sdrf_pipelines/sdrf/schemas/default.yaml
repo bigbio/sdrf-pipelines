@@ -7,7 +7,7 @@ columns:
     requirement: required
     cardinality: multiple
     validators:
-      - type: ontology
+      - validator_name: ontology
         params:
           ontologies:
             - mondo

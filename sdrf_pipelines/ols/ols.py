@@ -10,6 +10,7 @@ Original code borrowed from
 TODO: check input parameters are valid
 TODO: handle requests.exceptions.ConnectionError when traffic is too high and API goes down
 """
+
 import glob
 import logging
 import os.path
