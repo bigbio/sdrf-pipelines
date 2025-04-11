@@ -88,7 +88,7 @@ def parse_tolerance(pc_tol_str:str, units=("ppm", "da")) -> tuple[str, str]:
                     f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
                 )
                 logger.warning(msg)
-            _ = int(tol) # should be an integer
+            _ = float(tol) # should be an number
             if unit == "da":
                 unit = unit.capitalize()
             return tol, unit
@@ -325,31 +325,18 @@ class OpenMS:
             if source_name not in source_name_list:
                 source_name_list.append(source_name)
 
-
-
             if "comment[precursor mass tolerance]" in row:
                 pc_tol_str = row["comment[precursor mass tolerance]"].strip()
 
                 tol, unit = parse_tolerance(pc_tol_str)
-                # if "ppm" in pc_tol_str:
-                #     # ! move to function to avoid repeated code, and make check extendiable
-                #     pc_tmp = pc_tol_str.split('ppm')[0]
-                #     if not ' ppm' in pc_tol_str:
-                #         msg = f'Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {pc_tmp} ppm'
-                #         logger.warning(msg)
-                #     f2c.file2pctol[raw] = pc_tmp
-                #     f2c.file2pctolunit[raw] = "ppm"
-                # elif "Da" in pc_tol_str:
-                #     pc_tmp = pc_tol_str.split(" ")
-                #     f2c.file2pctol[raw] = pc_tmp[0]
-                #     f2c.file2pctolunit[raw] = pc_tmp[1]
                 if tol is None or unit is None:
                     raise ValueError('Cannot read precursor mass tolerance: {}'.format(pc_tol_str))
-                # else:
-                # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
-                # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                # f2c.file2pctol[raw] = "10"
-                # f2c.file2pctolunit[raw] = "ppm"
+                    # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2pctol[raw] = "10"
+                    # f2c.file2pctolunit[raw] = "ppm"
+                f2c.file2pctol[raw] = tol
+                f2c.file2pctolunit[raw] = unit
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -357,17 +344,16 @@ class OpenMS:
                 f2c.file2pctolunit[raw] = "ppm"
 
             if "comment[fragment mass tolerance]" in row:
-                f_tol_str = row["comment[fragment mass tolerance]"]
-                f_tol_str.replace("PPM", "ppm")  # workaround # ? lower?
-                if "ppm" in f_tol_str or "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    f2c.file2fragtol[raw] = f_tmp[0]
-                    f2c.file2fragtolunit[raw] = f_tmp[1]
-                else:
-                    warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2fragtol[raw] = "20"
-                    f2c.file2fragtolunit[raw] = "ppm"
+                f_tol_str = row["comment[fragment mass tolerance]"].strip()
+                tol, unit = parse_tolerance(f_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(f_tol_str))
+                    # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2fragtol[raw] = "20"
+                    # f2c.file2fragtolunit[raw] = "ppm"
+                f2c.file2fragtol[raw] = tol
+                f2c.file2fragtolunit[raw] = unit
             else:
                 warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
