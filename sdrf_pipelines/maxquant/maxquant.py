@@ -1,21 +1,13 @@
-"""
-Created on Sun Apr 19 09:46:14 2020
-
-@author: ChengXin
-"""
-
 import os
 import re
 import time
 from datetime import datetime
+from importlib.resources import files
 from xml.dom.minidom import Document
 from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
-
-# NOTE pkg_resources is deprecated
-import pkg_resources
 import yaml
 
 
@@ -23,8 +15,8 @@ class Maxquant:
     def __init__(self) -> None:
         super().__init__()
         self.warnings = {}
-        self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
-        self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
+        self.modfile = str(files(__package__).joinpath("modifications.xml"))
+        self.datparamfile = str(files(__package__).joinpath("param2sdrf.yml"))
 
     def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
