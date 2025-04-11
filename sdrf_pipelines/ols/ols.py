@@ -409,15 +409,6 @@ class OlsClient:
             list: A list of terms found
         """
         try:
-            if not isinstance(params, dict):
-                raise TypeError("params must be a dictionary")
-            if not isinstance(name, str):
-                raise TypeError("name must be a string")
-            if not isinstance(exact, bool):
-                raise TypeError("exact must be a boolean")
-            if not isinstance(retry_num, int):
-                raise TypeError("retry_num must be an integer")
-
             req = self.session.get(self.ontology_search, params=params)
             logger.debug(
                 "Request to OLS search API term %s, status code %s",
@@ -499,6 +490,8 @@ class OlsClient:
 
         if exact:
             params["exact"] = "on"
+        else:
+            params["exact"] = "off"
 
         if query_fields:
             params["queryFields"] = _concat_str_or_list(query_fields)
