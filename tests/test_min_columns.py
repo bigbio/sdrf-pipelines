@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
+
 TESTS_DIR = Path(__file__).parent
 
 
@@ -23,9 +24,9 @@ def test_min_columns_with_reduced_columns():
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
-            "characteristics[organism] ": ["homo sapiens"],
+            "characteristics[organism]": ["homo sapiens23"],
             "characteristics[organism part]": [" liver "],
-            "characteristics[disease]": ["normal"],
+            "characteristics[disease] ": ["normal"],
             "characteristics[cell name]": ["hepatocyte"],
             "assay name": ["run 1"],
         }
@@ -43,4 +44,4 @@ def test_min_columns_with_reduced_columns():
         min_column_errors
     ), "Expected errors related to minimum columns, but found none"
 
-    assert len(errors) == 12
+    assert len(errors) == 13

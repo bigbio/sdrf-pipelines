@@ -4,6 +4,9 @@ from typing import List, Dict, Any, Union, Type, Optional
 
 from pydantic import BaseModel
 
+from sdrf_pipelines import NOT_AVAILABLE, NOT_APPLICABLE
+from sdrf_pipelines.ols.ols import OlsClient
+
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.utils.exceptions import LogicError
 
@@ -17,7 +20,7 @@ class SDRFValidator(BaseModel):
             self.params = params
 
     def validate(
-        self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, List[str]]
+            self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, List[str]]
     ) -> List[LogicError]:
         """Validate a value."""
         raise NotImplementedError("Subclasses must implement this method")
@@ -71,7 +74,7 @@ def get_all_validators() -> Dict[str, Type[SDRFValidator]]:
 class TrailingWhitespaceValidator(SDRFValidator):
 
     def validate(
-        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+            self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
     ) -> List[LogicError]:
         """
         This method validates if the provided value contains a TrailingWhiteSpace and return it
@@ -94,9 +97,9 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 if value[col].dtype == object:  # Check string columns
                     for idx, cell_value in enumerate(value[col]):
                         if (
-                            isinstance(cell_value, str)
-                            and cell_value
-                            and cell_value.rstrip() != cell_value
+                                isinstance(cell_value, str)
+                                and cell_value
+                                and cell_value.rstrip() != cell_value
                         ):
                             errors.append(
                                 LogicError(
@@ -122,9 +125,9 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 if value[col].dtype == object:  # Check string columns
                     for idx, cell_value in enumerate(value[col]):
                         if (
-                            isinstance(cell_value, str)
-                            and cell_value
-                            and cell_value.rstrip() != cell_value
+                                isinstance(cell_value, str)
+                                and cell_value
+                                and cell_value.rstrip() != cell_value
                         ):
                             errors.append(
                                 LogicError(
@@ -139,9 +142,9 @@ class TrailingWhitespaceValidator(SDRFValidator):
             if value.dtype == object:  # Check if Series contains strings
                 for idx, cell_value in enumerate(value):
                     if (
-                        isinstance(cell_value, str)
-                        and cell_value
-                        and cell_value.rstrip() != cell_value
+                            isinstance(cell_value, str)
+                            and cell_value
+                            and cell_value.rstrip() != cell_value
                     ):
                         errors.append(
                             LogicError(
@@ -193,24 +196,106 @@ class MinimumColumns(SDRFValidator):
 
 @register_validator(validator_name="ontology")
 class OntologyValidator(SDRFValidator):
+    client: OlsClient = OlsClient()
+    term_name: str = "NT"
+    ontologies: List[str] = []
+    model_config = {"arbitrary_types_allowed": True}
 
-    def validate(
-        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
-    ) -> List[LogicError]:
+    def __init__(self, params: Dict[str, Any] = None, **data: Any):
+        super().__init__(**data)
+        logging.info(params)
+        if params:
+            for key, value in params.items():
+                if key == "ontologies":
+                    self.ontologies = value
+
+    def validate(self, series: pd.Series) -> List[LogicError]:
+        """
+        Validate if the term is present in the provided ontology. This method looks in the provided
+        ontology _ontology_name
+        :param series: return series that do not match the criteria
+        :return:
+        """
+        terms = [self.ontology_term_parser(x) for x in series.unique()]
+        labels = []
+        for term in terms:
+            if self.term_name not in term:
+                ontology_terms = None
+            else:
+                if self.ontologies is not None:
+                    ontology_terms = []
+                    for ontology_name in self.ontologies:
+                        ontology_terms.extend(
+                            self.client.search(
+                                term=term[self.term_name],
+                                ontology=ontology_name,
+                                exact=True,
+                                use_ols_cache_only=False,
+                            )
+                        )
+                else:
+                    ontology_terms = self.client.search(
+                        term=term[self.term_name],
+                        exact=True,
+                        use_cache_only=self._use_ols_cache_only,
+                    )
+
+            if ontology_terms is not None:
+                query_labels = [o["label"].lower() for o in ontology_terms]
+                if term[self.term_name] in query_labels:
+                    labels.append(term[self.term_name])
+        labels.append(NOT_AVAILABLE)
+        labels.append(NOT_APPLICABLE)  # We have to double check that the column allow this.
+        validation_indexes = series.apply(
+            lambda cell_value: self.validate_ontology_terms(cell_value, labels)
+        )
+
+        # Convert to indexes of the row to LogicErrors
         errors = []
-        ontologies = self.params.get("ontologies", [])
-        description = self.params.get("description", "")
-
-        # if isinstance(value, pd.Series):
-        #     for idx, cell_value in enumerate(value):
-        #         if isinstance(cell_value, str):
-        #             # Skip validation for allowed values if configured
-        #             if allow_not_applicable and cell_value.lower() == "not applicable":
-        #                 continue
-        #             if allow_not_available and cell_value.lower() == "not available":
-        #                 continue
-        #
-        #             # Here you would integrate with your ontology validation system
-        #             # This is a placeholder - in a real implementation you would check against the specified ontologies
-
+        for idx, value in enumerate(validation_indexes):
+            if not value:
+                errors.append(
+                    LogicError(
+                        message="Term: {} , is not found in the given ontology list {}".format(series[idx], ";".join(self.ontologies)),
+                        row=idx,
+                        error_type=logging.ERROR,
+                    )
+                )
         return errors
+
+    def validate_ontology_terms(self, cell_value, labels):
+        """
+        Check if a cell value is in a list of labels or list of string
+        :param cell_value: line in a cell
+        :param labels: list of labels
+        :return:
+        """
+        cell_value = cell_value.lower()
+        term = self.ontology_term_parser(cell_value)
+        if term.get(self.term_name) in labels:
+            return True
+        return False
+
+    def ontology_term_parser(self, cell_value: str = None):
+        """
+        Parse a line string and convert it into a dictionary {key -> value}
+        :param cell_value: String line
+        :return:
+        """
+        term = {}
+        values = cell_value.split(";")
+        if len(values) == 1 and "=" not in values[0]:
+            term[self.term_name] = values[0].lower()
+        else:
+            for name in values:
+                value_terms = name.split("=", 1)
+                if len(value_terms) == 1:
+                    raise ValueError("Not a key-value pair: " + name)
+                if "=" in value_terms[1] and value_terms[0].lower() != "cs":
+                    raise ValueError(
+                        f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, "
+                        f"TA..)"
+                    )
+                term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
+
+        return term
