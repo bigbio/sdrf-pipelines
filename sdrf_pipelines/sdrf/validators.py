@@ -26,6 +26,7 @@ class SDRFValidator(BaseModel):
 # Global validator registry
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
 
+
 def register_validator(validator_name=None):
     """Register a validator class in the global registry with an explicit type."""
 
