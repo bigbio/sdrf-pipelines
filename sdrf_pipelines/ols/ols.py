@@ -409,6 +409,15 @@ class OlsClient:
             list: A list of terms found
         """
         try:
+            if not isinstance(params, dict):
+                raise TypeError("params must be a dictionary")
+            if not isinstance(name, str):
+                raise TypeError("name must be a string")
+            if not isinstance(exact, bool):
+                raise TypeError("exact must be a boolean")
+            if not isinstance(retry_num, int):
+                raise TypeError("retry_num must be an integer")
+
             req = self.session.get(self.ontology_search, params=params)
             logger.debug(
                 "Request to OLS search API term %s, status code %s",
@@ -435,6 +444,14 @@ class OlsClient:
                 return []
 
             return docs
+        except requests.exceptions.ConnectionError as e:
+            logger.exception(f"Connection error during OLS search: {e}")
+            if retry_num < 10:
+                logger.info(f"Retrying OLS search (attempt {retry_num + 1}/10)...")
+                return self._perform_ols_search(params, name, exact, retry_num + 1)
+            else:
+                logger.error("Max retry attempts reached.  OLS search failed.")
+                raise
         except Exception as ex:
             logger.exception("OLS error searching term %s. Error: %s", name, ex)
 

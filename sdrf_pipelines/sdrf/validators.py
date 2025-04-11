@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Union, Type, Optional
 
 from pydantic import BaseModel
 
-from sdrf_pipelines import NOT_AVAILABLE, NOT_APPLICABLE
+from sdrf_pipelines.sdrf import NOT_AVAILABLE, NOT_APPLICABLE, NORM
 from sdrf_pipelines.ols.ols import OlsClient
 
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
@@ -254,6 +254,7 @@ class OntologyValidator(SDRFValidator):
                     labels.append(term[self.term_name])
         labels.append(NOT_AVAILABLE)
         labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
+        labels.append(NORM)
         validation_indexes = series.apply(
             lambda cell_value: self.validate_ontology_terms(cell_value, labels)
         )
