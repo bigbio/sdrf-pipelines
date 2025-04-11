@@ -2,8 +2,6 @@ import os
 import json
 import yaml
 from enum import Enum
-from typing import List, Dict, Any, Optional
-
 from pydantic import BaseModel
 
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame

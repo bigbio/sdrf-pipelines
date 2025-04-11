@@ -4,7 +4,11 @@ extends: minimum
 columns:
   - name: characteristics[developmental stage]
     description: Developmental stage
-    required: false
+    requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
   - name: characteristics[strain/breed]
     description: Strain or breed
-    required: false
+    allow_not_applicable: true
+    allow_not_available: true
+    requirement: optional

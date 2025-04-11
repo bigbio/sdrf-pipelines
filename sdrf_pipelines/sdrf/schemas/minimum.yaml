@@ -11,8 +11,6 @@ columns:
     description: Source name
     requirement: required
     cardinality: unique
-    allow_not_applicable: false
-    allow_not_available: false
   - name: characteristics[organism]
     description: Organism
     requirement: required

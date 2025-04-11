@@ -5,8 +5,6 @@ columns:
   - name: characteristics[ancestry category]
     description: Ancestry category
     requirement: optional
-    allow_not_applicable: true
-    allow_not_available: true
     validators:
       - validator_name: ontology
         params:

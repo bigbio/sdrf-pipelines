@@ -5,14 +5,14 @@ columns:
   - name: characteristics[cell line]
     description: Cell line
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
     validators:
       - validator_name: ontology
         params:
           ontologies:
             - clo
             - bto
-          allow_not_applicable: true
-          allow_not_available: true
           description: The cell line should be a valid Cell Line Ontology (CLO) or BRENDA Tissue Ontology (BTO) term
           examples:
             - HeLa

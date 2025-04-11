@@ -6,8 +6,6 @@ columns:
     description: Disease
     requirement: required
     cardinality: multiple
-    allow_not_applicable: true
-    allow_not_available: false
     validators:
       - validator_name: ontology
         params:

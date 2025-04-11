@@ -4,8 +4,6 @@ extends: default
 columns:
   - name: characteristics[developmental stage]
     description: Developmental stage
-    requirement: optional
-    allow_not_applicable: true
     allow_not_available: true
   - name: characteristics[strain/breed]
     description: Strain or breed
