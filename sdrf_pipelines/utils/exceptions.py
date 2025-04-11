@@ -65,6 +65,11 @@ class LogicError(ValidationWarning):
         super().__init__(message, value, row, column)
         self._error_type = error_type
 
+    @property
+    def error_type(self):
+        return self._error_type
+
+
     def __str__(self) -> str:
         if self.row is not None and self.column is not None and self.value is not None:
             return '{{row: {}, column: "{}"}}: "{}" {} -- {}'.format(

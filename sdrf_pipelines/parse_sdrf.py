@@ -258,19 +258,26 @@ def validate_sdrf(
     sdrf_df = SDRFDataFrame(sdrf_file)
 
     errors = validator.validate(sdrf_df, template)
+    errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
 
     for error in errors:
-        click.secho(f"ERROR: {error.message}", fg="red")
+        if error.error_type == logging.ERROR:
+            click.secho(f"{error.message}", fg="red")
+        elif error.error_type == logging.WARNING:
+            click.secho(f"{error.message}", fg="yellow")
+        else:
+            click.secho(f"{error.message}", fg="green")
 
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")
     else:
         click.secho("There were validation errors.", fg="red")
-    sys.exit(bool(errors))
+
+    sys.exit(bool(errors_not_warnings))
 
 
 @click.command("split-sdrf", short_help="Command to split the sdrf file")
-@click.option("--sdrf_file", "-s", help="SDRF file to be splited", required=True)
+@click.option("--sdrf_file", "-s", help="SDRF file to be split", required=True)
 @click.option(
     "--attribute",
     "-a",
@@ -423,7 +430,9 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
                 click.secho(f"ERROR: {error.message}", fg="red")
             else:
                 click.secho(f"WARNING: {error.message}", fg="yellow")
-        sys.exit(1)
+        errors_not_warnings = [error for error in errors if error.error_type != logging.ERROR]
+        if len(errors_not_warnings):
+            sys.exit(1)
     else:
         click.secho("SDRF file is valid!", fg="green")
 

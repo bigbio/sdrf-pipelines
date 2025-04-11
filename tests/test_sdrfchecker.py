@@ -54,7 +54,6 @@ reference_samples = [
     "reference/PXD004684/PXD004684.sdrf.tsv",
 ]
 
-
 @pytest.mark.parametrize("file_subpath", reference_samples)
 def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     """
@@ -64,4 +63,4 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     result = run_and_check_status_code(
         cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)]
     )
-    assert "ERROR" not in result.output.upper(), result.output
+    assert "ERROR" not in result.output

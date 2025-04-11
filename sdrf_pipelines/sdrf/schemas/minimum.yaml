@@ -24,6 +24,7 @@ columns:
         params:
           ontologies:
             - ncbitaxon
+          error_level: error
           description: The organism should be a valid NCBI Taxonomy term
           examples:
             - homo sapiens

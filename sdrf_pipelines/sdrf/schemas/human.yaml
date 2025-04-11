@@ -11,8 +11,9 @@ columns:
       - validator_name: ontology
         params:
           ontologies:
-            - hancestro
-          description: The ancestry category should be a valid HANCESTRO ontology term
+            - efo
+          error_level: warning
+          description: The ancestry category should be a valid EFO ontology term
           examples:
             - European
             - African
@@ -34,7 +35,8 @@ columns:
       - validator_name: ontology
         params:
           ontologies:
-            - pco
+            - efo
+          error_level: error
           description: The sex should be a valid PCO ontology term
           examples:
             - male
@@ -49,7 +51,7 @@ columns:
       - validator_name: ontology
         params:
           ontologies:
-            - hsapdv
+            - efo
           description: The developmental stage should be a valid HSAPDV ontology term
           examples:
             - adult

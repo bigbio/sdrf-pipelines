@@ -199,6 +199,7 @@ class OntologyValidator(SDRFValidator):
     client: OlsClient = OlsClient()
     term_name: str = "NT"
     ontologies: List[str] = []
+    error_level: int = logging.INFO
     model_config = {"arbitrary_types_allowed": True}
 
     def __init__(self, params: Dict[str, Any] = None, **data: Any):
@@ -208,6 +209,13 @@ class OntologyValidator(SDRFValidator):
             for key, value in params.items():
                 if key == "ontologies":
                     self.ontologies = value
+                if key == "error_level":
+                    if value == "warning":
+                        self.error_level = logging.WARNING
+                    elif value == "error":
+                        self.error_level = logging.ERROR
+                    else:
+                        self.error_level = logging.INFO
 
     def validate(self, series: pd.Series) -> List[LogicError]:
         """
@@ -241,11 +249,11 @@ class OntologyValidator(SDRFValidator):
                     )
 
             if ontology_terms is not None:
-                query_labels = [o["label"].lower() for o in ontology_terms]
+                query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
                 if term[self.term_name] in query_labels:
                     labels.append(term[self.term_name])
         labels.append(NOT_AVAILABLE)
-        labels.append(NOT_APPLICABLE)  # We have to double check that the column allow this.
+        labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
         validation_indexes = series.apply(
             lambda cell_value: self.validate_ontology_terms(cell_value, labels)
         )
@@ -258,7 +266,7 @@ class OntologyValidator(SDRFValidator):
                     LogicError(
                         message="Term: {} , is not found in the given ontology list {}".format(series[idx], ";".join(self.ontologies)),
                         row=idx,
-                        error_type=logging.ERROR,
+                        error_type=self.error_level,
                     )
                 )
         return errors
