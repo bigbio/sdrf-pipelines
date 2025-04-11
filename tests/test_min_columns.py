@@ -20,7 +20,7 @@ def test_min_columns_default_schema():
     test_file = TESTS_DIR / "data/generic/sdrf.tsv"
     sdrf_df = SDRFDataFrame(test_file)
     errors = validator.validate(sdrf_df, "default")
-    num_colums = sdrf_df.get_sdrf_columns()
+    num_colums = sdrf_df.get_dataframe_columns()
     print(f"Using test file: {test_file} with {len(num_colums)} columns")
 
     assert len(errors) == 3
@@ -31,7 +31,7 @@ def test_min_columns_with_reduced_columns():
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
-            "characteristics[organism]": ["homo sapiens"],
+            "characteristics[organism] ": ["homo sapiens"],
             "characteristics[organism part]": [" liver "],
             "characteristics[disease]": ["normal"],
             "characteristics[cell name]": ["hepatocyte"],
@@ -42,7 +42,7 @@ def test_min_columns_with_reduced_columns():
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
     errors = validator.validate(sdrf_df, "default")
-    numb_column = sdrf_df.get_sdrf_columns()
+    numb_column = sdrf_df.get_dataframe_columns()
     print(f"Using dataframe with {len(numb_column)} columns")
     min_column_errors = [
         error for error in errors if "number of columns" in error.message.lower()
@@ -51,4 +51,4 @@ def test_min_columns_with_reduced_columns():
         min_column_errors
     ), "Expected errors related to minimum columns, but found none"
 
-    assert len(errors) == 10
+    assert len(errors) == 12

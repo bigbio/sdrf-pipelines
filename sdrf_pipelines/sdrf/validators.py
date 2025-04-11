@@ -3,6 +3,8 @@ import pandas as pd
 from typing import List, Dict, Any, Union, Type, Optional
 
 from pydantic import BaseModel
+
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
@@ -15,7 +17,7 @@ class SDRFValidator(BaseModel):
             self.params = params
 
     def validate(
-        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+        self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, List[str]]
     ) -> List[LogicError]:
         """Validate a value."""
         raise NotImplementedError("Subclasses must implement this method")
@@ -23,7 +25,6 @@ class SDRFValidator(BaseModel):
 
 # Global validator registry
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
-
 
 def register_validator(validator_name=None):
     """Register a validator class in the global registry with an explicit type."""
@@ -105,7 +106,34 @@ class TrailingWhitespaceValidator(SDRFValidator):
                                     error_type=logging.ERROR,
                                 )
                             )
-
+        elif isinstance(value, SDRFDataFrame):
+            original_columns = value.get_original_columns()
+            for col in original_columns:
+                if col.rstrip() != col:
+                    errors.append(
+                        LogicError(
+                            message="Trailing whitespace detected in column name",
+                            value=col,
+                            error_type=logging.ERROR,
+                        )
+                    )
+            for col in value.columns:
+                if value[col].dtype == object:  # Check string columns
+                    for idx, cell_value in enumerate(value[col]):
+                        if (
+                            isinstance(cell_value, str)
+                            and cell_value
+                            and cell_value.rstrip() != cell_value
+                        ):
+                            errors.append(
+                                LogicError(
+                                    message="Trailing whitespace detected",
+                                    value=cell_value,
+                                    row=idx,
+                                    column=col,
+                                    error_type=logging.ERROR,
+                                )
+                            )
         elif isinstance(value, pd.Series):
             if value.dtype == object:  # Check if Series contains strings
                 for idx, cell_value in enumerate(value):
@@ -150,7 +178,7 @@ class MinimumColumns(SDRFValidator):
                 if key == "min_columns":
                     self.minimum_columns = int(value)
 
-    def validate(self, value: pd.DataFrame) -> List[LogicError]:
+    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame]) -> List[LogicError]:
         errors = []
         if len(value.columns) < self.minimum_columns:
             errors.append(

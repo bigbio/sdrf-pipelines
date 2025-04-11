@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class SDRFDataFrame(BaseModel):
-
+    sdrf_columns: List[str] = Field(default_factory=list)
     df: pd.DataFrame = Field(default=None)
     model_config = {"arbitrary_types_allowed": True}
 
@@ -20,11 +20,17 @@ class SDRFDataFrame(BaseModel):
         super().__init__(**data)
         if isinstance(sdrf_file, pd.DataFrame):
             self.df = sdrf_file
+            self.sdrf_columns = sdrf_file.columns.tolist()
         if isinstance(sdrf_file, str) or isinstance(sdrf_file, Path):
-            self.df = SDRFDataFrame.parse(sdrf_file)
+            self.df = self.parse(sdrf_file)
 
-    @staticmethod
-    def parse(sdrf_file: Union[str, Path]) -> pd.DataFrame:
+    def __getitem__(self, key):
+        """Enable subscriptable behavior by delegating to the df attribute."""
+        if self.df is None:
+            raise ValueError("DataFrame is not initialized")
+        return self.df[key]
+
+    def parse(self, sdrf_file: Union[str, Path]) -> pd.DataFrame:
         """
         Parse an SDRF file.
 
@@ -34,11 +40,35 @@ class SDRFDataFrame(BaseModel):
         Returns:
             SDRFDataFrame instance
         """
+
+        with open(sdrf_file, "r", encoding="utf-8") as file:
+            first_line = file.readline().strip()
+            self.sdrf_columns = first_line.split("\t")
+
         df = pd.read_csv(sdrf_file, sep="\t", dtype=str)
         df.fillna("")
         return df
 
-    def get_sdrf_columns(self) -> List[str]:
+    def get_dataframe_columns(self) -> List[str]:
+        """
+        Get the column names of the SDRF DataFrame.
+
+        Returns:
+            List of column names
+        """
+        return self.df.columns.tolist()
+
+    def get_original_columns(self) -> List[str]:
+        """
+        Get the original column names of the SDRF DataFrame.
+
+        Returns:
+            List of column names
+        """
+        return self.sdrf_columns
+
+    @property
+    def columns(self):
         """
         Get the column names of the SDRF DataFrame.
 

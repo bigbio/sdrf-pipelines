@@ -234,9 +234,6 @@ class SchemaValidator:
 
         errors = []
 
-        if isinstance(df, SDRFDataFrame):
-            df = df.df
-
         # Apply global validators
         for validator_config in schema.validators:
             validator = self._create_validator_instance(validator_config)

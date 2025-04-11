@@ -24,7 +24,7 @@ def test_sdrf_parse():
     sdrf = SDRFDataFrame(test_df)
 
     # Check that the columns are correct
-    assert set(sdrf.get_sdrf_columns()) == set(test_df.columns)
+    assert set(sdrf.get_dataframe_columns()) == set(test_df.columns)
 
     # Check that the shape is correct
     assert sdrf.shape == test_df.shape
