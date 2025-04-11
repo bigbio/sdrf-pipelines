@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Union, Type, Optional
 from pydantic import BaseModel
 from sdrf_pipelines.utils.exceptions import LogicError
 
+
 class SDRFValidator(BaseModel):
     params: Dict[str, Any] = {}
 
@@ -19,8 +20,10 @@ class SDRFValidator(BaseModel):
         """Validate a value."""
         raise NotImplementedError("Subclasses must implement this method")
 
+
 # Global validator registry
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
+
 
 def register_validator(validator_name=None):
     """Register a validator class in the global registry with an explicit type."""
@@ -51,13 +54,16 @@ def register_validator(validator_name=None):
 
     return decorator
 
+
 def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
     """Get a validator class by type."""
     return _VALIDATOR_REGISTRY.get(validator_name)
 
+
 def get_all_validators() -> Dict[str, Type[SDRFValidator]]:
     """Get all registered validators."""
     return _VALIDATOR_REGISTRY.copy()
+
 
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
@@ -159,7 +165,9 @@ class MinimumColumns(SDRFValidator):
 @register_validator(validator_name="ontology")
 class OntologyValidator(SDRFValidator):
 
-    def validate(self, value: Union[str, pd.DataFrame, pd.Series, List[str]]) -> List[LogicError]:
+    def validate(
+        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+    ) -> List[LogicError]:
         errors = []
         ontologies = self.params.get("ontologies", [])
         description = self.params.get("description", "")

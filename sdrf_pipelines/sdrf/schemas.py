@@ -9,16 +9,20 @@ from pydantic import BaseModel
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.validators import *
 from sdrf_pipelines.utils.exceptions import LogicError
+
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
+
 
 class RequirementLevel(str, Enum):
     REQUIRED = "required"
     RECOMMENDED = "recommended"
     OPTIONAL = "optional"
 
+
 class ValidatorConfig(BaseModel):
     validator_name: str
     params: Dict[str, Any] = {}
+
 
 class ColumnDefinition(BaseModel):
     name: str
@@ -28,11 +32,13 @@ class ColumnDefinition(BaseModel):
     allow_not_available: bool = False
     validators: List[ValidatorConfig] = []
 
+
 class SchemaDefinition(BaseModel):
     name: str
     description: str
     validators: List[ValidatorConfig] = []
     columns: List[ColumnDefinition] = []
+
 
 class SchemaRegistry:
 
@@ -148,9 +154,13 @@ class SchemaRegistry:
 
                     # Handle allow_not_applicable and allow_not_available
                     if "allow_not_applicable" in child_col:
-                        merged_col["allow_not_applicable"] = child_col["allow_not_applicable"]
+                        merged_col["allow_not_applicable"] = child_col[
+                            "allow_not_applicable"
+                        ]
                     if "allow_not_available" in child_col:
-                        merged_col["allow_not_available"] = child_col["allow_not_available"]
+                        merged_col["allow_not_available"] = child_col[
+                            "allow_not_available"
+                        ]
 
                     # Special handling for validators - append child validators to parent validators
                     if "validators" in child_col:
@@ -192,6 +202,7 @@ class SchemaRegistry:
     def get_schema_names(self) -> List[str]:
         """Get all schema names in the registry."""
         return list(self.schemas.keys())
+
 
 class SchemaValidator:
     """Class for validating SDRF data against schemas."""
