@@ -5,6 +5,8 @@ columns:
   - name: characteristics[ancestry category]
     description: Ancestry category
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
     validators:
       - validator_name: ontology
         params:
@@ -19,6 +21,8 @@ columns:
   - name: characteristics[age]
     description: Age
     requirement: optional
+    allow_not_applicable: false
+    allow_not_available: true
     validators:
       - validator_name: pattern
         params:
@@ -58,3 +62,5 @@ columns:
   - name: characteristics[individual]
     description: Individual
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true

@@ -5,6 +5,8 @@ columns:
   - name: characteristics[disease]
     description: Disease
     requirement: required
+    allow_not_applicable: true
+    allow_not_available: true
     cardinality: multiple
     validators:
       - validator_name: ontology

@@ -264,6 +264,31 @@ class SchemaValidator:
                     if validator:
                         errors.extend(validator.validate(column_series))
 
+                # Validate allow_not_applicable and allow_not_available properties
+                if not column_def.allow_not_applicable:
+                    # Handle potential NaN values by converting to string first
+                    str_series = column_series.fillna("").astype(str)
+                    not_applicable_values = str_series[str_series.str.lower().str.contains(NOT_APPLICABLE)]
+                    if not not_applicable_values.empty:
+                        errors.append(
+                            LogicError(
+                                message=f"Column '{column_def.name}' contains 'not applicable' values, which are not allowed for this column",
+                                error_type=logging.ERROR,
+                            )
+                        )
+
+                if not column_def.allow_not_available:
+                    # Handle potential NaN values by converting to string first
+                    str_series = column_series.fillna("").astype(str)
+                    not_available_values = str_series[str_series.str.lower().str.contains(NOT_AVAILABLE)]
+                    if not not_available_values.empty:
+                        errors.append(
+                            LogicError(
+                                message=f"Column '{column_def.name}' contains 'not available' values, which are not allowed for this column",
+                                error_type=logging.ERROR,
+                            )
+                        )
+
         return errors
 
     def validate_with_multiple_schemas(
