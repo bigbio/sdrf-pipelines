@@ -29,6 +29,7 @@ requirements:
     - duckdb
     - rdflib
     - pyarrow
+    - pydantic
 
 test:
   imports:
