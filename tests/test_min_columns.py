@@ -32,7 +32,7 @@ def test_min_columns_with_reduced_columns():
         {
             "source name": ["sample 1"],
             "characteristics[organism]": ["homo sapiens"],
-            "characteristics[organism part]": ["liver"],
+            "characteristics[organism part]": [" liver "],
             "characteristics[disease]": ["normal"],
             "characteristics[cell name]": ["hepatocyte"],
             "assay name": ["run 1"],

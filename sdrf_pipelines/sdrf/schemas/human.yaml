@@ -5,13 +5,13 @@ columns:
   - name: characteristics[ancestry category]
     description: Ancestry category
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
     validators:
       - validator_name: ontology
         params:
           ontologies:
             - hancestro
-          allow_not_applicable: true
-          allow_not_available: true
           description: The ancestry category should be a valid HANCESTRO ontology term
           examples:
             - European
@@ -28,13 +28,13 @@ columns:
   - name: characteristics[sex]
     description: Sex
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
     validators:
       - validator_name: ontology
         params:
           ontologies:
             - pco
-          allow_not_applicable: true
-          allow_not_available: true
           description: The sex should be a valid PCO ontology term
           examples:
             - male
@@ -43,13 +43,13 @@ columns:
   - name: characteristics[developmental stage]
     description: Developmental stage
     requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
     validators:
       - validator_name: ontology
         params:
           ontologies:
             - hsapdv
-          allow_not_applicable: true
-          allow_not_available: true
           description: The developmental stage should be a valid HSAPDV ontology term
           examples:
             - adult

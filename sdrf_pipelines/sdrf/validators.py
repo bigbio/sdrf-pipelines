@@ -5,7 +5,6 @@ from typing import List, Dict, Any, Union, Type, Optional
 from pydantic import BaseModel
 from sdrf_pipelines.utils.exceptions import LogicError
 
-
 class SDRFValidator(BaseModel):
     params: Dict[str, Any] = {}
 
@@ -20,10 +19,8 @@ class SDRFValidator(BaseModel):
         """Validate a value."""
         raise NotImplementedError("Subclasses must implement this method")
 
-
 # Global validator registry
 _VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
-
 
 def register_validator(validator_name=None):
     """Register a validator class in the global registry with an explicit type."""
@@ -34,8 +31,8 @@ def register_validator(validator_name=None):
         # If no type is provided, try to get it from the class
         if validator_name is None:
             # Try to access the type attribute
-            if hasattr(cls, "type"):
-                validator_name = cls.type
+            if hasattr(cls, "validator_name"):
+                validator_name = cls.validator_name
             else:
                 # Fallback to class name
                 validator_name = cls.__name__.lower()
@@ -54,16 +51,13 @@ def register_validator(validator_name=None):
 
     return decorator
 
-
-def get_validator(validator_type: str) -> Optional[Type[SDRFValidator]]:
+def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
     """Get a validator class by type."""
-    return _VALIDATOR_REGISTRY.get(validator_type)
-
+    return _VALIDATOR_REGISTRY.get(validator_name)
 
 def get_all_validators() -> Dict[str, Type[SDRFValidator]]:
     """Get all registered validators."""
     return _VALIDATOR_REGISTRY.copy()
-
 
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
@@ -165,25 +159,21 @@ class MinimumColumns(SDRFValidator):
 @register_validator(validator_name="ontology")
 class OntologyValidator(SDRFValidator):
 
-    def validate(
-        self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
-    ) -> List[LogicError]:
+    def validate(self, value: Union[str, pd.DataFrame, pd.Series, List[str]]) -> List[LogicError]:
         errors = []
         ontologies = self.params.get("ontologies", [])
-        allow_not_applicable = self.params.get("allow_not_applicable", False)
-        allow_not_available = self.params.get("allow_not_available", False)
         description = self.params.get("description", "")
 
-        if isinstance(value, pd.Series):
-            for idx, cell_value in enumerate(value):
-                if isinstance(cell_value, str):
-                    # Skip validation for allowed values if configured
-                    if allow_not_applicable and cell_value.lower() == "not applicable":
-                        continue
-                    if allow_not_available and cell_value.lower() == "not available":
-                        continue
-
-                    # Here you would integrate with your ontology validation system
-                    # This is a placeholder - in a real implementation you would check against the specified ontologies
+        # if isinstance(value, pd.Series):
+        #     for idx, cell_value in enumerate(value):
+        #         if isinstance(cell_value, str):
+        #             # Skip validation for allowed values if configured
+        #             if allow_not_applicable and cell_value.lower() == "not applicable":
+        #                 continue
+        #             if allow_not_available and cell_value.lower() == "not available":
+        #                 continue
+        #
+        #             # Here you would integrate with your ontology validation system
+        #             # This is a placeholder - in a real implementation you would check against the specified ontologies
 
         return errors

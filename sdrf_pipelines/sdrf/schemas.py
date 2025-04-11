@@ -2,36 +2,37 @@ import os
 import json
 import yaml
 from enum import Enum
+from typing import List, Dict, Any, Optional
+
+from pydantic import BaseModel
 
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.validators import *
 from sdrf_pipelines.utils.exceptions import LogicError
-
+_VALIDATOR_REGISTRY: Dict[str, Type[SDRFValidator]] = {}
 
 class RequirementLevel(str, Enum):
     REQUIRED = "required"
     RECOMMENDED = "recommended"
     OPTIONAL = "optional"
 
-
 class ValidatorConfig(BaseModel):
     validator_name: str
     params: Dict[str, Any] = {}
-
 
 class ColumnDefinition(BaseModel):
     name: str
     description: str
     requirement: RequirementLevel
+    allow_not_applicable: bool = False
+    allow_not_available: bool = False
     validators: List[ValidatorConfig] = []
-
 
 class SchemaDefinition(BaseModel):
     name: str
     description: str
     validators: List[ValidatorConfig] = []
     columns: List[ColumnDefinition] = []
-
 
 class SchemaRegistry:
 
@@ -120,6 +121,12 @@ class SchemaRegistry:
             result["validators"].extend(child_schema["validators"])
 
         # Merge columns:
+        # Add allow_not_applicable and allow_not_available to columns if not present
+        for col in result["columns"]:
+            if "allow_not_applicable" not in col:
+                col["allow_not_applicable"] = False
+            if "allow_not_available" not in col:
+                col["allow_not_available"] = False
         # 1. Keep all parent columns that aren't overridden by child
         # 2. Add child columns, overriding parent columns with the same name
         if "columns" in child_schema:
@@ -138,6 +145,12 @@ class SchemaRegistry:
                     idx, parent_col = parent_columns_by_name[col_name]
                     merged_col = parent_col.copy()
                     merged_col.update(child_col)
+
+                    # Handle allow_not_applicable and allow_not_available
+                    if "allow_not_applicable" in child_col:
+                        merged_col["allow_not_applicable"] = child_col["allow_not_applicable"]
+                    if "allow_not_available" in child_col:
+                        merged_col["allow_not_available"] = child_col["allow_not_available"]
 
                     # Special handling for validators - append child validators to parent validators
                     if "validators" in child_col:
@@ -179,7 +192,6 @@ class SchemaRegistry:
     def get_schema_names(self) -> List[str]:
         """Get all schema names in the registry."""
         return list(self.schemas.keys())
-
 
 class SchemaValidator:
     """Class for validating SDRF data against schemas."""
@@ -239,13 +251,6 @@ class SchemaValidator:
         for column_def in schema.columns:
             if column_def.name in df.columns:
                 column_series = df[column_def.name]
-
-                # Apply trailing whitespace validator to all columns by default
-                whitespace_validator = self._create_validator_instance(
-                    ValidatorConfig(validator_name="trailing_whitespace_validator", params={})
-                )
-                if whitespace_validator:
-                    errors.extend(whitespace_validator.validate(column_series))
 
                 # Apply specific validators defined for this column
                 for validator_config in column_def.validators:

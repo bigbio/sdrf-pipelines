@@ -6,14 +6,14 @@ columns:
     description: Disease
     requirement: required
     cardinality: multiple
+    allow_not_applicable: true
+    allow_not_available: false
     validators:
       - validator_name: ontology
         params:
           ontologies:
             - mondo
             - efo
-          allow_not_applicable: true
-          allow_not_available: false
           description: The disease should be a valid MONDO or EFO ontology term
           examples:
             - breast cancer
