@@ -79,8 +79,8 @@ columns:
   - name: comment[fraction identifier]
     description: Fraction identifier
     requirement: required
-    cardinality: unique
     type: integer
+    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: comment[label]

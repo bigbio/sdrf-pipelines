@@ -9,6 +9,6 @@ columns:
     allow_not_available: true
   - name: characteristics[strain/breed]
     description: Strain or breed
+    requirement: optional
     allow_not_applicable: true
     allow_not_available: true
-    requirement: optional
