@@ -27,7 +27,8 @@ def test_min_columns_with_reduced_columns():
             "characteristics[organism]": ["homo sapiens23"],
             "characteristics[organism part]": [" liver "],
             "characteristics[disease] ": ["normal"],
-            "characteristics[cell name]": ["hepatocyte"],
+            "characteristics[cell type]": ["hepatocyte"],
+            "characteristics[age]": ["1"],
             "assay name": ["run 1"],
         }
     )
@@ -44,4 +45,4 @@ def test_min_columns_with_reduced_columns():
         min_column_errors
     ), "Expected errors related to minimum columns, but found none"
 
-    assert len(errors) == 13
+    assert len(errors) == 14

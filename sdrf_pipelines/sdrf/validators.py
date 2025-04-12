@@ -1,4 +1,6 @@
 import logging
+import re
+
 import pandas as pd
 from typing import List, Dict, Any, Union, Type, Optional
 
@@ -308,3 +310,57 @@ class OntologyValidator(SDRFValidator):
                 term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
 
         return term
+
+
+@register_validator(validator_name="pattern")
+class PatternValidator(SDRFValidator):
+    """Validator that checks if values match a regular expression pattern."""
+    pattern: str = None
+    case_sensitive: bool = True
+
+    def __init__(self, params: Dict[str, Any] = None, **data: Any):
+        super().__init__(**data)
+
+        if params:
+            if "pattern" in params:
+                self.pattern = params["pattern"]
+            if "case_sensitive" in params:
+                self.case_sensitive = params["case_sensitive"]
+
+    def validate(self, series: pd.Series) -> List[LogicError]:
+        """
+        Validate if values in the series match the specified regex pattern.
+
+        Parameters:
+            series: The pandas Series to validate
+
+        Returns:
+            List of LogicError for values that don't match the pattern
+        """
+        if self.pattern is None:
+            return []
+
+        # Compile the regex pattern
+        flags = 0 if self.case_sensitive else re.IGNORECASE
+        pattern = re.compile(self.pattern, flags)
+
+        errors = []
+
+        # Check each value in the series
+        for idx, value in enumerate(series):
+            if pd.isna(value):
+                continue
+
+            if not isinstance(value, str):
+                value = str(value)
+
+            if not pattern.match(value):
+                errors.append(
+                    LogicError(
+                        message=f"Value '{value}' does not match the required pattern: {self.pattern}",
+                        row=idx,
+                        error_type=logging.ERROR,
+                    )
+                )
+
+        return errors
