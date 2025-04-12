@@ -29,7 +29,6 @@ include = [
 python = ">=3.8"
 click = "*"
 pandas = "*"
-pandas_schema = "*"
 requests = "*"
 pytest = "*"
 pyyaml = "*"
