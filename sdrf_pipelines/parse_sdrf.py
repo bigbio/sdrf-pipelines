@@ -207,29 +207,11 @@ def maxquant_from_sdrf(
     default="default",
     required=False,
 )
-@click.option(
-    "--skip_factor_validation",
-    help="Disable the validation of factor values in SDRF",
-    is_flag=True,
-)
-@click.option(
-    "--skip_experimental_design_validation",
-    help="Disable the validation of experimental design",
-    is_flag=True,
-)
-@click.option(
-    "--use_ols_cache_only",
-    help="Use ols cache for validation of the terms and not OLS internet service",
-    is_flag=True,
-)
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
-    skip_factor_validation: bool,
-    skip_experimental_design_validation: bool,
-    use_ols_cache_only: bool,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
