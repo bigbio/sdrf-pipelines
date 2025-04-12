@@ -236,7 +236,7 @@ class SchemaValidator:
         for validator_config in schema.validators:
             validator = self._create_validator_instance(validator_config)
             if validator:
-                errors.extend(validator.validate(df))
+                errors.extend(validator.validate(df, column_name=None))
 
         # Validate required columns exist
         required_columns = [
@@ -262,7 +262,7 @@ class SchemaValidator:
                 for validator_config in column_def.validators:
                     validator = self._create_validator_instance(validator_config)
                     if validator:
-                        errors.extend(validator.validate(column_series))
+                        errors.extend(validator.validate(column_series, column_name=column_def.name))
 
                 # Validate allow_not_applicable and allow_not_available properties
                 if not column_def.allow_not_applicable:

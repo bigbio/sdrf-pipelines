@@ -10,13 +10,13 @@ def test_min_columns_default_schema():
     """Test that the minimum number of columns is 7 using the default schema."""
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
-    test_file = TESTS_DIR / "data/generic/sdrf.tsv"
+    test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(test_file)
     errors = validator.validate(sdrf_df, "default")
     num_colums = sdrf_df.get_dataframe_columns()
     print(f"Using test file: {test_file} with {len(num_colums)} columns")
 
-    assert len(errors) == 3
+    assert len(errors) == 6
 
 
 def test_min_columns_with_reduced_columns():

@@ -6,6 +6,8 @@ validators:
       min_columns: 12
   - validator_name: trailing_whitespace_validator
     params: {}
+  - validator_name: column_order
+    params: {}
 columns:
   - name: source name
     description: Source name

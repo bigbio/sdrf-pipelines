@@ -22,9 +22,19 @@ class SDRFValidator(BaseModel):
             self.params = params
 
     def validate(
-            self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, List[str]]
+            self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, List[str]],
+            column_name: str = None
     ) -> List[LogicError]:
-        """Validate a value."""
+        """
+        Validate a value.
+
+        Args:
+            value: The value to validate
+            column_name: The name of the column being validated (if applicable)
+
+        Returns:
+            List of LogicError objects
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
 
@@ -76,11 +86,16 @@ def get_all_validators() -> Dict[str, Type[SDRFValidator]]:
 class TrailingWhitespaceValidator(SDRFValidator):
 
     def validate(
-            self, value: Union[str, pd.DataFrame, pd.Series, List[str]]
+            self, value: Union[str, pd.DataFrame, pd.Series, List[str]],
+            column_name: str = None
     ) -> List[LogicError]:
         """
         This method validates if the provided value contains a TrailingWhiteSpace and return it
         as LogicError. If the column, row information is present, it returns the other.
+
+        Parameters:
+            value: The value to validate
+            column_name: The name of the column being validated (if applicable)
         """
         errors = []
 
@@ -184,7 +199,7 @@ class MinimumColumns(SDRFValidator):
                 if key == "min_columns":
                     self.minimum_columns = int(value)
 
-    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame]) -> List[LogicError]:
+    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str = None) -> List[LogicError]:
         errors = []
         if len(value.columns) < self.minimum_columns:
             errors.append(
@@ -219,12 +234,17 @@ class OntologyValidator(SDRFValidator):
                     else:
                         self.error_level = logging.INFO
 
-    def validate(self, series: pd.Series) -> List[LogicError]:
+    def validate(self, series: pd.Series, column_name: str = None) -> List[LogicError]:
         """
         Validate if the term is present in the provided ontology. This method looks in the provided
         ontology _ontology_name
-        :param series: return series that do not match the criteria
-        :return:
+
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+
+        Returns:
+            List of LogicError for values that don't match the ontology terms
         """
         terms = [self.ontology_term_parser(x) for x in series.unique()]
         labels = []
@@ -265,10 +285,12 @@ class OntologyValidator(SDRFValidator):
         errors = []
         for idx, value in enumerate(validation_indexes):
             if not value:
+                column_info = f" in column '{column_name}'" if column_name else ""
                 errors.append(
                     LogicError(
-                        message="Term: {} , is not found in the given ontology list {}".format(series[idx], ";".join(self.ontologies)),
+                        message=f"Term: {series[idx]}{column_info}, is not found in the given ontology list {';'.join(self.ontologies)}",
                         row=idx,
+                        column=column_name,
                         error_type=self.error_level,
                     )
                 )
@@ -327,12 +349,13 @@ class PatternValidator(SDRFValidator):
             if "case_sensitive" in params:
                 self.case_sensitive = params["case_sensitive"]
 
-    def validate(self, series: pd.Series) -> List[LogicError]:
+    def validate(self, series: pd.Series, column_name: str = None) -> List[LogicError]:
         """
         Validate if values in the series match the specified regex pattern.
 
         Parameters:
             series: The pandas Series to validate
+            column_name: The name of the column being validated
 
         Returns:
             List of LogicError for values that don't match the pattern
@@ -355,12 +378,87 @@ class PatternValidator(SDRFValidator):
                 value = str(value)
 
             if not pattern.match(value):
+                column_info = f" in column '{column_name}'" if column_name else ""
                 errors.append(
                     LogicError(
-                        message=f"Value '{value}' does not match the required pattern: {self.pattern}",
+                        message=f"Value '{value}'{column_info} does not match the required pattern: {self.pattern}",
                         row=idx,
+                        column=column_name,
                         error_type=logging.ERROR,
                     )
                 )
 
         return errors
+
+
+@register_validator(validator_name="column_order")
+class ColumnOrderValidator(SDRFValidator):
+    """Validator that checks if columns are in the correct order in the SDRF file."""
+
+    def validate(self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str = None) -> List[LogicError]:
+        """
+        Validate if columns are in the correct order in the SDRF file.
+
+        Parameters:
+            df: The pandas DataFrame to validate
+            column_name: Not used for this validator as it operates on the entire DataFrame
+
+        Returns:
+            List of LogicError for column order issues
+        """
+        error_columns_order = []
+
+        if "assay name" in list(df):
+            cnames = list(df)
+            assay_index = cnames.index("assay name")
+
+            # Check that all characteristics columns are before assay name
+            characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
+            if characteristics_after_assay:
+                error_message = f"All characteristics columns must be before 'assay name'. Found after: {', '.join(characteristics_after_assay)}"
+                error_columns_order.append(LogicError(message=error_message, error_type=logging.ERROR))
+            factor_tag = False
+
+            for idx, column in enumerate(cnames):
+                error_message, error_type = "", None
+
+                if idx < assay_index:
+                    if "comment" in column:
+                        error_message = f"The column '{column}' cannot be before the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column:
+                        error_message = f"The column '{column}' must be immediately after the assay name"
+                        if assay_index - idx > 1:
+                            error_type = logging.ERROR
+                        else:
+                            error_type = logging.WARNING
+                else:
+                    if "characteristics" in column or ("material type" in column and "factor value" not in column):
+                        error_message = f"The column '{column}' cannot be after the assay name"
+                        error_type = logging.ERROR
+                    if "technology type" in column and idx > assay_index + 1:
+                        error_message = f"The column '{column}' must be immediately after the assay name"
+                        error_type = logging.ERROR
+
+                if error_type is not None:
+                    error_columns_order.append(LogicError(message=error_message, error_type=error_type))
+
+                if "factor value" in column and not factor_tag:
+                    factor_index = idx
+                    factor_tag = True
+
+            if factor_tag:
+                temp = []
+                error = []
+                for column in cnames[factor_index:]:
+                    if "comment" in column or "characteristics" in column:
+                        error.extend(temp)
+                        temp = []
+                    elif "factor value" in column:
+                        temp.append(column)
+
+                if len(error):
+                    error_message = f"The following factor column should be last: {', '.join(error)}"
+                    error_columns_order.append(LogicError(message=error_message, error_type=logging.ERROR))
+
+        return error_columns_order

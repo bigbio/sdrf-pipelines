@@ -30,6 +30,12 @@ class SDRFDataFrame(BaseModel):
             raise ValueError("DataFrame is not initialized")
         return self.df[key]
 
+    def __iter__(self):
+        """Make the object iterable as if iterating over the dataframe."""
+        if self.df is not None:
+            return iter(self.df)
+        return iter([])  # Return empty iterator if df is None
+
     def parse(self, sdrf_file: Union[str, Path]) -> pd.DataFrame:
         """
         Parse an SDRF file.
