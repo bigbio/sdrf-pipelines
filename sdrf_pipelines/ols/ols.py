@@ -390,9 +390,25 @@ class OlsClient:
         if use_ols_cache_only:
             terms = self.cache_search(term, ontology)
         else:
-            terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-            if terms is None and self.use_cache:
-                terms = self.cache_search(term, ontology)
+            try:
+                terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
+                if terms is None and self.use_cache:
+                    terms = self.cache_search(term, ontology)
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Connection error during OLS search: {e}")
+                if self.use_cache:
+                    logger.info("Falling back to cache search due to connection error")
+                    terms = self.cache_search(term, ontology)
+                else:
+                    logger.error("Cache is not enabled, cannot fall back to cache search")
+                    raise
+            except Exception as e:
+                logger.error(f"Error during OLS search: {e}")
+                if self.use_cache:
+                    logger.info("Falling back to cache search due to error")
+                    terms = self.cache_search(term, ontology)
+                else:
+                    raise
         return terms
 
     def _perform_ols_search(self, params, name: str, exact: bool, retry_num: int = 0):

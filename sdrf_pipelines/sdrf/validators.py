@@ -217,6 +217,7 @@ class OntologyValidator(SDRFValidator):
     term_name: str = "NT"
     ontologies: List[str] = []
     error_level: int = logging.INFO
+    use_ols_cache_only: bool = False
     model_config = {"arbitrary_types_allowed": True}
 
     def __init__(self, params: Dict[str, Any] = None, **data: Any):
@@ -233,6 +234,8 @@ class OntologyValidator(SDRFValidator):
                         self.error_level = logging.ERROR
                     else:
                         self.error_level = logging.INFO
+                if key == "use_ols_cache_only":
+                    self.use_ols_cache_only = value
 
     def validate(self, series: pd.Series, column_name: str = None) -> List[LogicError]:
         """
@@ -260,14 +263,14 @@ class OntologyValidator(SDRFValidator):
                                 term=term[self.term_name],
                                 ontology=ontology_name,
                                 exact=True,
-                                use_ols_cache_only=False,
+                                use_ols_cache_only=self.use_ols_cache_only,
                             )
                         )
                 else:
                     ontology_terms = self.client.search(
                         term=term[self.term_name],
                         exact=True,
-                        use_cache_only=self._use_ols_cache_only,
+                        # Don't specify use_ols_cache_only, let OlsClient handle fallback automatically
                     )
 
             if ontology_terms is not None:
