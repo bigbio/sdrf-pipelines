@@ -462,3 +462,44 @@ class ColumnOrderValidator(SDRFValidator):
                     error_columns_order.append(LogicError(message=error_message, error_type=logging.ERROR))
 
         return error_columns_order
+
+
+@register_validator(validator_name="empty_cells")
+class EmptyCellValidator(SDRFValidator):
+    """Validator that checks for empty cells in the SDRF file."""
+
+    def validate(self, df: Union[pd.DataFrame,SDRFDataFrame], column_name: str = None) -> List[LogicError]:
+        """
+        Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
+
+        Parameters:
+            df: The pandas DataFrame to validate
+            column_name: Not used for this validator as it operates on the entire DataFrame
+
+        Returns:
+            List of LogicError for empty cells
+        """
+        errors = []
+
+        def validate_string(cell_value):
+            if pd.isna(cell_value):
+                return False
+            if not isinstance(cell_value, str):
+                cell_value = str(cell_value)
+            return cell_value != "nan" and len(cell_value.strip()) > 0
+
+        validation_results = df.map(validate_string)
+
+        # Get the indices where the validation fails
+        failed_indices = [
+            (row, col)
+            for row in validation_results.index
+            for col in validation_results.columns
+            if not validation_results.at[row, col]
+        ]
+
+        for row, col in failed_indices:
+            message = f"Empty value found Row: {row}, Column: {col}"
+            errors.append(LogicError(message=message, error_type=logging.ERROR))
+
+        return errors

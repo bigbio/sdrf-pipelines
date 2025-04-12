@@ -36,6 +36,13 @@ class SDRFDataFrame(BaseModel):
             return iter(self.df)
         return iter([])  # Return empty iterator if df is None
 
+    def map(self, func, *args, **kwargs):
+        """Delegate map operation to the underlying DataFrame."""
+        if self.df is not None:
+            return self.df.map(func, *args, **kwargs)
+        raise ValueError("Cannot map on empty DataFrame")
+
+
     def parse(self, sdrf_file: Union[str, Path]) -> pd.DataFrame:
         """
         Parse an SDRF file.

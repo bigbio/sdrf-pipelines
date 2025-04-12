@@ -8,6 +8,8 @@ validators:
     params: {}
   - validator_name: column_order
     params: {}
+  - validator_name: empty_cells
+    params: {}
 columns:
   - name: source name
     description: Source name

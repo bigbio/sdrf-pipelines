@@ -16,7 +16,7 @@ def test_min_columns_default_schema():
     num_colums = sdrf_df.get_dataframe_columns()
     print(f"Using test file: {test_file} with {len(num_colums)} columns")
 
-    assert len(errors) == 6
+    assert len(errors) == 138
 
 
 def test_min_columns_with_reduced_columns():
