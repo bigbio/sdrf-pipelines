@@ -33,7 +33,7 @@ parameters:
 #- name: type_cleavage
 #  type: class
 #  sdrf: type of cleavage
-#  default: 
+#  default:
 
 - name: fions
   type: class
@@ -124,7 +124,7 @@ parameters:
 
 #- name: match_between_runs_mz_tol
 #- type: float
-#- sdrf: m over z tolerance match between runs 
+#- sdrf: m over z tolerance match between runs
 #- default: # DBO: I would put 10 ppm by default
 
 - name: enable_match_between_runs
@@ -202,7 +202,7 @@ parameters:
     - quantile
     - linear
     - non-linear
-    - probabilistic-quotient 
+    - probabilistic-quotient
     - other
   comment: More to be added?
 
@@ -225,4 +225,3 @@ parameters:
   type: float
   sdrf: threshold for statistical test fdr
   default: 0.01
-
