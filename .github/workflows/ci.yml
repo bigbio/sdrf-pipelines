@@ -77,7 +77,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt -r requirements-dev.txt
     - name: Install package
-      run: python setup.py install
+      run: pip install .
     - name: Test OpenMS converter
       run: |
         python -m pytest tests

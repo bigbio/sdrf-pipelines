@@ -2,6 +2,7 @@ import re
 
 import pandas as pd
 
+
 # example:  parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
 
 
@@ -12,11 +13,18 @@ class Msstats:
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
-        self, sdrf_file, split_by_columns, annotation_path, openswathtomsstats, maxqtomsstats
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        openswathtomsstats,
+        maxqtomsstats,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = map(
+            str.lower, sdrf.columns
+        )  # convert column names to lower-case
         data = {}
         condition = []
         Experiments = []
@@ -34,7 +42,9 @@ class Msstats:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith("factor value[")]
+            factor_cols = [
+                c for ind, c in enumerate(sdrf) if c.startswith("factor value[")
+            ]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
@@ -66,7 +76,9 @@ class Msstats:
                     BioReplicate.append(sample)
             else:
                 warning_message = "No sample number identifier"
-                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                self.warnings[warning_message] = (
+                    self.warnings.get(warning_message, 0) + 1
+                )
 
                 # Solve non-sample id expression models
                 if source_name in sample_id_map.keys():
@@ -81,7 +93,9 @@ class Msstats:
             value.append(MSstatsBioReplicate)
 
             if "comment[technical replicate]" in sdrf.columns:
-                Experiments.append(row["source name"] + "_" + str(row["comment[technical replicate]"]))
+                Experiments.append(
+                    row["source name"] + "_" + str(row["comment[technical replicate]"])
+                )
             else:
                 Experiments.append(row["source name"] + "_" + "1")
 
