@@ -62,33 +62,28 @@ class Maxquant:
                     else:
                         lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
         elif len(label_list) > 2:
-            for i in label_list:
-                if i == label_list[-1]:
-                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip()
-                else:
-                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip() + ","
+            lt = ",".join(["TMT6plex-Lys" + i.replace("TMT", "").rstrip() for i in label_list])
         else:
-            for i in label_list:
-                if i == label_list[-1]:
-                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "")
-                else:
-                    lt = lt + "TMT2plex-Lys" + i.replace("TMT", "") + ","
+            lt = ",".join(["TMT2plex-Lys" + i.replace("TMT", "") for i in label_list])
         return lt
 
-    def extract_tmt_info(self, label="TMT2", mods=None):
+    def extract_tmt_info(self, label=None, mods=None):
         lt = ""
         label_list = sorted(label)
-        label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
-
-        if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
-            label_head = "TMT" + label_head[0] + "plex"
+        if "TMTpro" in "".join(mods):
             for i in label_list:
-                if i == label_list[-1]:
-                    lt = lt + label_head + "-Lys" + i.replace("TMT", "")
+                if "TMT134C" in i or "TMT135N" in i:
+                    lt += "TMTpro18plex" + "-Lys" + i.replace("TMT", "")
                 else:
-                    lt = lt + label_head + "-Lys" + i.replace("TMT", "") + ","
+                    lt += "TMTpro16plex" + "-Lys" + i.replace("TMT", "")
         else:
-            lt = self.guess_tmt(lt, label_list)
+            label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
+
+            if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
+                label_head = "TMT" + label_head[0] + "plex"
+                lt = ",".join([label_head + "-Lys" + i.replace("TMT", "") for i in label_list])
+            else:
+                lt = self.guess_tmt(lt, label_list)
         return lt
 
     def create_new_mods(self, mods, mqconfdir):
@@ -894,62 +889,7 @@ class Maxquant:
             elif row["comment[label]"].lower() == "ibaq":
                 file2label[raw] = "iBAQ"
             elif row["comment[label]"].startswith("TMT"):
-                lt = ""
-                label_list = sorted(list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]))
-                label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in file2mods[raw] if "TMT" in i]
-
-                if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
-                    label_head = "TMT" + label_head[0] + "plex"
-                    for i in label_list:
-                        if i == label_list[-1]:
-                            lt = lt + label_head + "-Lys" + i.replace("TMT", "")
-                        else:
-                            lt = lt + label_head + "-Lys" + i.replace("TMT", "") + ","
-                else:
-                    if len(label_list) == 11:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT11plex-Lys" + i.replace("TMT", "")
-                            else:
-                                lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
-                    elif len(label_list) > 8:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT10plex-Lys" + i.replace("TMT", "")
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
-                            else:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
-
-                    elif len(label_list) > 6:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT8plex-Lys" + i.replace("TMT", "")
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
-                            else:
-                                if "N" in i or "C" in i:
-                                    lt = lt + "TMT8plex-Lys" + i.replace("TMT", "") + ","
-                                else:
-                                    lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
-                    elif len(label_list) > 2:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip()
-                            else:
-                                lt = lt + "TMT6plex-Lys" + i.replace("TMT", "").rstrip() + ","
-                    else:
-                        for i in label_list:
-                            if i == label_list[-1]:
-                                lt = lt + "TMT2plex-Lys" + i.replace("TMT", "")
-                            else:
-                                lt = lt + "TMT2plex-Lys" + i.replace("TMT", "") + ","
-
+                lt = self.extract_tmt_info(list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw])
                 file2label[raw] = lt
 
             elif row["comment[label]"].startswith("SILAC"):

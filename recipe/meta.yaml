@@ -16,14 +16,14 @@ build:
 requirements:
   host:
     - pip
-    - python >=3.10
+    - python >=3.11
     - setuptools
   run:
     - click
     - requests
     - pandas
     - pandas_schema
-    - python >=3.10
+    - python >=3.11
     - pyaml
     - defusedxml
     - pytest

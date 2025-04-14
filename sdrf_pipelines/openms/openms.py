@@ -1,9 +1,12 @@
+import logging
 import re
 from collections import Counter
 
 import pandas as pd
 
 from sdrf_pipelines.openms.unimod import UnimodDatabase
+
+logger = logging.getLogger(__name__)
 
 # example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
@@ -42,8 +45,9 @@ def get_openms_file_name(raw, extension_convert: str = None):
         # This is a backport of the function, remove it and use the
         # built-in function when we drop support for python 3.8
         # https://peps.python.org/pep-0616/
-        if suffix and x.endswith(suffix):
-            return x[: -len(suffix)]
+        if suffix and x.lower().endswith(suffix.lower()):
+            res = re.sub(suffix + "$", "", x, flags=re.I)
+            return res
         else:
             return x[:]
 
@@ -59,7 +63,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     raw_bkp = raw
     for current_extension, target_extension in extension_convert_dict.items():
-        if raw.endswith(current_extension):
+        if raw.lower().endswith(current_extension.lower()):
             raw = _removesuffix(raw, current_extension)
             raw += target_extension
             if not any(raw.endswith(x) for x in possible_extension):
@@ -72,12 +76,49 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     return raw
 
+def parse_tolerance(pc_tol_str:str, units=("ppm", "da")) -> tuple[str, str]:
+    """Find tolerance in string."""
+    # check that only one unit is specified?
+    pc_tol_str = pc_tol_str.lower()
+    for unit in units:
+        if unit in pc_tol_str:
+            tol = pc_tol_str.split(unit)[0].strip()
+            if not f' {unit}' in pc_tol_str:
+                msg = (
+                    f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
+                )
+                logger.warning(msg)
+            _ = float(tol) # should be an number
+            if unit == "da":
+                unit = unit.capitalize()
+            return tol, unit
+    return None, None
 
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
         self.warnings = {}
         self._unimod_database = UnimodDatabase()
+        self.tmt18plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131N": 10,
+            "TMT131C": 11,
+            "TMT132N": 12,
+            "TMT132C": 13,
+            "TMT133N": 14,
+            "TMT133C": 15,
+            "TMT134N": 16,
+            "TMT134C": 17,
+            "TMT135N": 18
+        }
         self.tmt16plex = {
             "TMT126": 1,
             "TMT127N": 2,
@@ -305,16 +346,17 @@ class OpenMS:
                 source_name_list.append(source_name)
 
             if "comment[precursor mass tolerance]" in row:
-                pc_tol_str = row["comment[precursor mass tolerance]"]
-                if "ppm" in pc_tol_str or "Da" in pc_tol_str:
-                    pc_tmp = pc_tol_str.split(" ")
-                    f2c.file2pctol[raw] = pc_tmp[0]
-                    f2c.file2pctolunit[raw] = pc_tmp[1]
-                else:
-                    warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2pctol[raw] = "10"
-                    f2c.file2pctolunit[raw] = "ppm"
+                pc_tol_str = row["comment[precursor mass tolerance]"].strip()
+
+                tol, unit = parse_tolerance(pc_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(pc_tol_str))
+                    # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2pctol[raw] = "10"
+                    # f2c.file2pctolunit[raw] = "ppm"
+                f2c.file2pctol[raw] = tol
+                f2c.file2pctolunit[raw] = unit
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -322,17 +364,16 @@ class OpenMS:
                 f2c.file2pctolunit[raw] = "ppm"
 
             if "comment[fragment mass tolerance]" in row:
-                f_tol_str = row["comment[fragment mass tolerance]"]
-                f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str or "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    f2c.file2fragtol[raw] = f_tmp[0]
-                    f2c.file2fragtolunit[raw] = f_tmp[1]
-                else:
-                    warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2fragtol[raw] = "20"
-                    f2c.file2fragtolunit[raw] = "ppm"
+                f_tol_str = row["comment[fragment mass tolerance]"].strip()
+                tol, unit = parse_tolerance(f_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(f_tol_str))
+                    # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2fragtol[raw] = "20"
+                    # f2c.file2fragtolunit[raw] = "ppm"
+                f2c.file2fragtol[raw] = tol
+                f2c.file2fragtolunit[raw] = unit
             else:
                 warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -599,7 +640,9 @@ class OpenMS:
             if "label free sample" in label:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
-                if (
+                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                    choice = self.tmt18plex
+                elif (
                     len(label) > 11
                     or "TMT134N" in label
                     or "TMT133C" in label
@@ -852,7 +895,9 @@ class OpenMS:
                 label = "1"
 
             elif "TMT" in ",".join(file2label[raw]):
-                if (
+                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                    choice = self.tmt18plex
+                elif (
                     len(label) > 11
                     or "TMT134N" in label
                     or "TMT133C" in label
@@ -1001,6 +1046,7 @@ class OpenMS:
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
+            "tmt18plex": ["TMTpro (K)", "TMTpro (N-term)"]  # https://www.unimod.org/modifications_view.php?editid1=2016
         }
         ITRAQ_mod = {
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
@@ -1026,7 +1072,9 @@ class OpenMS:
             raws.append(raw)
             labels = f2c.file2label[raw]
             if "TMT" in ",".join(labels):
-                if (
+                if len(labels) > 16 or "TMT134C" in labels or "TMT135N" in labels:
+                    label = "tmt18plex"
+                elif (
                     len(labels) > 11
                     or "TMT134N" in labels
                     or "TMT133C" in labels

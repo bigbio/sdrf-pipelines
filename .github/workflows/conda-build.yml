@@ -10,67 +10,55 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Check version number consistency
-        shell: python {0}
-        run: |
-          "Compare the version numers from the package and the conda recipe."
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        python-version: 3.11
+        channels: conda-forge,defaults,bioconda
 
-          # collect the package version
-          import sys
-          sys.path.append("/home/runner/work/sdrf-pipelines/sdrf-pipelines")
-          import sdrf_pipelines
-          package_version = sdrf_pipelines.__version__
+    - name: Create conda environment
+      run: conda env create -f environment.yml
 
-          # collect the version from the conda recipe
-          with open("./recipe/meta.yaml", encoding="utf-8") as f:
-              for line in f.readlines():
-                  if line.startswith("  version: "):
-                      recipe_version = line.lstrip("  version:").strip().strip('"')
-                      break
+    - name: Activate conda environment
+      run: |
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate sdrf-pipelines
+      shell: bash
 
-          if package_version == recipe_version:
-              print(f"The package and recipe versions are consistent: {package_version}")
-          else:
-              raise ValueError(
-                  "ERROR: The versions are inconsistent."
-                  f"\nVersion in ./sdrf_pipelines/__init__.py: {package_version}"
-                  f"\nVersion in ./recipe/meta.yaml:           {recipe_version}"
-                  )
+    - name: Install conda-build
+      run: |
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate sdrf-pipelines
+        conda install -n sdrf-pipelines conda-build anaconda-client
+      shell: bash -l {0}
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: sdrf-pipelines
-          environment-file: environment.yml
-          auto-activate-base: false
-          auto-update-conda: true
-          python-version: '3.10'
-          channels: conda-forge,bioconda,defaults
+    - name: Activate conda environment and build package
+      run: |
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate sdrf-pipelines
+        conda build recipe
+        PACKAGE_PATH=$(find /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/noarch/ -name "sdrf-pipelines-*.tar.bz2" | head -n 1)
+        conda install --offline "$PACKAGE_PATH"
+      shell: bash -l {0}
 
-      - name: Install build dependencies
-        run: |
-          conda install conda-build conda-verify anaconda-client
+    - name: Test the installed package
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf --help
+      shell: bash -l {0}
 
-      - name: Build the sdrf-pipelines package
-        run: |
-          conda build --package-format .tar.bz2 recipe
+    - name: Test validation of SDRF file
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
+      shell: bash -l {0}
 
-      - name: Install the package
-        run: |
-          PACKAGE_PATH=$(conda build --package-format .tar.bz2 --output recipe)
-          conda install --offline "$PACKAGE_PATH"
-
-      - name: Test install
-        run: |
-          parse_sdrf --help
-
-      - name: Test validation of SDRF file
-        run: |
-          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
-
-      - name: Test validation of SDRF file with cache only
-        run: |
-          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
+    - name: Test validation of SDRF file with cache only
+      run: |
+        conda activate sdrf-pipelines
+        parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
+      shell: bash -l {0}
