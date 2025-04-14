@@ -33,29 +33,13 @@ jobs:
         conda install -n sdrf-pipelines conda-build anaconda-client
       shell: bash -l {0}
 
-    - name: Activate conda environment and build package
+    - name: Activate conda environment, build, install and test
       run: |
         source $CONDA/etc/profile.d/conda.sh
         conda activate sdrf-pipelines
         conda build recipe
         PACKAGE_PATH=$(find /usr/share/miniconda/envs/sdrf-pipelines/conda-bld/noarch/ -name "sdrf-pipelines-*.tar.bz2" | head -n 1)
         conda install --offline "$PACKAGE_PATH"
-      shell: bash -l {0}
-
-    - name: Test the installed package
-      run: |
-        conda activate sdrf-pipelines
-        parse_sdrf --help
-      shell: bash -l {0}
-
-    - name: Test validation of SDRF file
-      run: |
-        conda activate sdrf-pipelines
         parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
-      shell: bash -l {0}
-
-    - name: Test validation of SDRF file with cache only
-      run: |
-        conda activate sdrf-pipelines
         parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
       shell: bash -l {0}
