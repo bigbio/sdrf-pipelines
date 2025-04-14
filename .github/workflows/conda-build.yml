@@ -18,7 +18,7 @@ jobs:
           auto-activate-base: false
           auto-update-conda: true
           python-version: '3.13'
-          channels: conda-forge,bioconda,defaults
+          channels: bioconda,conda-forge
 
       - name: Install build dependencies
         run: |
