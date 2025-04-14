@@ -176,7 +176,27 @@ parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./testPXD000
 # Help
 
 ```
-parse_sdrf --help
+$ parse_sdrf --help
+Usage: parse_sdrf [OPTIONS] COMMAND [ARGS]...
+
+  This is the main tool that gives access to all commands to convert SDRF
+  files into pipelines specific configuration files.
+
+Options:
+  --version   Show the version and exit.
+  -h, --help  Show this message and exit.
+
+Commands:
+  build-index-ontology  Convert an ontology file to an index file
+  convert-maxquant      convert sdrf to maxquant parameters file and generate
+                        an experimental design file
+  convert-msstats       convert sdrf to msstats annotation file
+  convert-normalyzerde  convert sdrf to NormalyzerDE design file
+  convert-openms        convert sdrf to openms file output
+  split-sdrf            Command to split the sdrf file
+  validate-sdrf         Command to validate the sdrf file
+  validate-sdrf-simple  Simple command to validate the sdrf file
+
 ```
 
 
