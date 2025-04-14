@@ -17,7 +17,7 @@ This is the official SDRF file validation tool and the and convert SDRF files to
 pip install sdrf-pipelines
 ```
 
-## Validate the SDRF
+## Validate SDRF files
 
 Then, you can use the tool by executing the following command:
 
@@ -25,9 +25,9 @@ Then, you can use the tool by executing the following command:
 parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 ```
 
-## Convertersions
+## Convert SDRF files
 
-`sdrf-pipelines` provides a multitude of converters which take an SDRF file and other inputs to create configuration files consumed by other softwares.
+`sdrf-pipelines` provides a multitude of converters which take an SDRF file and other inputs to create configuration files consumed by other software.
 
 ### Convert to OpenMS
 
@@ -171,6 +171,13 @@ parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./testPXD000
 -   -o  : NormalyzerDE design out file path
 -   -oc  : Out file path for comparisons towards first group (optional)
 -   -mq  : Path to MaxQuant experimental design file for mapping MQ sample names. (optional)
+
+
+# Help
+
+```
+parse_sdrf --help
+```
 
 
 # Citations
