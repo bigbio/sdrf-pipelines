@@ -76,23 +76,23 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     return raw
 
-def parse_tolerance(pc_tol_str:str, units=("ppm", "da")) -> tuple[str, str]:
+
+def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str, str]:
     """Find tolerance in string."""
     # check that only one unit is specified?
     pc_tol_str = pc_tol_str.lower()
     for unit in units:
         if unit in pc_tol_str:
             tol = pc_tol_str.split(unit)[0].strip()
-            if not f' {unit}' in pc_tol_str:
-                msg = (
-                    f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
-                )
+            if not f" {unit}" in pc_tol_str:
+                msg = f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
                 logger.warning(msg)
-            _ = float(tol) # should be an number
+            _ = float(tol)  # should be an number
             if unit == "da":
                 unit = unit.capitalize()
             return tol, unit
     return None, None
+
 
 class OpenMS:
     def __init__(self) -> None:
@@ -117,7 +117,7 @@ class OpenMS:
             "TMT133C": 15,
             "TMT134N": 16,
             "TMT134C": 17,
-            "TMT135N": 18
+            "TMT135N": 18,
         }
         self.tmt16plex = {
             "TMT126": 1,
@@ -350,7 +350,7 @@ class OpenMS:
 
                 tol, unit = parse_tolerance(pc_tol_str)
                 if tol is None or unit is None:
-                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(pc_tol_str))
+                    raise ValueError("Cannot read precursor mass tolerance: {}".format(pc_tol_str))
                     # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
                     # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     # f2c.file2pctol[raw] = "10"
@@ -367,7 +367,7 @@ class OpenMS:
                 f_tol_str = row["comment[fragment mass tolerance]"].strip()
                 tol, unit = parse_tolerance(f_tol_str)
                 if tol is None or unit is None:
-                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(f_tol_str))
+                    raise ValueError("Cannot read precursor mass tolerance: {}".format(f_tol_str))
                     # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
                     # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     # f2c.file2fragtol[raw] = "20"
@@ -1046,7 +1046,10 @@ class OpenMS:
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
-            "tmt18plex": ["TMTpro (K)", "TMTpro (N-term)"]  # https://www.unimod.org/modifications_view.php?editid1=2016
+            "tmt18plex": [
+                "TMTpro (K)",
+                "TMTpro (N-term)",
+            ],  # https://www.unimod.org/modifications_view.php?editid1=2016
         }
         ITRAQ_mod = {
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
