@@ -7,7 +7,7 @@ dependencies:
   - python=3.11
   - conda-build
   - anaconda-client
-  - pandas
+  - pandas>=2.1
   - click
   - requests
   - pyyaml
@@ -18,4 +18,3 @@ dependencies:
   - rdflib
   - pandas_schema
   - setuptools
-
