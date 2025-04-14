@@ -1,9 +1,12 @@
+import logging
 import re
 from collections import Counter
 
 import pandas as pd
 
 from sdrf_pipelines.openms.unimod import UnimodDatabase
+
+logger = logging.getLogger(__name__)
 
 # example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
@@ -73,6 +76,23 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     return raw
 
+def parse_tolerance(pc_tol_str:str, units=("ppm", "da")) -> tuple[str, str]:
+    """Find tolerance in string."""
+    # check that only one unit is specified?
+    pc_tol_str = pc_tol_str.lower()
+    for unit in units:
+        if unit in pc_tol_str:
+            tol = pc_tol_str.split(unit)[0].strip()
+            if not f' {unit}' in pc_tol_str:
+                msg = (
+                    f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
+                )
+                logger.warning(msg)
+            _ = float(tol) # should be an number
+            if unit == "da":
+                unit = unit.capitalize()
+            return tol, unit
+    return None, None
 
 class OpenMS:
     def __init__(self) -> None:
@@ -326,16 +346,17 @@ class OpenMS:
                 source_name_list.append(source_name)
 
             if "comment[precursor mass tolerance]" in row:
-                pc_tol_str = row["comment[precursor mass tolerance]"]
-                if "ppm" in pc_tol_str or "Da" in pc_tol_str:
-                    pc_tmp = pc_tol_str.split(" ")
-                    f2c.file2pctol[raw] = pc_tmp[0]
-                    f2c.file2pctolunit[raw] = pc_tmp[1]
-                else:
-                    warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2pctol[raw] = "10"
-                    f2c.file2pctolunit[raw] = "ppm"
+                pc_tol_str = row["comment[precursor mass tolerance]"].strip()
+
+                tol, unit = parse_tolerance(pc_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(pc_tol_str))
+                    # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2pctol[raw] = "10"
+                    # f2c.file2pctolunit[raw] = "ppm"
+                f2c.file2pctol[raw] = tol
+                f2c.file2pctolunit[raw] = unit
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -343,17 +364,16 @@ class OpenMS:
                 f2c.file2pctolunit[raw] = "ppm"
 
             if "comment[fragment mass tolerance]" in row:
-                f_tol_str = row["comment[fragment mass tolerance]"]
-                f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str or "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    f2c.file2fragtol[raw] = f_tmp[0]
-                    f2c.file2fragtolunit[raw] = f_tmp[1]
-                else:
-                    warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2fragtol[raw] = "20"
-                    f2c.file2fragtolunit[raw] = "ppm"
+                f_tol_str = row["comment[fragment mass tolerance]"].strip()
+                tol, unit = parse_tolerance(f_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError('Cannot read precursor mass tolerance: {}'.format(f_tol_str))
+                    # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2fragtol[raw] = "20"
+                    # f2c.file2fragtolunit[raw] = "ppm"
+                f2c.file2fragtol[raw] = tol
+                f2c.file2fragtolunit[raw] = unit
             else:
                 warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1

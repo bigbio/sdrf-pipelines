@@ -4,7 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.11
   - conda-build
   - anaconda-client
   - pandas
@@ -17,4 +17,5 @@ dependencies:
   - python-duckdb
   - rdflib
   - pandas_schema
+  - setuptools
 
