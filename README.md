@@ -9,7 +9,7 @@
 
 **Validate and convert SDRF files with sdrf-pipelines and its `parse_sdrf` CLI.** 
 
-This is the official SDRF file validation tool and the and convert SDRF files to different workflow configuration files such as MSstats, OpenMS and MaxQuant.
+This is the official SDRF file validation tool and it can convert SDRF files to different workflow configuration files such as MSstats, OpenMS and MaxQuant.
 
 ## Installation
 
