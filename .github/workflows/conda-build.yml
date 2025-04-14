@@ -12,9 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Check Python Version
-        run: |
-          python -V
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
