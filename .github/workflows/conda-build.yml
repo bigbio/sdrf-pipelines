@@ -17,7 +17,7 @@ jobs:
           environment-file: environment.yml
           auto-activate-base: false
           auto-update-conda: true
-          python-version: '3.12'
+          python-version: '3.13'
           channels: conda-forge,bioconda,defaults
 
       - name: Install build dependencies
