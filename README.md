@@ -1,4 +1,4 @@
-# sdrf-pipelines
+# sdrf-pipelines | SDRF Validator | SDRF Converter
 
 ![Python application](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20application/badge.svg)
 ![Python package](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20package/badge.svg)
@@ -7,9 +7,11 @@
 [![PyPI version](https://badge.fury.io/py/sdrf-pipelines.svg)](https://badge.fury.io/py/sdrf-pipelines)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sdrf-pipelines)
 
-The SDRF pipelines provide a set of tools to validate and convert SDRF files to different workflow configuration files such as MSstats,OpenMS and MaxQuant.
+**Validate and convert SDRF files with sdrf-pipelines and its `parse_sdrf` CLI.** 
 
-### Installation
+This is the official SDRF file validation tool and the and convert SDRF files to different workflow configuration files such as MSstats, OpenMS and MaxQuant.
+
+## Installation
 
 ```bash
 pip install sdrf-pipelines
@@ -17,21 +19,23 @@ pip install sdrf-pipelines
 
 ## Validate the SDRF
 
-# How to use it:
-
 Then, you can use the tool by executing the following command:
 
 ```bash
 parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 ```
 
-## Convert to OpenMS: Usage
+## Convertersions
+
+`sdrf-pipelines` provides a multitude of converters which take an SDRF file and other inputs to create configuration files consumed by other softwares.
+
+### Convert to OpenMS
 
 ```bash
 parse_sdrf convert-openms -s sdrf.tsv
 ```
 
-### Description:
+#### Description:
 
 -   experiment settings (search engine settings etc.)
 -   experimental design
@@ -67,7 +71,7 @@ be derived from the sdrf file. However, definition of conditions might need manu
 
 For details, please see the MSstats documentation
 
-## Convert to MaxQuant: Usage
+### Convert to MaxQuant: Usage
 
 ```bash
 parse_sdrf convert-maxquant -s sdrf.tsv -f {here_the_path_to_protein_database_file} -m {True or False} -pef {default 0.01} -prf {default 0.01} -t {temporary folder} -r {raw_data_folder} -n {number of threads:default 1} -o1 {parameters(.xml) output file path} -o2 {maxquant experimental design(.txt) output file path}
@@ -88,7 +92,7 @@ parse_sdrf convert-maxquant -s /root/ChengXin/Desktop/sdrf.tsv -f /root/ChengXin
 -   -t : place on SSD (if possible) for faster search，It is recommended not to be the same as the raw file directory
 -   -n : each thread needs at least 2 GB of RAM,number of threads should be ≤ number of logical cores available(otherwise, MaxQuant can crash)
 
-### Description
+#### Description
 
 -   maxquant parameters file (mqpar.xml)
 -   maxquant experimental design file (.txt)
@@ -144,7 +148,7 @@ The maxquant experimental design file contains name,Fraction,Experiement and PTM
 | 130402_08.raw | 1 | sample 1_Tr_1 |     |
 | 130412_08.raw | 1 | sample 2_Tr_1 |     |
 
-## Convert to MSstats annotation file: Usage
+### Convert to MSstats annotation file: Usage
 
 ```bash
 parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
@@ -156,7 +160,7 @@ parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
 -   -swath  : from openswathtomsstats output to msstats default false
 -   -mq  : from maxquant output to msstats default false
 
-## Convert to NormalyzerDE design file: Usage
+### Convert to NormalyzerDE design file: Usage
 
 ```bash
 parse_sdrf convert-normalyzerde -s ./testdata/PXD000288.sdrf.tsv -o ./testPXD000288_design.tsv
