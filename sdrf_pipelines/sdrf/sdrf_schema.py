@@ -190,7 +190,7 @@ class SDRFSchema(Schema):
         obj._min_columns = min_columns
         return obj
 
-    def validate(self, panda_sdrf: sdrf = None, use_ols_cache_only: bool = False) -> typing.List[LogicError]:
+    def validate(self, panda_sdrf: sdrf = None, use_ols_cache_only: bool = False) -> list[LogicError]:
         errors = []
 
         # Check the minimum number of columns
