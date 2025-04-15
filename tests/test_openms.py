@@ -26,12 +26,12 @@ test_tol_string = [
     ("10 ppm", "10", "ppm"),
     ("10 ppm ", "10", "ppm"),
     ("10ppm", "10", "ppm"),
-    ('10ppmmm', '10', 'ppm'), # good?
+    ("10ppmmm", "10", "ppm"),  # good?
     ("30 Da", "30", "Da"),
     ("40 Da", "40", "Da"),
     ("40Da", "40", "Da"),
-    ('50da', '50', 'Da'),
-    ('1daaaaaa', '1', 'Da'), # good?
+    ("50da", "50", "Da"),
+    ("1daaaaaa", "1", "Da"),  # good?
 ]
 
 

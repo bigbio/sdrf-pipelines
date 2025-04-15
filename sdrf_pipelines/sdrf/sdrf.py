@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import pandas as pd
 
@@ -69,7 +68,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return SdrfDataFrame(df)
 
-    def validate(self, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
+    def validate(self, template: str, use_ols_cache_only: bool = False) -> list[LogicError]:
         """
         Validate a corresponding SDRF
         :return:
@@ -93,7 +92,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def validate_factor_values(self) -> List[LogicError]:
+    def validate_factor_values(self) -> list[LogicError]:
         """
         Validate that factor values are present in the SDRF columns.
 
@@ -132,7 +131,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def validate_experimental_design(self) -> List[LogicError]:
+    def validate_experimental_design(self) -> list[LogicError]:
         """
         Validate that the experimental design is correct. This method checks that the experimental design is correct,
         including the following:
@@ -152,7 +151,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def check_inconsistencies_assay_file(self, errors: List[LogicError]) -> List[LogicError]:
+    def check_inconsistencies_assay_file(self, errors: list[LogicError]) -> list[LogicError]:
         """
         Check that combination of values assay name and comment[data file] is unique in self.
         :return: A list of LogicError objects if the combination of values assay name and characteristics[data file] is
@@ -177,7 +176,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def check_unique_sample_file_combinations(self, errors: List[LogicError]) -> List[LogicError]:
+    def check_unique_sample_file_combinations(self, errors: list[LogicError]) -> list[LogicError]:
         """
         The combination of the following columns should be unique:
         - source name
