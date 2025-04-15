@@ -155,7 +155,7 @@ def read_obo_file(ontology_file, ontology_name=None):
                 term_info["label"] = line.split("name:")[1].strip()
         return term_info
 
-    with open(ontology_file, "r") as file:
+    with open(ontology_file) as file:
         content = file.read()
 
     terms = split_terms(content)
@@ -430,21 +430,21 @@ class OlsClient:
         if ontology is not None:
             # Query for case-insensitive search and ensure all fields are cast to string
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
-                   WHERE lower(CAST(label AS VARCHAR)) = lower(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
+                   WHERE lower(CAST(label AS VARCHAR)) = lower(?)
                      AND lower(CAST(ontology AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term, ontology),
             )
         else:
             # Query for case-insensitive search without ontology
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
                    WHERE lower(CAST(label AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term),
             )

@@ -350,7 +350,7 @@ class OpenMS:
 
                 tol, unit = parse_tolerance(pc_tol_str)
                 if tol is None or unit is None:
-                    raise ValueError("Cannot read precursor mass tolerance: {}".format(pc_tol_str))
+                    raise ValueError(f"Cannot read precursor mass tolerance: {pc_tol_str}")
                     # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
                     # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     # f2c.file2pctol[raw] = "10"
@@ -367,7 +367,7 @@ class OpenMS:
                 f_tol_str = row["comment[fragment mass tolerance]"].strip()
                 tol, unit = parse_tolerance(f_tol_str)
                 if tol is None or unit is None:
-                    raise ValueError("Cannot read precursor mass tolerance: {}".format(f_tol_str))
+                    raise ValueError(f"Cannot read precursor mass tolerance: {f_tol_str}")
                     # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
                     # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     # f2c.file2fragtol[raw] = "20"
