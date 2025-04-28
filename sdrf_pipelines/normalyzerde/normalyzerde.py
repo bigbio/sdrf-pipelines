@@ -11,7 +11,7 @@ import pandas as pd
 class NormalyzerDE:
     def __init__(self) -> None:
         """Convert sdrf to normalyzerde design file (label free quantification assumed)."""
-        self.warnings: dict = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
