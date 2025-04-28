@@ -15,7 +15,9 @@ __all__ = ["LogicError"]
 
 
 class LogicError(ValidationWarning):
-    def __init__(self, message: str, value: str = None, row: int = -1, column: str = None, error_type: logging = None):
+    def __init__(
+        self, message: str, value: str | None = None, row: int = -1, column: str | None = None, error_type=None
+    ):
         super().__init__(message, value, row, column)
         self._error_type = error_type
 

@@ -70,7 +70,7 @@ class UnimodDatabase:
         self._get_elements(node)
         self._get_modifications(node)
 
-    def search_mods_by_keyword(self, keyword: str = None):
+    def search_mods_by_keyword(self, keyword: str | None = None):
         found_list = self.modifications
         if keyword is not None and len(keyword) > 0:
             found_list = [x for x in self.modifications if re.search(keyword, x.to_str(), re.IGNORECASE)]

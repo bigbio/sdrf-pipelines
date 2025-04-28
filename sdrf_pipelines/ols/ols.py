@@ -58,7 +58,7 @@ def _dparse(iri):
 
 
 class OlsTerm:
-    def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
+    def __init__(self, iri: str | None = None, term: str | None = None, ontology: str | None = None) -> None:
         self._iri = iri
         self._term = term
         self._ontology = ontology
@@ -199,7 +199,7 @@ class OlsClient:
             self.use_cache = False
 
     @staticmethod
-    def build_ontology_index(ontology_file: str, output_file: str = None, ontology_name: str = None):
+    def build_ontology_index(ontology_file: str, output_file: str | None = None, ontology_name: str | None = None):
         """
         Builds an index of an ontology file OBO format. The output file will be a parquet file containing only three columns:
         - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) the name of the term and the number.
@@ -292,7 +292,7 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
+    def search(self, term: str, ontology: str | None = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
         @:param term: The name of the term
@@ -332,10 +332,10 @@ class OlsClient:
         self,
         name: str,
         query_fields=None,
-        ontology: str = None,
+        ontology: str | None = None,
         field_list=None,
         children_of=None,
-        exact: bool = None,
+        exact: bool | None = None,
         bytype: str = "class",
         rows: int = 10,
         num_retries: int = 10,
@@ -412,7 +412,7 @@ class OlsClient:
         logger.debug("OLS select returned empty response for %s", name)
         return None
 
-    def cache_search(self, term: str, ontology: str, full_search: bool = False) -> list:
+    def cache_search(self, term: str, ontology: str | None, full_search: bool = False) -> list:
         """
         Search a term in cache files and return them as list.
         @param term: The name of the term

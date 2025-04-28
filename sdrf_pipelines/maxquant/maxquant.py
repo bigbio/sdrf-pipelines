@@ -22,7 +22,7 @@ import yaml
 class Maxquant:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
         self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
         self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
 

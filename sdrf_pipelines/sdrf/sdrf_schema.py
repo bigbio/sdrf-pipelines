@@ -14,7 +14,7 @@ from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import _SeriesValidation
 
 from sdrf_pipelines.ols.ols import OlsClient
-from sdrf_pipelines.sdrf import sdrf
+from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.utils.exceptions import LogicError
 
 client = OlsClient()
@@ -44,7 +44,7 @@ def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
     return len(panda_sdrf.get_sdrf_columns()) < minimun_columns
 
 
-def ontology_term_parser(cell_value: str = None):
+def ontology_term_parser(cell_value: str):
     """
     Parse a line string and convert it into a dictionary {key -> value}
     :param cell_value: String line
@@ -72,8 +72,8 @@ class SDRFColumn(Column):
     def __init__(
         self,
         name: str,
-        validations: typing.Iterable["_BaseValidation"] = None,
-        optional_validations: typing.Iterable["_BaseValidation"] = None,
+        validations: typing.Iterable["_BaseValidation"] | None = None,
+        optional_validations: typing.Iterable["_BaseValidation"] | None = None,
         allow_empty=False,
         optional_type=True,
     ):
@@ -105,7 +105,7 @@ class OntologyTerm(_SeriesValidation):
     Checks that there is no leading whitespace in this column
     """
 
-    def __init__(self, ontology_name: str = None, not_available: bool = False, not_applicable: bool = False, **kwargs):
+    def __init__(self, ontology_name: str, not_available: bool = False, not_applicable: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._use_ols_cache_only = False
         self._ontology_name = ontology_name
@@ -190,7 +190,7 @@ class SDRFSchema(Schema):
         obj._min_columns = min_columns
         return obj
 
-    def validate(self, panda_sdrf: sdrf = None, use_ols_cache_only: bool = False) -> list[LogicError]:
+    def validate(self, panda_sdrf: SdrfDataFrame, use_ols_cache_only: bool = False) -> list[LogicError]:
         errors = []
 
         # Check the minimum number of columns
