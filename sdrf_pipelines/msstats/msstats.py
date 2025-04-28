@@ -8,7 +8,7 @@ import pandas as pd
 class Msstats:
     def __init__(self) -> None:
         """Convert sdrf to msstats annotation file (label free sample)."""
-        self.warnings: dict = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
