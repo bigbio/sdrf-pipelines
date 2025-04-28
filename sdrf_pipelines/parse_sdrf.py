@@ -270,7 +270,7 @@ def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcom
 @click.option("--index", "-out", help="Output file in parquet format")
 @click.option("--ontology_name", "-name", help="ontology name")
 @click.pass_context
-def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str | None = None):
     ols_client = OlsClient()
 
     if ontology.lower().endswith(".owl") and ontology_name is None:

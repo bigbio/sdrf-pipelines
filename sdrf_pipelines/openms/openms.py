@@ -12,21 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 class FileToColumnEntries:
-    file2mods = {}
-    file2pctol = {}
-    file2pctolunit = {}
-    file2fragtol = {}
-    file2fragtolunit = {}
-    file2diss = {}
-    file2enzyme = {}
-    file2source = {}
-    file2label = {}
-    file2fraction = {}
-    file2combined_factors = {}
-    file2technical_rep = {}
+    file2mods: dict[str, tuple] = {}
+    file2pctol: dict[str, str] = {}
+    file2pctolunit: dict[str, str] = {}
+    file2fragtol: dict[str, str] = {}
+    file2fragtolunit: dict[str, str] = {}
+    file2diss: dict[str, str] = {}
+    file2enzyme: dict[str, str] = {}
+    file2source: dict[str, str] = {}
+    file2label: dict[str, list[str]] = {}
+    file2fraction: dict[str, str] = {}
+    file2combined_factors: dict[str, str] = {}
+    file2technical_rep: dict[str, str] = {}
 
 
-def get_openms_file_name(raw, extension_convert: str = None):
+def get_openms_file_name(raw, extension_convert: str | None = None):
     """
     Convert file name for OpenMS. If extension_convert is set, the extension will be converted to the specified format.
     - file.raw -> file.mzML  (extension_convert=raw:mzML)
@@ -77,7 +77,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
     return raw
 
 
-def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str, str]:
+def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str | None, str | None]:
     """Find tolerance in string."""
     # check that only one unit is specified?
     pc_tol_str = pc_tol_str.lower()
@@ -97,7 +97,7 @@ def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str, str]:
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
         self._unimod_database = UnimodDatabase()
         self.tmt18plex = {
             "TMT126": 1,
@@ -264,12 +264,12 @@ class OpenMS:
 
     def openms_convert(
         self,
-        sdrf_file: str = None,
+        sdrf_file: str,
         one_table: bool = False,
         legacy: bool = False,
         verbose: bool = False,
-        split_by_columns: str = None,
-        extension_convert: str = None,
+        split_by_columns: str | None = None,
+        extension_convert: str | None = None,
     ):
         print("PROCESSING: " + sdrf_file + '"')
 
@@ -313,8 +313,8 @@ class OpenMS:
         else:
             factor_cols = split_by_columns  # enforce columns as factors if names provided by user
 
-        source_name_list = []
-        source_name2n_reps = {}
+        source_name_list: list[str] = []
+        source_name2n_reps: dict[str, int] = {}
 
         f2c = FileToColumnEntries()
         for row_index, row in sdrf.iterrows():

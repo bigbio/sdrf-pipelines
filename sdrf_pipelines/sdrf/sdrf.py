@@ -140,7 +140,7 @@ class SdrfDataFrame(pd.DataFrame):
         :return: A list of LogicError objects if the experimental design is incorrect, otherwise an empty list.
         """
 
-        errors = []
+        errors: list[LogicError] = []
 
         # Check that combination of value assay name and characteristics[data file] is unique in self
         errors = self.check_inconsistencies_assay_file(errors)
