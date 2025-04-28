@@ -36,5 +36,5 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest pytest-datadir
-        python setup.py install
         python -m pytest tests
+        pip install .
