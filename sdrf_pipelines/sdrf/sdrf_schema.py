@@ -14,7 +14,6 @@ from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import _SeriesValidation
 
 from sdrf_pipelines.ols.ols import OlsClient
-from sdrf_pipelines.sdrf.sdrf import SdrfDataFrame
 from sdrf_pipelines.utils.exceptions import LogicError
 
 client = OlsClient()
@@ -190,7 +189,7 @@ class SDRFSchema(Schema):
         obj._min_columns = min_columns
         return obj
 
-    def validate(self, panda_sdrf: SdrfDataFrame, use_ols_cache_only: bool = False) -> list[LogicError]:
+    def validate(self, panda_sdrf, use_ols_cache_only: bool = False) -> list[LogicError]:
         errors = []
 
         # Check the minimum number of columns
