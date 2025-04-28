@@ -295,16 +295,18 @@ class OpenMS:
 
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [
-            c for ind, c in enumerate(sdrf) if c.startswith("comment[modification parameters")
+            c for ind, c in enumerate(sdrf.columns) if c.startswith("comment[modification parameters")
         ]  # columns with modification parameters
 
         if not split_by_columns:
             factor_cols = [
-                c for ind, c in enumerate(sdrf) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
+                c for ind, c in enumerate(sdrf.columns) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
             ]
 
             characteristics_cols = [
-                c for ind, c in enumerate(sdrf) if c.startswith("characteristics[") and len(sdrf[c].unique()) >= 1
+                c
+                for ind, c in enumerate(sdrf.columns)
+                if c.startswith("characteristics[") and len(sdrf[c].unique()) >= 1
             ]
             # and remove characteristics columns already present as factor
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
