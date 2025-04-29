@@ -27,8 +27,7 @@ class LogicError(ValidationWarning):
                 f'{{row: {self.row}, column: "{self.column}"}}: '
                 f'"{self.value}" {self.message} -- {logging.getLevelName(self._error_type)}'
             )
-        else:
-            return f"{self.message} -- {logging.getLevelName(self._error_type)}"
+        return f"{self.message} -- {logging.getLevelName(self._error_type)}"
 
 
 class AppConfigException(AppException):
