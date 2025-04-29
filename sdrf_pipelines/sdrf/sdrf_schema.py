@@ -5,9 +5,9 @@ import typing
 from typing import Any
 
 import pandas as pd
-from pandas_schema import Column
+from pandas_schema import Column  # type: ignore
 from pandas_schema import Schema
-from pandas_schema.validation import LeadingWhitespaceValidation
+from pandas_schema.validation import LeadingWhitespaceValidation  # type: ignore
 from pandas_schema.validation import MatchesPatternValidation
 from pandas_schema.validation import TrailingWhitespaceValidation
 from pandas_schema.validation import _BaseValidation
