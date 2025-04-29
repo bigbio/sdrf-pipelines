@@ -57,7 +57,7 @@ class SdrfDataFrame(pd.DataFrame):
             logging.warning("There were empty lines.")
         # Convert all columns and values in the dataframe to lowercase
         df = df.astype(str).apply(lambda x: x.str.lower())
-        df.columns = map(str.lower, df.columns)
+        df.columns = df.columns.str.lower()
 
         return SdrfDataFrame(df)
 
