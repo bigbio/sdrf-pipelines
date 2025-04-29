@@ -286,7 +286,7 @@ class OpenMS:
             raise Exception(
                 "Encountered empty cells while reading SDRF."
                 "Please check your file, e.g. for too many column headers or empty fields"
-                "Columns with empty values: {}".format(list(null_cols))
+                f"Columns with empty values: {list(null_cols)}"
             )
         sdrf = sdrf.astype(str)
         sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case

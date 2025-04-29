@@ -81,17 +81,17 @@ class UnimodDatabase:
             ea = e.attrib
             self.elements[ea["title"]] = ea
             if re.match(r"[A-Z]", ea["title"][:1]):
-                self.elements["{}{}".format(int(round(float(ea["mono_mass"]))), ea["title"])] = ea
+                self.elements[f"{int(round(float(ea["mono_mass"])))}{ea["title"]}"] = ea
 
     def _get_modifications(self, node):
         for e in node.findall(f"{self.xmlns}modifications/{self.xmlns}mod"):
             ma = e.attrib
-            d = e.findall("%sdelta" % self.xmlns)[0]
+            d = e.findall(f"{self.xmlns}delta")[0]
             for k in d.attrib.keys():
-                ma["delta_%s" % k] = d.attrib[k]
+                ma[f"delta_{k}"] = d.attrib[k]
             ma["sites"] = {}
             ma["spec_group"] = {}
-            for r in e.findall("%sspecificity" % self.xmlns):
+            for r in e.findall(f"{self.xmlns}specificity"):
                 if self.hidden is True or r.attrib["hidden"] is False:
                     ma["sites"][r.attrib["site"]] = r.attrib
                     ma["sites"][r.attrib["site"]]["NeutralLoss"] = []
