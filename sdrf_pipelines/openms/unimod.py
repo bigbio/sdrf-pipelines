@@ -96,7 +96,7 @@ class UnimodDatabase:
                     ma["sites"][r.attrib["site"]] = r.attrib
                     ma["sites"][r.attrib["site"]]["NeutralLoss"] = []
                     # add NeutralLoss
-                    for n in r.findall("%sNeutralLoss" % self.xmlns):
+                    for n in r.findall(f"{self.xmlns}NeutralLoss"):
                         ma["sites"][r.attrib["site"]]["NeutralLoss"].append(n.attrib)
                     # add to aa mods list.
 
