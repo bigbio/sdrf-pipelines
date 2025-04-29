@@ -748,7 +748,7 @@ class OpenMS:
                     f += str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\n"
                     sample_row_written.append(sample)
 
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)
 
     def writeOneTableExperimentalDesign(
@@ -980,7 +980,7 @@ class OpenMS:
                         str(Fraction_group[raw]), file2fraction[raw], out, label, condition, MSstatsBioReplicate
                     )
 
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
@@ -1119,5 +1119,5 @@ class OpenMS:
                 f2c.file2enzyme[raw],
             )
         # openms.tsv
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)

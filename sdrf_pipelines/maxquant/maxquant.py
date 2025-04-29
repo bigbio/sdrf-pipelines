@@ -569,7 +569,7 @@ class Maxquant:
                     title = re.search(mod_pattern, title).group(1)
                 new_name.append(title.lower())
 
-        with open(self.modfile) as mq_mods_file:
+        with open(self.modfile, encoding="utf-8") as mq_mods_file:
             domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
@@ -722,7 +722,7 @@ class Maxquant:
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
-        with open(self.datparamfile) as file:
+        with open(self.datparamfile, encoding="utf-8") as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
         datparams = {}
@@ -2464,7 +2464,7 @@ class Maxquant:
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)
-        f = open(output, "w")
+        f = open(output, "w", encoding="utf-8")
         f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
         for index, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]

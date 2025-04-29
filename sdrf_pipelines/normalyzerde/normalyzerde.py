@@ -100,7 +100,7 @@ class NormalyzerDE:
             for factor in uniquefactors:
                 if factor != firstfactor:
                     comparisons.append(factor + "-" + firstfactor)
-            with open(comparisons_path, "w") as target:
+            with open(comparisons_path, "w", encoding="utf-8") as target:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 

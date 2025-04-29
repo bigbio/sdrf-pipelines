@@ -229,10 +229,10 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
         dataframe.to_csv(Path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
 
         # Handling duplicate column names
-        with open(Path + new_file, "r+") as f:
+        with open(Path + new_file, "r+", encoding="utf-8") as f:
             data = f.read()
         data = pattern.sub("]\t", data)
-        with open(Path + new_file, "w") as f:
+        with open(Path + new_file, "w", encoding="utf-8") as f:
             f.write(data)
 
 
