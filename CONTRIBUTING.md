@@ -22,7 +22,7 @@ pytest
 We use Python type hints and when added, they need to be checked with `mypy`
 
 ```
-mypy
+mypy sdrf_pipelines
 ```
 
 ## Code formatting
