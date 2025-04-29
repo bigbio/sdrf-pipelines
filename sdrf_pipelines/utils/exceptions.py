@@ -32,8 +32,7 @@ class LogicError(ValidationWarning):
 
 
 class AppConfigException(AppException):
-    def __init__(self, value):
-        super().__init__(value)
+    pass
 
 
 class ConfigManagerException(Exception):
