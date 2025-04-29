@@ -66,9 +66,11 @@ value!!\nWe found '
             exit(
                 "ERROR: enzyme "
                 + pvalue
-                + " not found in the MS ontology, see \
-https://bioportal.bioontology.org/ontologies/MS/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 \
-for available terms"
+                + (
+                    " not found in the MS ontology, see "
+                    "https://bioportal.bioontology.org/ontologies/MS/?p=classes&"
+                    "conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FMS_1001045 for available terms"
+                )
             )
         pvalue = "NT=" + pvalue + ";AC=" + ols_out[0]["short_form"]
     return pvalue

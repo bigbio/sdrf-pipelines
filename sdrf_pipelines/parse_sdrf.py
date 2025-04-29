@@ -44,7 +44,10 @@ def cli():
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
+    help=(
+        "convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. "
+        "The original extensions are case insensitive"
+    ),
 )
 @click.pass_context
 def openms_from_sdrf(
@@ -159,8 +162,8 @@ def validate_sdrf(
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
-    User can select the template to be used for validation. If no template is provided, the default template will be used.
-    Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
+    User can select the template to be used for validation. If no template is provided, the default template will
+    be used. Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
     the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
 
     @param sdrf_file: SDRF file to be validated

@@ -26,7 +26,10 @@ def test_validate_srdf_fails_on_bad_file2(shared_datadir, on_tmpdir):
     test_sdrf = shared_datadir / "PXD001819/PXD001819.sdrf.tsv"
     result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
 
-    expected_error = "The following columns are mandatory and not present in the SDRF: characteristics[biological replicate] -- ERROR"
+    expected_error = (
+        "The following columns are mandatory and not present in the SDRF: "
+        "characteristics[biological replicate] -- ERROR"
+    )
     assert expected_error in result.output, result.output
 
 
@@ -38,8 +41,14 @@ def test_validate_srdf_fails_on_bad_file3(shared_datadir, on_tmpdir):
     result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
 
     expected_errors = [
-        "Make sure your SDRF have a sample characteristics or data comment 'concentration of' for your factor value column 'factor value[concentration of]' -- ERROR",
-        "Factor 'factor value[compound]' and column 'characteristics[compound]' do not have the same values for the following rows: [11, 20] -- ERROR",
+        (
+            "Make sure your SDRF have a sample characteristics or data comment 'concentration of' for "
+            "your factor value column 'factor value[concentration of]' -- ERROR"
+        ),
+        (
+            "Factor 'factor value[compound]' and column 'characteristics[compound]' do not have the same "
+            "values for the following rows: [11, 20] -- ERROR"
+        ),
     ]
     for expected_error in expected_errors:
         assert expected_error in result.output, result.output
