@@ -735,8 +735,8 @@ class OpenMS:
             else:
                 condition = file2combined_factors[raw + row["comment[label]"]]
             if len(openms_sample_header) == 4:
-                if raw not in mixture_raw_tag.keys():
-                    if sample not in mixture_sample_tag.keys():
+                if raw not in mixture_raw_tag:
+                    if sample not in mixture_sample_tag:
                         mixture_raw_tag[raw] = mixture_identifier
                         mixture_sample_tag[sample] = mixture_identifier
                         mix_id = mixture_identifier
@@ -846,7 +846,7 @@ class OpenMS:
             if fraction_group not in raw_frac:
                 raw_frac[fraction_group] = [raw]
 
-                if raw in Fraction_group.keys():
+                if raw in Fraction_group:
                     if fraction_group < Fraction_group[raw]:
                         Fraction_group[raw] = fraction_group
                 else:
@@ -874,7 +874,7 @@ class OpenMS:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
-                if source_name in sample_id_map.keys():
+                if source_name in sample_id_map:
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
@@ -939,8 +939,8 @@ class OpenMS:
             out = get_openms_file_name(raw, extension_convert)
 
             if "MSstats_Mixture" in open_ms_experimental_design_header:
-                if raw not in mixture_raw_tag.keys():
-                    if sample not in mixture_sample_tag.keys():
+                if raw not in mixture_raw_tag:
+                    if sample not in mixture_sample_tag:
                         mixture_raw_tag[raw] = mixture_identifier
                         mixture_sample_tag[sample] = mixture_identifier
                         mix_id = mixture_identifier
