@@ -1,3 +1,13 @@
+"""
+Convert SDRF files for use with OpenMS.
+
+Ecample command:
+
+parse_sdrf convert-openms \
+    -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv \
+    -c '[characteristics[biological replicate],characteristics[individual]]'
+"""
+
 import logging
 import re
 from collections import Counter
@@ -8,8 +18,6 @@ from sdrf_pipelines.openms.unimod import UnimodDatabase
 from sdrf_pipelines.utils.utils import tsv_line
 
 logger = logging.getLogger(__name__)
-
-# example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
 
 class FileToColumnEntries:
