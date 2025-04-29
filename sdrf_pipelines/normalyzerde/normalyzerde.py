@@ -56,7 +56,7 @@ class NormalyzerDE:
         # Shorten down condition to QY only if present. Also replace '-' with '_' as reserved for comparisons.
         for con in condition:
             con = con.replace("-", "_")
-            if re.search("QY=.*", con) != None:
+            if re.search("QY=.*", con) is not None:
                 match = re.search("QY=(.*)", con)
                 groupnew = match[1]
                 if groupnew.index(";") > 0:
