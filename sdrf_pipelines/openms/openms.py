@@ -280,7 +280,7 @@ class OpenMS:
                 "Columns with empty values: {}".format(list(null_cols))
             )
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
 
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [
