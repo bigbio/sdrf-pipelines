@@ -372,8 +372,9 @@ class OpenMS:
                 f2c.file2fragtolunit[raw] = "ppm"
 
             if "comment[dissociation method]" in row:
-                if re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"]) is not None:
-                    diss_method = re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"]).group(1)
+                search_result_diss_method = re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"])
+                if search_result_diss_method is not None:
+                    diss_method = search_result_diss_method.group(1)
                     f2c.file2diss[raw] = diss_method.upper()
                 else:
                     warning_message = "No dissociation method provided. Assuming HCD."
@@ -401,7 +402,11 @@ class OpenMS:
             else:
                 source_name2n_reps[source_name] = int(f2c.file2technical_rep[raw])
 
-            enzyme = re.search("NT=(.+?)(;|$)", row["comment[cleavage agent details]"]).group(1)
+            enzyme_search_result = re.search("NT=(.+?)(;|$)", row["comment[cleavage agent details]"])
+            if enzyme_search_result is not None:
+                enzyme = enzyme_search_result.group(1)
+            else:
+                raise ValueError("Here! Have a strawberry. 🍓")
 
             enzyme = enzyme.capitalize()
             # This is to check if the openMS map of enzymes
@@ -419,8 +424,9 @@ class OpenMS:
             else:
                 f2c.file2fraction[raw] = "1"
 
-            if re.search("NT=(.+?)(;|$)", row["comment[label]"]) is not None:
-                label = re.search("NT=(.+?)(;|$)", row["comment[label]"]).group(1)
+            search_result_label = re.search("NT=(.+?)(;|$)", row["comment[label]"])
+            if search_result_label is not None:
+                label = search_result_label.group(1)
                 f2c.file2label[raw] = [label]
             else:
                 if "TMT" in row["comment[label]"]:
