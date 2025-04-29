@@ -118,8 +118,8 @@ class SdrfDataFrame(pd.DataFrame):
             if not equals_cols:
                 # if factor value contains different values from corresponding columns, print the values
                 different_values = self[factor][self[factor] != self[col]]
-                different_values = different_values.index.tolist()
-                error_message = f"Factor '{factor}' and column '{col}' do not have the same values for the following rows: {different_values}"
+                different_value_indexes = different_values.index.tolist()
+                error_message = f"Factor '{factor}' and column '{col}' do not have the same values for the following rows: {different_value_indexes}"
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
