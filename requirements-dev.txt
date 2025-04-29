@@ -1,7 +1,11 @@
 black
 isort
 mypy
+pandas-stubs
 pre-commit
 pytest
 pytest-datadir
 setuptools
+types-defusedxml
+types-PyYAML
+types-requests
