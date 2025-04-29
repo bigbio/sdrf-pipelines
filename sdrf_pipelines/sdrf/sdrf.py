@@ -42,13 +42,6 @@ class SdrfDataFrame(pd.DataFrame):
         """
         return SdrfDataFrame
 
-    def get_sdrf_columns(self):
-        """
-        This method returns the name of the columns of the SDRF.
-        :return:
-        """
-        return self.columns
-
     @staticmethod
     def parse(sdrf_file: str):
         """

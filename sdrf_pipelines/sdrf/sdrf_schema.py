@@ -40,7 +40,7 @@ NOT_APPLICABLE = "not applicable"
 
 
 def check_minimum_columns(panda_sdrf=None, minimun_columns: int = 0):
-    return len(panda_sdrf.get_sdrf_columns()) < minimun_columns
+    return len(panda_sdrf.columns) < minimun_columns
 
 
 def ontology_term_parser(cell_value: str):
@@ -196,7 +196,7 @@ class SDRFSchema(Schema):
         if check_minimum_columns(panda_sdrf, self._min_columns):
             error_message = (
                 "The number of columns in the SDRF ({}) is smaller than the number of mandatory fields ({})".format(
-                    len(panda_sdrf.get_sdrf_columns()), self._min_columns
+                    len(panda_sdrf.columns), self._min_columns
                 )
             )
             errors.append(LogicError(error_message, error_type=logging.WARN))
@@ -265,7 +265,7 @@ class SDRFSchema(Schema):
     def validate_mandatory_columns(self, panda_sdrf):
         error_mandatory = []
         for column in self.columns:
-            if column._optional is False and column.name not in panda_sdrf.get_sdrf_columns():
+            if column._optional is False and column.name not in panda_sdrf.columns:
                 error_mandatory.append(column.name)
         if len(error_mandatory):
             error_message = "The following columns are mandatory and not present in the SDRF: {}".format(
