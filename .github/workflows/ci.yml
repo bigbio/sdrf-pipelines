@@ -81,4 +81,4 @@ jobs:
           python -m pip install -r requirements-dev.txt
       - name: mypy
         run: |
-          mypy
+          mypy sdrf_pipelines
