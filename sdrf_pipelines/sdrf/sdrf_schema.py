@@ -83,7 +83,7 @@ class SDRFColumn(Column):
 
         super().__init__(name, validations, allow_empty)
         self.optional_validations = optional_validations
-        self._optional = optional_type
+        self.optional_type = optional_type
 
     def validate_optional(self, series):
         warnings = []
@@ -265,7 +265,7 @@ class SDRFSchema(Schema):
     def validate_mandatory_columns(self, panda_sdrf):
         error_mandatory = []
         for column in self.columns:
-            if column._optional is False and column.name not in panda_sdrf.columns:
+            if column.optional_type is False and column.name not in panda_sdrf.columns:
                 error_mandatory.append(column.name)
         if len(error_mandatory):
             error_message = "The following columns are mandatory and not present in the SDRF: {}".format(
@@ -327,7 +327,7 @@ class SDRFSchema(Schema):
         errors = []
 
         for column in columns_to_pair:
-            if column.name not in panda_sdrf and column._optional is False:
+            if column.name not in panda_sdrf and column.optional_type is False:
                 message = f"The column {column.name} is not present in the SDRF"
                 errors.append(LogicError(message, error_type=logging.ERROR))
             elif column.name in panda_sdrf:
