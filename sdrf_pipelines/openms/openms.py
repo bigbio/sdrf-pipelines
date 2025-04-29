@@ -82,7 +82,7 @@ def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str | None, s
     for unit in units:
         if unit in pc_tol_str:
             tol = pc_tol_str.split(unit)[0].strip()
-            if not f" {unit}" in pc_tol_str:
+            if f" {unit}" not in pc_tol_str:
                 msg = f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
                 logger.warning(msg)
             _ = float(tol)  # should be an number
