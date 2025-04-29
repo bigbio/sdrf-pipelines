@@ -31,7 +31,6 @@ def cli():
     This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration
     files.
     """
-    pass
 
 
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
