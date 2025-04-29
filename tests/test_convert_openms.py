@@ -92,7 +92,7 @@ def test_convert_openms_file_extensions(change_extension, shared_datadir, on_tmp
 def test_convert_openms_file_extensions_dotd(shared_datadir, on_tmpdir):
     test_sdrf = shared_datadir / "generic/quantms_dia_dotd_sample.sdrf"
     cmd = ["convert-openms", "-t2", "-s", test_sdrf, "--extension_convert", ".d.zip:.d"]
-    result = run_and_check_status_code(cli, cmd)
+    _ = run_and_check_status_code(cli, cmd)
     _check_output_existance(on_tmpdir, min_num_samples=1)
     _check_output_file_extensions(on_tmpdir, ".d")
 
@@ -103,7 +103,7 @@ def test_nocovnersion_openms_file_extensions_dotd(shared_datadir, on_tmpdir, con
     cmd = ["convert-openms", "-t2", "-s", test_sdrf]
     if convertsion_flag:
         cmd.extend(["--extension_convert", "raw:mzML"])
-    result = run_and_check_status_code(cli, cmd)
+    _ = run_and_check_status_code(cli, cmd)
     _check_output_existance(on_tmpdir, min_num_samples=1)
     _check_output_file_extensions(on_tmpdir, ".d")
 

@@ -62,7 +62,7 @@ class UnimodDatabase:
         self.unimodfile = Path(__file__).parent / "unimod.xml"
         self.hidden = kwargs.get("hidden", True)
         node = et.parse(self.unimodfile)
-        root = node.getroot()
+        _ = node.getroot()
         self.elements = {}
         self.residues = {}
         self.labels = {}
