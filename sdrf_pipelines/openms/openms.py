@@ -1,7 +1,7 @@
 r"""
 Convert SDRF files for use with OpenMS.
 
-Ecample command:
+Example command:
 
 parse_sdrf convert-openms \
     -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv \
