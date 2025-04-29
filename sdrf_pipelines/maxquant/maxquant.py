@@ -1019,10 +1019,10 @@ class Maxquant:
                 file2label[raw] = lt
 
             # Reading data analysis parameters
-            for p in datparams.keys():
-                comment_p = "comment[" + p + "]"
+            for key, value in datparams.items():
+                comment_p = "comment[" + key + "]"
                 if comment_p in row:
-                    file2params[datparams[p]][raw] = row[comment_p]
+                    file2params[value][raw] = row[comment_p]
 
         # create maxquant parameters xml file
         doc = Document()
@@ -1640,9 +1640,9 @@ class Maxquant:
                 str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
             )
             datanalysisparams = {}
-            for p in file2params.keys():
-                if len(file2params[p]) > 0:
-                    datanalysisparams[p] = file2params[p][key1]
+            for file, params in file2params.items():
+                if len(params) > 0:
+                    datanalysisparams[file] = params[key1]
 
             if tag == 0 and tmp == []:
                 int_node = doc.createElement("int")
