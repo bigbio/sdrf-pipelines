@@ -265,10 +265,10 @@ class OpenMS:
         # convert list passed on command line '[assay name,comment[fraction identifier]]' to python list
         if split_by_columns:
             split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
-            split_by_columns = split_by_columns.split(",")
-            for i, value in enumerate(split_by_columns):
-                split_by_columns[i] = value
-            print("User selected factor columns: " + str(split_by_columns))
+            split_by_columns_list = split_by_columns.split(",")
+            for i, value in enumerate(split_by_columns_list):
+                split_by_columns_list[i] = value
+            print("User selected factor columns: " + str(split_by_columns_list))
 
         # load sdrf file
         sdrf = pd.read_table(sdrf_file)
@@ -287,7 +287,9 @@ class OpenMS:
             c for ind, c in enumerate(sdrf.columns) if c.startswith("comment[modification parameters")
         ]  # columns with modification parameters
 
-        if not split_by_columns:
+        if split_by_columns:
+            factor_cols = split_by_columns_list  # enforce columns as factors if names provided by user
+        else:
             factor_cols = [
                 c for ind, c in enumerate(sdrf.columns) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
             ]
@@ -301,8 +303,6 @@ class OpenMS:
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
             print("Factor columns: " + str(factor_cols))
             print("Characteristics columns (those covered by factor columns removed): " + str(characteristics_cols))
-        else:
-            factor_cols = split_by_columns  # enforce columns as factors if names provided by user
 
         source_name_list: list[str] = []
         source_name2n_reps: dict[str, int] = {}
@@ -447,7 +447,7 @@ class OpenMS:
                 combined_factors = self.combine_factors_to_conditions(characteristics_cols, factor_cols, row)
             else:
                 # take only entries of splitting columns to generate the conditions
-                combined_factors = "|".join(list(row[split_by_columns]))
+                combined_factors = "|".join(list(row[split_by_columns_list]))
 
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf["_conditions_from_factors"] = pd.Series([None] * sdrf.shape[0], dtype="object")
