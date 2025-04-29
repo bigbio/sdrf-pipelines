@@ -23,8 +23,9 @@ class LogicError(ValidationWarning):
 
     def __str__(self) -> str:
         if self.row is not None and self.column is not None and self.value is not None:
-            return '{{row: {}, column: "{}"}}: "{}" {} -- {}'.format(
-                self.row, self.column, self.value, self.message, logging.getLevelName(self._error_type)
+            return (
+                f'{{row: {self.row}, column: "{self.column}"}}: '
+                f'"{self.value}" {self.message} -- {logging.getLevelName(self._error_type)}'
             )
         else:
             return f"{self.message} -- {logging.getLevelName(self._error_type)}"
