@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from sdrf_pipelines.utils.utils import tsv_line
+
 
 class Maxquant:
     def __init__(self) -> None:
@@ -2463,7 +2465,7 @@ class Maxquant:
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)
         f = open(output, "w")
-        f.write("Name\tFraction\tExperiment\tPTM")
+        f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
         for index, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
@@ -2482,7 +2484,7 @@ class Maxquant:
             else:
                 tr = "1"
             experiment = source_name + "_Tr_" + tr
-            f.write("\n" + data_file + "\t" + fraction + "\t" + experiment + "\t")
+            f.write(tsv_line(data_file, fraction, experiment, ""))
         f.close()
         print("SUCCESS Generate maxquant experimental design file")
 
