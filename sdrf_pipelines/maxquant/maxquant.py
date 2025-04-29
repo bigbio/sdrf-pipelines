@@ -720,7 +720,7 @@ class Maxquant:
 
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
 
         with open(self.datparamfile, encoding="utf-8") as file:
             param_mapping = yaml.safe_load(file)
@@ -2463,7 +2463,7 @@ class Maxquant:
     def maxquant_experiamental_design(self, sdrf_file, output):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)
+        sdrf.columns = sdrf.columns.str.lower()
         f = open(output, "w", encoding="utf-8")
         f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
         for index, row in sdrf.iterrows():
