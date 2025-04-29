@@ -70,7 +70,9 @@ def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
     """
-    parquet_files = [str(f) for f in Path(__file__).parent.glob("*.parquet")]
+    parquet_dir = Path(__file__).parent
+    parquet_files_pattern = f"{parquet_dir}/*.parquet"
+    parquet_files = [str(f) for f in parquet_dir.glob("*.parquet")]
 
     if not parquet_files:
         logger.info("No parquet files found in %s", parquet_files_pattern)
