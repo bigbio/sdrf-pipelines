@@ -1,4 +1,4 @@
-"""
+r"""
 Convert SDRF files for use with OpenMS.
 
 Ecample command:
