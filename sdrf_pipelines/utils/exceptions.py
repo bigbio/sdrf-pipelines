@@ -1,6 +1,6 @@
 import logging
 
-from pandas_schema import ValidationWarning
+from pandas_schema import ValidationWarning  # type: ignore
 
 
 class AppException(Exception):
