@@ -5,9 +5,9 @@ name: Continuous integration Unit tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   PythonBlack:
