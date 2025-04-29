@@ -8,14 +8,12 @@ import os
 import re
 import time
 from datetime import datetime
+from pathlib import Path
 from xml.dom.minidom import Document
 from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
-
-# NOTE pkg_resources is deprecated
-import pkg_resources
 import yaml
 
 
@@ -23,8 +21,8 @@ class Maxquant:
     def __init__(self) -> None:
         super().__init__()
         self.warnings: dict[str, int] = {}
-        self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
-        self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
+        self.modfile = Path(__file__).parent / "modifications.xml"
+        self.datparamfile = Path(__file__).parent / "param2sdrf.yml"
 
     def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
@@ -544,7 +542,6 @@ class Maxquant:
                 domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
-        mq_mods_file = self.modfile
         mod_pattern = re.compile(r"(.*?) \(")
         if mqconfdir:
             mq_new_mods = mqconfdir + "modifications.local.xml"
@@ -570,7 +567,8 @@ class Maxquant:
                     title = re.search(mod_pattern, title).group(1)
                 new_name.append(title.lower())
 
-        domTree = parse(mq_mods_file)
+        with open(self.modfile) as mq_mods_file:
+            domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
         oms_mods = []

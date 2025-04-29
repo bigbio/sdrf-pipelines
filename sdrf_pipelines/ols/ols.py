@@ -11,14 +11,13 @@ TODO: check input parameters are valid
 TODO: handle requests.exceptions.ConnectionError when traffic is too high and API goes down
 """
 
-import glob
 import logging
 import os.path
 import urllib.parse
+from pathlib import Path
 
 import duckdb
 import pandas as pd
-import pkg_resources
 import rdflib
 import requests
 
@@ -71,9 +70,8 @@ def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
     """
-    parquet_files_pattern = pkg_resources.resource_filename(__name__, "*.parquet")
-    parquet_files = glob.glob(parquet_files_pattern)
-
+    parquet_files = [str(f) for f in Path(__file__).parent.glob("*.parquet")]
+    
     if not parquet_files:
         logger.info("No parquet files found in %s", parquet_files_pattern)
         return parquet_files_pattern, []

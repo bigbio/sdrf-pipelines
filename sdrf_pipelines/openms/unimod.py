@@ -1,7 +1,7 @@
 import re
+from pathlib import Path
 
 import defusedxml.ElementTree as et
-import pkg_resources
 
 
 class PTMSite:
@@ -59,7 +59,7 @@ class UnimodDatabase:
     hidden = True
 
     def __init__(self, **kwargs):
-        self.unimodfile = pkg_resources.resource_filename(__name__, "unimod.xml")
+        self.unimodfile = Path(__file__).parent / "unimod.xml"
         self.hidden = kwargs.get("hidden", True)
         node = et.parse(self.unimodfile)
         root = node.getroot()
