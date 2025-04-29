@@ -342,7 +342,7 @@ class SDRFSchema(Schema):
         return sorted(errors, key=lambda e: e.row)
 
     def check_recommendations(self, panda_sdrf):
-        column_pairs, errors = self._get_column_pairs(panda_sdrf)
+        column_pairs, _ = self._get_column_pairs(panda_sdrf)
         warnings = []
         for series, column in column_pairs:
             warnings += column.validate_optional(series)
