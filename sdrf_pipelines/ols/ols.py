@@ -201,8 +201,9 @@ class OlsClient:
     @staticmethod
     def build_ontology_index(ontology_file: str, output_file: str | None = None, ontology_name: str | None = None):
         """
-        Builds an index of an ontology file OBO format. The output file will be a parquet file containing only three columns:
-        - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) the name of the term and the number.
+        Builds an index from an ontology file in the OBO format.
+        The output file is a parquet file containing only three columns:
+        - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) its name and number.
         - The name of the term.
         - The ontology in which the term is found (e.g. GO).
         All information should be in lower case and also the file will be compressed.

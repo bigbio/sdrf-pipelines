@@ -105,7 +105,10 @@ class SdrfDataFrame(pd.DataFrame):
             factor = fv.lower().replace("factor value[", "").replace("]", "")
             cols = [col for col in self.columns if (factor in col.lower() and "factor value" not in col.lower())]
             if len(cols) == 0:
-                error_message = f"Make sure your SDRF have a sample characteristics or data comment '{factor}' for your factor value column '{fv}'"
+                error_message = (
+                    "Make sure your SDRF have a sample characteristics or data "
+                    f"comment '{factor}' for your factor value column '{fv}'"
+                )
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
             elif len(cols) > 1:
                 error_message = f"Multiple columns found for factor '{factor}': {cols}"
@@ -119,7 +122,10 @@ class SdrfDataFrame(pd.DataFrame):
                 # if factor value contains different values from corresponding columns, print the values
                 different_values = self[factor][self[factor] != self[col]]
                 different_value_indexes = different_values.index.tolist()
-                error_message = f"Factor '{factor}' and column '{col}' do not have the same values for the following rows: {different_value_indexes}"
+                error_message = (
+                    f"Factor '{factor}' and column '{col}' do not have the same "
+                    f"values for the following rows: {different_value_indexes}"
+                )
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
@@ -156,7 +162,10 @@ class SdrfDataFrame(pd.DataFrame):
         col1_inconsistent_groups = col1_inconsistencies[col1_inconsistencies > 1]
         if len(col1_inconsistent_groups) > 0:
             cell_index = col1_inconsistent_groups.index.tolist()
-            error_message = f"Multiple assays with the same raw files: {cell_index}, the combination assay name and comment[data file] should be unique"
+            error_message = (
+                f"Multiple assays with the same raw files: {cell_index}, the "
+                "combination assay name and comment[data file] should be unique"
+            )
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         # Group by col2 and check if each group has only one unique col1 value
@@ -164,7 +173,10 @@ class SdrfDataFrame(pd.DataFrame):
         col2_inconsistent_groups = col2_inconsistencies[col2_inconsistencies > 1]
         if len(col2_inconsistent_groups) > 0:
             cell_index = col2_inconsistent_groups.index.tolist()
-            error_message = f"Multiple raw files with the same assay: {cell_index}, the combination assay name and comment[data file] should be unique"
+            error_message = (
+                f"Multiple raw files with the same assay: {cell_index}, the "
+                "combination assay name and comment[data file] should be unique."
+            )
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
@@ -236,7 +248,7 @@ class SdrfDataFrame(pd.DataFrame):
             "comment[fraction identifier]",
         ]
 
-        ## Remove columns that are not present in the dataframe
+        # Remove columns that are not present in the dataframe
         columns_to_check = [col for col in columns_to_check if col in self.columns]
 
         # Find rows that do not contain only integers in the specified columns
