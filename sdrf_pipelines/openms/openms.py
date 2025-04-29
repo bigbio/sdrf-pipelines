@@ -241,16 +241,16 @@ class OpenMS:
                 ta = re.search("TA=(.+?)(;|$)", m).group(1)  # target amino-acid
             aa = ta.split(",")  # multiply target site e.g., S,T,Y including potentially termini "C-term"
 
-            if pp == "Protein N-term" or pp == "Protein C-term":
+            if pp in ("Protein N-term", "Protein C-term"):
                 for a in aa:
-                    if a == "C-term" or a == "N-term":  # no site specificity
+                    if a in ("C-term", "N-term"):  # no site specificity
                         oms_mods.append(name + " (" + pp + ")")  # any Protein N/C-term
                     else:
                         oms_mods.append(name + " (" + pp + " " + a + ")")  # specific Protein N/C-term
-            elif pp == "Any N-term" or pp == "Any C-term":
+            elif pp in ("Any N-term", "Any C-term"):
                 pp = pp.replace("Any ", "")  # in OpenMS we just use N-term and C-term
                 for a in aa:
-                    if a == "C-term" or a == "N-term":  # no site specificity
+                    if a in ("C-term", "N-term"):  # no site specificity
                         oms_mods.append(name + " (" + pp + ")")  # any N/C-term
                     else:
                         oms_mods.append(name + " (" + pp + " " + a + ")")  # specific N/C-term
