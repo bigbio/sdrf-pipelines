@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from sdrf_pipelines.utils.utils import tsv_line
+
 
 class Maxquant:
     def __init__(self) -> None:
@@ -567,7 +569,7 @@ class Maxquant:
                     title = re.search(mod_pattern, title).group(1)
                 new_name.append(title.lower())
 
-        with open(self.modfile) as mq_mods_file:
+        with open(self.modfile, encoding="utf-8") as mq_mods_file:
             domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
@@ -720,7 +722,7 @@ class Maxquant:
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
 
-        with open(self.datparamfile) as file:
+        with open(self.datparamfile, encoding="utf-8") as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
         datparams = {}
@@ -2462,8 +2464,8 @@ class Maxquant:
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
         sdrf.columns = map(str.lower, sdrf.columns)
-        f = open(output, "w")
-        f.write("Name\tFraction\tExperiment\tPTM")
+        f = open(output, "w", encoding="utf-8")
+        f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
         for index, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
@@ -2482,7 +2484,7 @@ class Maxquant:
             else:
                 tr = "1"
             experiment = source_name + "_Tr_" + tr
-            f.write("\n" + data_file + "\t" + fraction + "\t" + experiment + "\t")
+            f.write(tsv_line(data_file, fraction, experiment, ""))
         f.close()
         print("SUCCESS Generate maxquant experimental design file")
 

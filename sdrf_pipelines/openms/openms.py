@@ -1,3 +1,13 @@
+r"""
+Convert SDRF files for use with OpenMS.
+
+Example command:
+
+parse_sdrf convert-openms \
+    -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv \
+    -c '[characteristics[biological replicate],characteristics[individual]]'
+"""
+
 import logging
 import re
 from collections import Counter
@@ -5,10 +15,9 @@ from collections import Counter
 import pandas as pd
 
 from sdrf_pipelines.openms.unimod import UnimodDatabase
+from sdrf_pipelines.utils.utils import tsv_line
 
 logger = logging.getLogger(__name__)
-
-# example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
 
 class FileToColumnEntries:
@@ -676,17 +685,12 @@ class OpenMS:
 
             out = get_openms_file_name(raw, extension_convert)
 
-            f += (
-                str(Fraction_group[raw])
-                + "\t"
-                + file2fraction[raw]
-                + "\t"
-                + out
-                + "\t"
-                + label
-                + "\t"
-                + str(sample)
-                + "\n"
+            f += tsv_line(
+                str(Fraction_group[raw]),
+                file2fraction[raw],
+                out,
+                label,
+                str(sample),
             )
 
         # sample table
@@ -752,7 +756,7 @@ class OpenMS:
                     f += str(sample) + "\t" + condition + "\t" + MSstatsBioReplicate + "\n"
                     sample_row_written.append(sample)
 
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)
 
     def writeOneTableExperimentalDesign(
@@ -948,76 +952,43 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if legacy:
-                    f += (
-                        str(Fraction_group[raw])
-                        + "\t"
-                        + file2fraction[raw]
-                        + "\t"
-                        + out
-                        + "\t"
-                        + label
-                        + "\t"
-                        + str(sample)
-                        + "\t"
-                        + condition
-                        + "\t"
-                        + MSstatsBioReplicate
-                        + "\t"
-                        + str(mix_id)
-                        + "\n"
+                    f += tsv_line(
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        str(sample),
+                        condition,
+                        MSstatsBioReplicate,
+                        str(mix_id),
                     )
                 else:
-                    f += (
-                        str(Fraction_group[raw])
-                        + "\t"
-                        + file2fraction[raw]
-                        + "\t"
-                        + out
-                        + "\t"
-                        + label
-                        + "\t"
-                        + condition
-                        + "\t"
-                        + MSstatsBioReplicate
-                        + "\t"
-                        + str(mix_id)
-                        + "\n"
+                    f += tsv_line(
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        condition,
+                        MSstatsBioReplicate,
+                        str(mix_id),
                     )
             else:
                 if legacy:
-                    f += (
-                        str(Fraction_group[raw])
-                        + "\t"
-                        + file2fraction[raw]
-                        + "\t"
-                        + out
-                        + "\t"
-                        + label
-                        + "\t"
-                        + str(sample)
-                        + "\t"
-                        + condition
-                        + "\t"
-                        + MSstatsBioReplicate
-                        + "\n"
+                    f += tsv_line(
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        str(sample),
+                        condition,
+                        MSstatsBioReplicate,
                     )
                 else:
-                    f += (
-                        str(Fraction_group[raw])
-                        + "\t"
-                        + file2fraction[raw]
-                        + "\t"
-                        + out
-                        + "\t"
-                        + label
-                        + "\t"
-                        + condition
-                        + "\t"
-                        + MSstatsBioReplicate
-                        + "\n"
+                    f += tsv_line(
+                        str(Fraction_group[raw]), file2fraction[raw], out, label, condition, MSstatsBioReplicate
                     )
 
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
@@ -1141,32 +1112,20 @@ class OpenMS:
             # out_fname = get_openms_file_name(raw, extension_convert=extension_convert)
             out_fname = raw
 
-            f += (
-                URI
-                + "\t"
-                + out_fname
-                + "\t"
-                + f2c.file2mods[raw][0]
-                + "\t"
-                + f2c.file2mods[raw][1]
-                + "\t"
-                + acquisition_method
-                + "\t"
-                + label
-                + "\t"
-                + f2c.file2pctol[raw]
-                + "\t"
-                + f2c.file2pctolunit[raw]
-                + "\t"
-                + f2c.file2fragtol[raw]
-                + "\t"
-                + f2c.file2fragtolunit[raw]
-                + "\t"
-                + f2c.file2diss[raw]
-                + "\t"
-                + f2c.file2enzyme[raw]
-                + "\n"
+            f += tsv_line(
+                URI,
+                out_fname,
+                f2c.file2mods[raw][0],
+                f2c.file2mods[raw][1],
+                acquisition_method,
+                label,
+                f2c.file2pctol[raw],
+                f2c.file2pctolunit[raw],
+                f2c.file2fragtol[raw],
+                f2c.file2fragtolunit[raw],
+                f2c.file2diss[raw],
+                f2c.file2enzyme[raw],
             )
         # openms.tsv
-        with open(output_filename, "w+") as of:
+        with open(output_filename, "w+", encoding="utf-8") as of:
             of.write(f)

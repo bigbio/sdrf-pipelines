@@ -155,7 +155,7 @@ def read_obo_file(ontology_file, ontology_name=None):
                 term_info["label"] = line.split("name:")[1].strip()
         return term_info
 
-    with open(ontology_file) as file:
+    with open(ontology_file, encoding="utf-8") as file:
         content = file.read()
 
     terms = split_terms(content)

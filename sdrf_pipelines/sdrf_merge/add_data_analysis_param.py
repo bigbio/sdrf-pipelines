@@ -223,7 +223,6 @@ sdrf_content.columns = pd.Index(colnames)
 sdrf_content.dropna(how="all", axis=1, inplace=True)
 
 print("--- Writing sdrf file into sdrf_local.tsv ---")
-# sdrf_content.to_csv("sdrf_local.tsv", sep="\t", header=colnames, index=False)
 sdrf_content.to_csv("sdrf_local.tsv", sep="\t", index=False)
 
 # Verify with sdrf-parser
