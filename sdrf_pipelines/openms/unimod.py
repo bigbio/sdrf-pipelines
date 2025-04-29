@@ -92,7 +92,7 @@ class UnimodDatabase:
             ma["sites"] = {}
             ma["spec_group"] = {}
             for r in e.findall("%sspecificity" % self.xmlns):
-                if self.hidden == True or r.attrib["hidden"] == False:
+                if self.hidden is True or r.attrib["hidden"] is False:
                     ma["sites"][r.attrib["site"]] = r.attrib
                     ma["sites"][r.attrib["site"]]["NeutralLoss"] = []
                     # add NeutralLoss
