@@ -15,22 +15,21 @@ build:
 
 requirements:
   host:
-    - pip
     - python >=3.10
-    - setuptools
+    - pip
+    - poetry-core >=1.2.0
   run:
     - click
-    - requests
-    - pandas
-    - pandas_schema
-    - python >=3.10
-    - pyaml
     - defusedxml
-    - pytest
     - duckdb
-    - rdflib
+    - pandas
+    - pyyaml
     - pyarrow
-    - setuptools
+    - python >=3.10
+    - pydantic
+    - pytest
+    - rdflib
+    - requests
 
 test:
   imports:

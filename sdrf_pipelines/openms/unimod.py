@@ -29,7 +29,13 @@ class OntologyTerm:
 
 
 class PostTranslationalModification:
-    def __init__(self, ontology_term: OntologyTerm, delta_composition: str, sites, delta_mono_mass) -> None:
+    def __init__(
+        self,
+        ontology_term: OntologyTerm,
+        delta_composition: str,
+        sites,
+        delta_mono_mass,
+    ) -> None:
         self._ontology_term = ontology_term
         self._delta_composition = delta_composition
         self._site = sites

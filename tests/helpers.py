@@ -3,8 +3,7 @@ import os
 from typing import List
 
 from click import BaseCommand
-from click.testing import CliRunner
-from click.testing import Result
+from click.testing import CliRunner, Result
 
 
 def compare_files(file1: os.PathLike, file2: os.PathLike) -> List[str]:

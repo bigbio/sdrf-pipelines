@@ -15,7 +15,12 @@ class NormalyzerDE:
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
-        self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        comparisons_path,
+        maxquant_exp_design_file,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
@@ -104,7 +109,13 @@ class NormalyzerDE:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 
-    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map=None, sample_id=1):
+    def get_replicates(
+        self,
+        sdrf,
+        sample_identifier_re="comment[organism]",
+        sample_id_map=None,
+        sample_id=1,
+    ):
         replicates = []
         value = []
         BioReplicate = []

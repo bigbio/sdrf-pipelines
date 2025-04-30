@@ -1,16 +1,9 @@
-"""
-Created on Sun Apr 19 09:46:14 2020
-
-@author: ChengXin
-"""
-
 import os
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from xml.dom.minidom import Document
-from xml.dom.minidom import parse
+from xml.dom.minidom import Document, parse
 
 import numpy as np
 import pandas as pd
@@ -197,10 +190,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -222,7 +217,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
@@ -263,10 +258,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -288,7 +285,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
@@ -387,7 +384,8 @@ class Maxquant:
                         else:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modification.setAttribute(
-                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                            "create_date",
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute(
                             "last_modified_date",
@@ -413,7 +411,7 @@ class Maxquant:
                             mod_site.appendChild(neu_col)
                             mod_site.appendChild(dia_col)
                             modification.appendChild(mod_site)
-                        mod_type = mod_local.createElement("type")
+                        mod_type = mod_local.createElement("name")
                         if "->" in name:
                             mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                         else:
@@ -446,10 +444,12 @@ class Maxquant:
                     else:
                         offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                     modification.setAttribute(
-                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                        "create_date",
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute(
-                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                        "last_modified_date",
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute("user", "root")
                     modification.setAttribute("reporterCorrectionM2", "0")
@@ -469,7 +469,7 @@ class Maxquant:
                         mod_site.appendChild(neu_col)
                         mod_site.appendChild(dia_col)
                         modification.appendChild(mod_site)
-                    mod_type = mod_local.createElement("type")
+                    mod_type = mod_local.createElement("name")
                     if "->" in name:
                         mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                     else:
@@ -501,10 +501,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -526,7 +528,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
