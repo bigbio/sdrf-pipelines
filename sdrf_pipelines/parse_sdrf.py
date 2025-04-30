@@ -31,7 +31,6 @@ def cli():
     This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration
     files.
     """
-    pass
 
 
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
@@ -45,7 +44,10 @@ def cli():
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
+    help=(
+        "convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. "
+        "The original extensions are case insensitive"
+    ),
 )
 @click.pass_context
 def openms_from_sdrf(
@@ -160,8 +162,8 @@ def validate_sdrf(
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
-    User can select the template to be used for validation. If no template is provided, the default template will be used.
-    Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
+    User can select the template to be used for validation. If no template is provided, the default template will
+    be used. Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
     the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
 
     @param sdrf_file: SDRF file to be validated
@@ -229,10 +231,10 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
         dataframe.to_csv(Path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
 
         # Handling duplicate column names
-        with open(Path + new_file, "r+") as f:
+        with open(Path + new_file, "r+", encoding="utf-8") as f:
             data = f.read()
         data = pattern.sub("]\t", data)
-        with open(Path + new_file, "w") as f:
+        with open(Path + new_file, "w", encoding="utf-8") as f:
             f.write(data)
 
 
@@ -270,7 +272,7 @@ def normalyzerde_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, outpathcom
 @click.option("--index", "-out", help="Output file in parquet format")
 @click.option("--ontology_name", "-name", help="ontology name")
 @click.pass_context
-def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str | None = None):
     ols_client = OlsClient()
 
     if ontology.lower().endswith(".owl") and ontology_name is None:

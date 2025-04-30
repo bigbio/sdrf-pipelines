@@ -1,6 +1,6 @@
 import logging
 
-from pandas_schema import ValidationWarning
+from pandas_schema import ValidationWarning  # type: ignore
 
 
 class AppException(Exception):
@@ -15,22 +15,23 @@ __all__ = ["LogicError"]
 
 
 class LogicError(ValidationWarning):
-    def __init__(self, message: str, value: str = None, row: int = -1, column: str = None, error_type: logging = None):
+    def __init__(
+        self, message: str, value: str | None = None, row: int = -1, column: str | None = None, error_type=None
+    ):
         super().__init__(message, value, row, column)
         self._error_type = error_type
 
     def __str__(self) -> str:
         if self.row is not None and self.column is not None and self.value is not None:
-            return '{{row: {}, column: "{}"}}: "{}" {} -- {}'.format(
-                self.row, self.column, self.value, self.message, logging.getLevelName(self._error_type)
+            return (
+                f'{{row: {self.row}, column: "{self.column}"}}: '
+                f'"{self.value}" {self.message} -- {logging.getLevelName(self._error_type)}'
             )
-        else:
-            return f"{self.message} -- {logging.getLevelName(self._error_type)}"
+        return f"{self.message} -- {logging.getLevelName(self._error_type)}"
 
 
 class AppConfigException(AppException):
-    def __init__(self, value):
-        super().__init__(value)
+    pass
 
 
 class ConfigManagerException(Exception):

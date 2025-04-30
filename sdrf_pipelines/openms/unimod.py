@@ -1,7 +1,7 @@
 import re
+from pathlib import Path
 
 import defusedxml.ElementTree as et
-import pkg_resources
 
 
 class PTMSite:
@@ -59,10 +59,10 @@ class UnimodDatabase:
     hidden = True
 
     def __init__(self, **kwargs):
-        self.unimodfile = pkg_resources.resource_filename(__name__, "unimod.xml")
+        self.unimodfile = Path(__file__).parent / "unimod.xml"
         self.hidden = kwargs.get("hidden", True)
         node = et.parse(self.unimodfile)
-        root = node.getroot()
+        _ = node.getroot()
         self.elements = {}
         self.residues = {}
         self.labels = {}
@@ -70,7 +70,7 @@ class UnimodDatabase:
         self._get_elements(node)
         self._get_modifications(node)
 
-    def search_mods_by_keyword(self, keyword: str = None):
+    def search_mods_by_keyword(self, keyword: str | None = None):
         found_list = self.modifications
         if keyword is not None and len(keyword) > 0:
             found_list = [x for x in self.modifications if re.search(keyword, x.to_str(), re.IGNORECASE)]
@@ -81,22 +81,22 @@ class UnimodDatabase:
             ea = e.attrib
             self.elements[ea["title"]] = ea
             if re.match(r"[A-Z]", ea["title"][:1]):
-                self.elements["{}{}".format(int(round(float(ea["mono_mass"]))), ea["title"])] = ea
+                self.elements[f"{round(float(ea['mono_mass']))}{ea['title']}"] = ea
 
     def _get_modifications(self, node):
         for e in node.findall(f"{self.xmlns}modifications/{self.xmlns}mod"):
             ma = e.attrib
-            d = e.findall("%sdelta" % self.xmlns)[0]
+            d = e.findall(f"{self.xmlns}delta")[0]
             for k in d.attrib.keys():
-                ma["delta_%s" % k] = d.attrib[k]
+                ma[f"delta_{k}"] = d.attrib[k]
             ma["sites"] = {}
             ma["spec_group"] = {}
-            for r in e.findall("%sspecificity" % self.xmlns):
-                if self.hidden == True or r.attrib["hidden"] == False:
+            for r in e.findall(f"{self.xmlns}specificity"):
+                if self.hidden is True or r.attrib["hidden"] is False:
                     ma["sites"][r.attrib["site"]] = r.attrib
                     ma["sites"][r.attrib["site"]]["NeutralLoss"] = []
                     # add NeutralLoss
-                    for n in r.findall("%sNeutralLoss" % self.xmlns):
+                    for n in r.findall(f"{self.xmlns}NeutralLoss"):
                         ma["sites"][r.attrib["site"]]["NeutralLoss"].append(n.attrib)
                     # add to aa mods list.
 

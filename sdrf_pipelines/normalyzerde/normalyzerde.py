@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import csv
 import re
 
@@ -14,7 +11,7 @@ import pandas as pd
 class NormalyzerDE:
     def __init__(self) -> None:
         """Convert sdrf to normalyzerde design file (label free quantification assumed)."""
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
@@ -22,7 +19,7 @@ class NormalyzerDE:
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
         data = {}
         condition = []
         runs = sdrf["comment[data file]"].tolist()
@@ -59,7 +56,7 @@ class NormalyzerDE:
         # Shorten down condition to QY only if present. Also replace '-' with '_' as reserved for comparisons.
         for con in condition:
             con = con.replace("-", "_")
-            if re.search("QY=.*", con) != None:
+            if re.search("QY=.*", con) is not None:
                 match = re.search("QY=(.*)", con)
                 groupnew = match[1]
                 if groupnew.index(";") > 0:
@@ -103,7 +100,7 @@ class NormalyzerDE:
             for factor in uniquefactors:
                 if factor != firstfactor:
                     comparisons.append(factor + "-" + firstfactor)
-            with open(comparisons_path, "w") as target:
+            with open(comparisons_path, "w", encoding="utf-8") as target:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 

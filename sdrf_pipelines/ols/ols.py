@@ -11,14 +11,13 @@ TODO: check input parameters are valid
 TODO: handle requests.exceptions.ConnectionError when traffic is too high and API goes down
 """
 
-import glob
 import logging
 import os.path
 import urllib.parse
+from pathlib import Path
 
 import duckdb
 import pandas as pd
-import pkg_resources
 import rdflib
 import requests
 
@@ -58,7 +57,7 @@ def _dparse(iri):
 
 
 class OlsTerm:
-    def __init__(self, iri: str = None, term: str = None, ontology: str = None) -> None:
+    def __init__(self, iri: str | None = None, term: str | None = None, ontology: str | None = None) -> None:
         self._iri = iri
         self._term = term
         self._ontology = ontology
@@ -71,8 +70,9 @@ def get_cache_parquet_files():
     """
     This function returns a list of parquet files in the cache directory.
     """
-    parquet_files_pattern = pkg_resources.resource_filename(__name__, "*.parquet")
-    parquet_files = glob.glob(parquet_files_pattern)
+    parquet_dir = Path(__file__).parent
+    parquet_files_pattern = f"{parquet_dir}/*.parquet"
+    parquet_files = [str(f) for f in parquet_dir.glob("*.parquet")]
 
     if not parquet_files:
         logger.info("No parquet files found in %s", parquet_files_pattern)
@@ -155,7 +155,7 @@ def read_obo_file(ontology_file, ontology_name=None):
                 term_info["label"] = line.split("name:")[1].strip()
         return term_info
 
-    with open(ontology_file, "r") as file:
+    with open(ontology_file, encoding="utf-8") as file:
         content = file.read()
 
     terms = split_terms(content)
@@ -199,10 +199,11 @@ class OlsClient:
             self.use_cache = False
 
     @staticmethod
-    def build_ontology_index(ontology_file: str, output_file: str = None, ontology_name: str = None):
+    def build_ontology_index(ontology_file: str, output_file: str | None = None, ontology_name: str | None = None):
         """
-        Builds an index of an ontology file OBO format. The output file will be a parquet file containing only three columns:
-        - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) the name of the term and the number.
+        Builds an index from an ontology file in the OBO format.
+        The output file is a parquet file containing only three columns:
+        - the accession of the term in the form of ONTOLOGY:NUMBER (e.g. GO:0000001) its name and number.
         - The name of the term.
         - The ontology in which the term is found (e.g. GO).
         All information should be in lower case and also the file will be compressed.
@@ -292,7 +293,7 @@ class OlsClient:
             logger.warning("Term was found but ancestor lookup returned an empty response: %s", response.json())
             raise ex
 
-    def search(self, term: str, ontology: str = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
+    def search(self, term: str, ontology: str | None = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
         Search a term in the OLS
         @:param term: The name of the term
@@ -332,10 +333,10 @@ class OlsClient:
         self,
         name: str,
         query_fields=None,
-        ontology: str = None,
+        ontology: str | None = None,
         field_list=None,
         children_of=None,
-        exact: bool = None,
+        exact: bool | None = None,
         bytype: str = "class",
         rows: int = 10,
         num_retries: int = 10,
@@ -412,7 +413,7 @@ class OlsClient:
         logger.debug("OLS select returned empty response for %s", name)
         return None
 
-    def cache_search(self, term: str, ontology: str, full_search: bool = False) -> list:
+    def cache_search(self, term: str, ontology: str | None, full_search: bool = False) -> list:
         """
         Search a term in cache files and return them as list.
         @param term: The name of the term
@@ -430,21 +431,21 @@ class OlsClient:
         if ontology is not None:
             # Query for case-insensitive search and ensure all fields are cast to string
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
-                   WHERE lower(CAST(label AS VARCHAR)) = lower(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
+                   WHERE lower(CAST(label AS VARCHAR)) = lower(?)
                      AND lower(CAST(ontology AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term, ontology),
             )
         else:
             # Query for case-insensitive search without ontology
             duckdb_conn = duckdb.execute(
-                """SELECT CAST(accession AS VARCHAR) AS accession, 
-                          CAST(label AS VARCHAR) AS label, 
-                          CAST(ontology AS VARCHAR) AS ontology 
-                   FROM read_parquet(?) 
+                """SELECT CAST(accession AS VARCHAR) AS accession,
+                          CAST(label AS VARCHAR) AS label,
+                          CAST(ontology AS VARCHAR) AS ontology
+                   FROM read_parquet(?)
                    WHERE lower(CAST(label AS VARCHAR)) = lower(?)""",
                 (self.parquet_files, term),
             )

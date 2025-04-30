@@ -8,23 +8,23 @@ import os
 import re
 import time
 from datetime import datetime
+from pathlib import Path
 from xml.dom.minidom import Document
 from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
-
-# NOTE pkg_resources is deprecated
-import pkg_resources
 import yaml
+
+from sdrf_pipelines.utils.utils import tsv_line
 
 
 class Maxquant:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = {}
-        self.modfile = pkg_resources.resource_filename(__name__, "modifications.xml")
-        self.datparamfile = pkg_resources.resource_filename(__name__, "param2sdrf.yml")
+        self.warnings: dict[str, int] = {}
+        self.modfile = Path(__file__).parent / "modifications.xml"
+        self.datparamfile = Path(__file__).parent / "param2sdrf.yml"
 
     def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
@@ -544,7 +544,6 @@ class Maxquant:
                 domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
-        mq_mods_file = self.modfile
         mod_pattern = re.compile(r"(.*?) \(")
         if mqconfdir:
             mq_new_mods = mqconfdir + "modifications.local.xml"
@@ -570,7 +569,8 @@ class Maxquant:
                     title = re.search(mod_pattern, title).group(1)
                 new_name.append(title.lower())
 
-        domTree = parse(mq_mods_file)
+        with open(self.modfile, encoding="utf-8") as mq_mods_file:
+            domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
         oms_mods = []
@@ -720,9 +720,9 @@ class Maxquant:
 
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
 
-        with open(self.datparamfile) as file:
+        with open(self.datparamfile, encoding="utf-8") as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
         datparams = {}
@@ -889,7 +889,9 @@ class Maxquant:
             elif row["comment[label]"].lower() == "ibaq":
                 file2label[raw] = "iBAQ"
             elif row["comment[label]"].startswith("TMT"):
-                lt = self.extract_tmt_info(list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw])
+                lt = self.extract_tmt_info(
+                    list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw]
+                )
                 file2label[raw] = lt
 
             elif row["comment[label]"].startswith("SILAC"):
@@ -1017,10 +1019,10 @@ class Maxquant:
                 file2label[raw] = lt
 
             # Reading data analysis parameters
-            for p in datparams.keys():
-                comment_p = "comment[" + p + "]"
+            for key, value in datparams.items():
+                comment_p = "comment[" + key + "]"
                 if comment_p in row:
-                    file2params[datparams[p]][raw] = row[comment_p]
+                    file2params[value][raw] = row[comment_p]
 
         # create maxquant parameters xml file
         doc = Document()
@@ -1638,9 +1640,9 @@ class Maxquant:
                 str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
             )
             datanalysisparams = {}
-            for p in file2params.keys():
-                if len(file2params[p]) > 0:
-                    datanalysisparams[p] = file2params[p][key1]
+            for file, params in file2params.items():
+                if len(params) > 0:
+                    datanalysisparams[file] = params[key1]
 
             if tag == 0 and tmp == []:
                 int_node = doc.createElement("int")
@@ -2461,9 +2463,9 @@ class Maxquant:
     def maxquant_experiamental_design(self, sdrf_file, output):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)
-        f = open(output, "w")
-        f.write("Name\tFraction\tExperiment\tPTM")
+        sdrf.columns = sdrf.columns.str.lower()
+        f = open(output, "w", encoding="utf-8")
+        f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
         for index, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
@@ -2482,7 +2484,7 @@ class Maxquant:
             else:
                 tr = "1"
             experiment = source_name + "_Tr_" + tr
-            f.write("\n" + data_file + "\t" + fraction + "\t" + experiment + "\t")
+            f.write(tsv_line(data_file, fraction, experiment, ""))
         f.close()
         print("SUCCESS Generate maxquant experimental design file")
 

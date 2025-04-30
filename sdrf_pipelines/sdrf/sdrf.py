@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import pandas as pd
 
@@ -43,13 +42,6 @@ class SdrfDataFrame(pd.DataFrame):
         """
         return SdrfDataFrame
 
-    def get_sdrf_columns(self):
-        """
-        This method returns the name of the columns of the SDRF.
-        :return:
-        """
-        return self.columns
-
     @staticmethod
     def parse(sdrf_file: str):
         """
@@ -65,11 +57,11 @@ class SdrfDataFrame(pd.DataFrame):
             logging.warning("There were empty lines.")
         # Convert all columns and values in the dataframe to lowercase
         df = df.astype(str).apply(lambda x: x.str.lower())
-        df.columns = map(str.lower, df.columns)
+        df.columns = df.columns.str.lower()
 
         return SdrfDataFrame(df)
 
-    def validate(self, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
+    def validate(self, template: str, use_ols_cache_only: bool = False) -> list[LogicError]:
         """
         Validate a corresponding SDRF
         :return:
@@ -93,7 +85,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def validate_factor_values(self) -> List[LogicError]:
+    def validate_factor_values(self) -> list[LogicError]:
         """
         Validate that factor values are present in the SDRF columns.
 
@@ -113,7 +105,10 @@ class SdrfDataFrame(pd.DataFrame):
             factor = fv.lower().replace("factor value[", "").replace("]", "")
             cols = [col for col in self.columns if (factor in col.lower() and "factor value" not in col.lower())]
             if len(cols) == 0:
-                error_message = f"Make sure your SDRF have a sample characteristics or data comment '{factor}' for your factor value column '{fv}'"
+                error_message = (
+                    "Make sure your SDRF have a sample characteristics or data "
+                    f"comment '{factor}' for your factor value column '{fv}'"
+                )
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
             elif len(cols) > 1:
                 error_message = f"Multiple columns found for factor '{factor}': {cols}"
@@ -126,13 +121,16 @@ class SdrfDataFrame(pd.DataFrame):
             if not equals_cols:
                 # if factor value contains different values from corresponding columns, print the values
                 different_values = self[factor][self[factor] != self[col]]
-                different_values = different_values.index.tolist()
-                error_message = f"Factor '{factor}' and column '{col}' do not have the same values for the following rows: {different_values}"
+                different_value_indexes = different_values.index.tolist()
+                error_message = (
+                    f"Factor '{factor}' and column '{col}' do not have the same "
+                    f"values for the following rows: {different_value_indexes}"
+                )
                 errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
 
-    def validate_experimental_design(self) -> List[LogicError]:
+    def validate_experimental_design(self) -> list[LogicError]:
         """
         Validate that the experimental design is correct. This method checks that the experimental design is correct,
         including the following:
@@ -141,7 +139,7 @@ class SdrfDataFrame(pd.DataFrame):
         :return: A list of LogicError objects if the experimental design is incorrect, otherwise an empty list.
         """
 
-        errors = []
+        errors: list[LogicError] = []
 
         # Check that combination of value assay name and characteristics[data file] is unique in self
         errors = self.check_inconsistencies_assay_file(errors)
@@ -152,7 +150,7 @@ class SdrfDataFrame(pd.DataFrame):
 
         return errors
 
-    def check_inconsistencies_assay_file(self, errors: List[LogicError]) -> List[LogicError]:
+    def check_inconsistencies_assay_file(self, errors: list[LogicError]) -> list[LogicError]:
         """
         Check that combination of values assay name and comment[data file] is unique in self.
         :return: A list of LogicError objects if the combination of values assay name and characteristics[data file] is
@@ -164,7 +162,10 @@ class SdrfDataFrame(pd.DataFrame):
         col1_inconsistent_groups = col1_inconsistencies[col1_inconsistencies > 1]
         if len(col1_inconsistent_groups) > 0:
             cell_index = col1_inconsistent_groups.index.tolist()
-            error_message = f"Multiple assays with the same raw files: {cell_index}, the combination assay name and comment[data file] should be unique"
+            error_message = (
+                f"Multiple assays with the same raw files: {cell_index}, the "
+                "combination assay name and comment[data file] should be unique"
+            )
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         # Group by col2 and check if each group has only one unique col1 value
@@ -172,12 +173,15 @@ class SdrfDataFrame(pd.DataFrame):
         col2_inconsistent_groups = col2_inconsistencies[col2_inconsistencies > 1]
         if len(col2_inconsistent_groups) > 0:
             cell_index = col2_inconsistent_groups.index.tolist()
-            error_message = f"Multiple raw files with the same assay: {cell_index}, the combination assay name and comment[data file] should be unique"
+            error_message = (
+                f"Multiple raw files with the same assay: {cell_index}, the "
+                "combination assay name and comment[data file] should be unique."
+            )
             errors.append(LogicError(error_message, error_type=logging.ERROR))
 
         return errors
 
-    def check_unique_sample_file_combinations(self, errors: List[LogicError]) -> List[LogicError]:
+    def check_unique_sample_file_combinations(self, errors: list[LogicError]) -> list[LogicError]:
         """
         The combination of the following columns should be unique:
         - source name
@@ -244,7 +248,7 @@ class SdrfDataFrame(pd.DataFrame):
             "comment[fraction identifier]",
         ]
 
-        ## Remove columns that are not present in the dataframe
+        # Remove columns that are not present in the dataframe
         columns_to_check = [col for col in columns_to_check if col in self.columns]
 
         # Find rows that do not contain only integers in the specified columns
