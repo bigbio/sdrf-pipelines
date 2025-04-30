@@ -16,7 +16,7 @@ class Msstats:
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
         data = {}
         condition = []
         Experiments = []
