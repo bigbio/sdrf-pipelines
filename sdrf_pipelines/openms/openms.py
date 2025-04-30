@@ -695,9 +695,9 @@ class OpenMS:
 
         # sample table
         f += "\n"
-        if "tmt" in ",".join(
-            map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])
-        ) or "itraq" in ",".join(map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]])):
+        if "tmt" in ",".join(map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])) or "itraq" in ",".join(
+            map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])
+        ):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
@@ -773,8 +773,8 @@ class OpenMS:
         file2fraction,
     ):
         f = ""
-        if "tmt" in map(lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
-            lambda x: x.lower(), file2label[sdrf["comment[data file]"].tolist()[0]]
+        if "tmt" in map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
+            str.lower, file2label[sdrf["comment[data file]"].tolist()[0]]
         ):
             if legacy:
                 open_ms_experimental_design_header = [
