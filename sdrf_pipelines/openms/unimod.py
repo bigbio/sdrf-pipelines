@@ -81,7 +81,7 @@ class UnimodDatabase:
             ea = e.attrib
             self.elements[ea["title"]] = ea
             if re.match(r"[A-Z]", ea["title"][:1]):
-                self.elements[f"{int(round(float(ea['mono_mass'])))}{ea['title']}"] = ea
+                self.elements[f"{round(float(ea['mono_mass']))}{ea['title']}"] = ea
 
     def _get_modifications(self, node):
         for e in node.findall(f"{self.xmlns}modifications/{self.xmlns}mod"):
