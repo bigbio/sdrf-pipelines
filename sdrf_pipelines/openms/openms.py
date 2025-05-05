@@ -677,6 +677,8 @@ class OpenMS:
                 else:
                     label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
@@ -925,6 +927,8 @@ class OpenMS:
                 else:
                     label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(labels) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
