@@ -209,7 +209,7 @@ class SchemaValidator:
 
         return validator_class(params=validator_params)
 
-    def validate(self, df: Union[pd.DataFrame, SDRFDataFrame], schema_name: str) -> list[LogicError]:
+    def validate(self, df: pd.DataFrame | SDRFDataFrame, schema_name: str) -> list[LogicError]:
         """Validate a DataFrame against a schema."""
         schema = self.registry.get_schema(schema_name)
         if not schema:
