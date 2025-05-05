@@ -629,7 +629,7 @@ class OpenMS:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
-                if source_name in sample_id_map.keys():
+                if source_name in sample_id_map:
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
