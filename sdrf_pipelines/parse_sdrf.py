@@ -358,10 +358,12 @@ cli.add_command(normalyzerde_from_sdrf)
 cli.add_command(build_index_ontology)
 
 
-@click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file")
+@click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file.")
 @click.argument("sdrf_file", type=click.Path(exists=True))
-@click.option("--template", "-t", default="default", help="The template to validate against")
-@click.option("--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation")
+@click.option("--template", "-t", default="default", help="The template to validate against.")
+@click.option(
+    "--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
+)
 def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
     """
     Simple command to validate an SDRF file.
@@ -369,6 +371,11 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
     This command provides a simpler interface for validating SDRF files,
     without the additional options for skipping specific validations.
     """
+
+    if use_ols_cache_only:
+        raise DeprecationWarning(
+            'The "--use-ols-cache-only" flag is deprecated and will have no effect. It will be removed in the future.'
+        )
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))

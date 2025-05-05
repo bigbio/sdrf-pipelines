@@ -46,4 +46,4 @@ jobs:
 
       - name: Test validation of SDRF file with cache only
         run: |
-          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
+          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use-ols-cache-only
