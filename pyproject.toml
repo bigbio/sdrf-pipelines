@@ -24,7 +24,6 @@ include = [
     "**/*.parquet",
     "**/*.yml"
 ]
-requires-python = ">=3.10"
 
 [tool.poetry.dependencies]
 click = "*"
@@ -33,6 +32,7 @@ duckdb = "*"
 pandas = "*"
 pyarrow = "*"
 pydantic = "*"
+python = ">=3.10,<4.0"
 pyyaml = "*"
 rdflib = "*"
 requests = "*"
