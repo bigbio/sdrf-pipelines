@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 import pandas as pd
 import yaml
