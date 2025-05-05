@@ -275,8 +275,6 @@ class OpenMS:
         if split_by_columns:
             split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
             split_by_columns_list = split_by_columns.split(",")
-            for i, value in enumerate(split_by_columns_list):
-                split_by_columns_list[i] = value
             print("User selected factor columns: " + str(split_by_columns_list))
 
         # load sdrf file
@@ -293,20 +291,16 @@ class OpenMS:
 
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [
-            c for ind, c in enumerate(sdrf.columns) if c.startswith("comment[modification parameters")
+            c for c in sdrf.columns if c.startswith("comment[modification parameters")
         ]  # columns with modification parameters
 
         if split_by_columns:
             factor_cols = split_by_columns_list  # enforce columns as factors if names provided by user
         else:
-            factor_cols = [
-                c for ind, c in enumerate(sdrf.columns) if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1
-            ]
+            factor_cols = [c for c in sdrf.columns if c.startswith("factor value[") and len(sdrf[c].unique()) >= 1]
 
             characteristics_cols = [
-                c
-                for ind, c in enumerate(sdrf.columns)
-                if c.startswith("characteristics[") and len(sdrf[c].unique()) >= 1
+                c for c in sdrf.columns if c.startswith("characteristics[") and len(sdrf[c].unique()) >= 1
             ]
             # and remove characteristics columns already present as factor
             characteristics_cols = self.removeRedundantCharacteristics(characteristics_cols, sdrf, factor_cols)
