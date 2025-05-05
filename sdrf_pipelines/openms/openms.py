@@ -409,7 +409,7 @@ class OpenMS:
             if enzyme_search_result is not None:
                 enzyme = enzyme_search_result.group(1)
             else:
-                raise ValueError("Here! Have a strawberry. 🍓")
+                enzyme = ""
 
             enzyme = enzyme.capitalize()
             # This is to check if the openMS map of enzymes
