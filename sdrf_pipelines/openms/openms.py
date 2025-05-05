@@ -207,7 +207,7 @@ class OpenMS:
 
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
-                raise Exception("only UNIMOD modifications supported. " + m)
+                raise ValueError("only UNIMOD modifications supported. " + m)
 
             name = re.search("NT=(.+?)(;|$)", m).group(1)
             name = name.capitalize()
@@ -283,7 +283,7 @@ class OpenMS:
         sdrf = pd.read_table(sdrf_file)
         null_cols = sdrf.columns[sdrf.isnull().any()]
         if sdrf.isnull().values.any():
-            raise Exception(
+            raise ValueError(
                 "Encountered empty cells while reading SDRF."
                 "Please check your file, e.g. for too many column headers or empty fields"
                 f"Columns with empty values: {list(null_cols)}"
@@ -447,7 +447,7 @@ class OpenMS:
                 elif "ITRAQ" in row["comment[label]"]:
                     label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
                 else:
-                    raise Exception("Label " + str(row["comment[label]"]) + " is not recognized")
+                    raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
                 f2c.file2label[raw] = label
 
             if not split_by_columns:
@@ -1100,7 +1100,7 @@ class OpenMS:
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(itraq_var_mod))
 
             else:
-                raise Exception(
+                raise ValueError(
                     "Failed to find any supported labels. Supported labels are 'silac', 'label free "
                     "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
                 )
