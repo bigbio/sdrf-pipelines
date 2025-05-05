@@ -6,8 +6,8 @@ import pandas as pd
 from pydantic import BaseModel
 
 from sdrf_pipelines.ols.ols import OlsClient
-from sdrf_pipelines.sdrf import NORM, NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
+from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
