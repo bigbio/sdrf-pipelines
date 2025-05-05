@@ -1100,7 +1100,7 @@ class OpenMS:
             else:
                 raise ValueError(
                     "Failed to find any supported labels. Supported labels are 'silac', 'label free "
-                    "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
+                    f"sample', 'ITRAQ', and tmt labels in the format 'TMT131C', found {labels}"
                 )
 
             # Why is the file name modified on the experimental design but not in the openms.tsv?
