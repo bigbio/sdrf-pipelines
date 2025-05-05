@@ -6,23 +6,20 @@ from pydantic import BaseModel, Field
 
 
 class SDRFDataFrame(BaseModel):
+    df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     sdrf_columns: list[str] = Field(default_factory=list)
-    df: pd.DataFrame = Field(default=None)
     model_config = {"arbitrary_types_allowed": True}
 
-    def __init__(self, sdrf_file: Union[pd.DataFrame, str, Path], /, **data):
+    def __init__(self, df: pd.DataFrame, /, **data):
         """
-        Initialize the SDRF DataFrame.
+        Initialize the SDRFDataFrame.
 
         Args:
-            sdrf_file: Pandas DataFrame containing the SDRF data
+            df: Pandas DataFrame containing the SDRF data
         """
         super().__init__(**data)
-        if isinstance(sdrf_file, pd.DataFrame):
-            self.df = sdrf_file
-            self.sdrf_columns = sdrf_file.columns.tolist()
-        if isinstance(sdrf_file, str) or isinstance(sdrf_file, Path):
-            self.df = self.parse(sdrf_file)
+        self.df = df
+        self.sdrf_columns = self.df.columns.tolist()
 
     def __getitem__(self, key):
         """Enable subscriptable behavior by delegating to the df attribute."""
@@ -41,25 +38,6 @@ class SDRFDataFrame(BaseModel):
         if self.df is not None:
             return self.df.map(func, *args, **kwargs)
         raise ValueError("Cannot map on empty DataFrame")
-
-    def parse(self, sdrf_file: str | Path) -> pd.DataFrame:
-        """
-        Parse an SDRF file.
-
-        Args:
-            sdrf_file: Path to the SDRF file
-
-        Returns:
-            SDRFDataFrame instance
-        """
-
-        with open(sdrf_file, "r", encoding="utf-8") as file:
-            first_line = file.readline().strip()
-            self.sdrf_columns = first_line.split("\t")
-
-        df = pd.read_csv(sdrf_file, sep="\t", dtype=str)
-        df.fillna("")
-        return df
 
     def get_dataframe_columns(self) -> list[str]:
         """
@@ -98,3 +76,16 @@ class SDRFDataFrame(BaseModel):
             Tuple of (rows, columns)
         """
         return self.df.shape
+
+
+def read_sdrf(sdrf_file: str | Path):
+    """
+    Create an SDRFDataFrame from an SDRF file.
+
+    Args:
+        sdrf_file: Path to the SDRF file.
+
+    Returns:
+        pandas.DataFrame
+    """
+    return pd.read_csv(sdrf_file, sep="\t", dtype=str).fillna("")

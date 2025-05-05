@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
-from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
 
 TESTS_DIR = Path(__file__).parent
 
@@ -13,7 +13,7 @@ def test_min_columns_default_schema():
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
-    sdrf_df = SDRFDataFrame(test_file)
+    sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "default")
     num_colums = sdrf_df.get_dataframe_columns()
     print(f"Using test file: {test_file} with {len(num_colums)} columns")
