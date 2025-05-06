@@ -2468,7 +2468,7 @@ class Maxquant:
         sdrf.columns = sdrf.columns.str.lower()
         f = open(output, "w", encoding="utf-8")
         f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
-        for index, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
             if "comment[fraction identifier]" in row:
