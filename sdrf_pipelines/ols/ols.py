@@ -15,6 +15,7 @@ import logging
 import os.path
 import urllib.parse
 from pathlib import Path
+from typing import Any
 
 import duckdb
 import pandas as pd
@@ -35,7 +36,7 @@ API_ANCESTORS = "/api/ontologies/{ontology}/terms/{iri}/ancestors"
 API_PROPERTIES = "/api/ontologies/{ontology}/properties?lang=en"
 
 
-def _concat_str_or_list(input_str: str | list) -> str:
+def _concat_str_or_list(input_str: str | list[str]) -> str:
     """
     Always returns a comma joined list, whether the input is a
     single string or an iterable
@@ -76,7 +77,7 @@ class OlsTerm:
         return f"{self._term} -- {self._ontology} -- {self._iri}"
 
 
-def get_cache_parquet_files() -> tuple:
+def get_cache_parquet_files() -> tuple[list[str], list[str]]:
     """
     This function returns a list of parquet files in the cache directory.
 
@@ -84,19 +85,18 @@ def get_cache_parquet_files() -> tuple:
         tuple: A tuple containing the parquet files pattern and a list of unique ontology names
     """
     parquet_dir = Path(__file__).parent
-    parquet_files_pattern = f"{parquet_dir}/*.parquet"
     parquet_files = [str(f) for f in parquet_dir.glob("*.parquet")]
 
     if not parquet_files:
-        logger.info("No parquet files found with %s", parquet_files_pattern)
-        return parquet_files_pattern, []
+        logger.info("No parquet files found with %s", f"{parquet_dir}/*.parquet")
+        raise RuntimeError(f"Could not find the packaged ontology files in {parquet_dir}")
 
     # select from all the parquets the ontology names and return a list of the unique ones
     # use for reading all the parquets the duckdb library.
     df = duckdb.execute("""SELECT DISTINCT ontology FROM read_parquet(?)""", (parquet_files,)).fetchdf()
 
     if df is None or df.empty:
-        return parquet_files, []
+        raise RuntimeError("The parquet files found with %s do not contain ontologies.", f"{parquet_dir}/*.parquet")
 
     ontologies = df.ontology.unique().tolist()
     return parquet_files, ontologies
@@ -128,7 +128,7 @@ def get_obo_accession(uri: str) -> str | None:
     return None
 
 
-def read_owl_file(ontology_file: str, ontology_name=None) -> list:
+def read_owl_file(ontology_file: str, ontology_name=None) -> list[dict[str, str]]:
     """
     Reads an OWL file and returns a list of OlsTerms
 
@@ -160,7 +160,7 @@ def read_owl_file(ontology_file: str, ontology_name=None) -> list:
     return terms_info
 
 
-def read_obo_file(ontology_file: str, ontology_name=None) -> list:
+def read_obo_file(ontology_file: str, ontology_name=None) -> list[dict[str, str]]:
     """
     Reads an OBO file and returns a list of OlsTerms
 
@@ -172,7 +172,7 @@ def read_obo_file(ontology_file: str, ontology_name=None) -> list:
         list: A list of dictionaries containing the ontology terms
     """
 
-    def split_terms(content_str: str) -> list:
+    def split_terms(content_str: str) -> list[str]:
         return content_str.split("[Term]")[1:]  # Skip the header and split by [Term]
 
     def get_ontology_name(content_str: str) -> str | None:
@@ -182,7 +182,7 @@ def read_obo_file(ontology_file: str, ontology_name=None) -> list:
                 return line.split("ontology:")[1].strip()
         return None
 
-    def parse_term(term: str, ontology_name_param: str) -> dict:
+    def parse_term(term: str, ontology_name_param: str) -> dict[str, str]:
         term_info = {}
         lines = term.strip().split("\n")
         for line in lines:
@@ -208,8 +208,8 @@ class OlsClient:
         self,
         ols_base: str | None = None,
         ontology: str | None = None,
-        field_list: list | None = None,
-        query_fields: list | None = None,
+        field_list: list[str] | None = None,
+        query_fields: list[str] | None = None,
         use_cache: bool = True,
     ):
         """
@@ -306,7 +306,7 @@ class OlsClient:
         df.to_parquet(output_file, compression="gzip", index=False)
         logger.info("Index has finished, output file: %s", output_file)
 
-    def besthit(self, name, **kwargs) -> dict | None:
+    def besthit(self, name, **kwargs) -> dict[str, str] | None:
         """
         select a first element of the /search API response
         """
@@ -316,7 +316,7 @@ class OlsClient:
 
         return None
 
-    def get_term(self, ontology: str, iri: str) -> dict:
+    def get_term(self, ontology: str, iri: str) -> dict[str, str]:
         """
         Gets the data for a given term
 
@@ -391,7 +391,9 @@ class OlsClient:
                     raise
         return terms
 
-    def _perform_ols_search(self, params, name: str, exact: bool, retry_num: int = 0):
+    def _perform_ols_search(
+        self, params: dict[str, Any], name: str, exact: bool, retry_num: int = 0
+    ) -> list[dict[str, str]]:
         """
         Perform the OLS search and return the results.
 
@@ -439,6 +441,7 @@ class OlsClient:
                 raise
         except Exception as ex:
             logger.exception("OLS error searching term %s. Error: %s", name, ex)
+        return []
 
     def ols_search(
         self,
@@ -452,7 +455,7 @@ class OlsClient:
         rows: int = 10,
         num_retries: int = 10,
         start: int = 0,
-    ):
+    ) -> list[dict[str, str]]:
         """
         Search a term in the OLS API
 
@@ -549,7 +552,7 @@ class OlsClient:
         logger.debug("OLS select returned empty response for %s", name)
         return None
 
-    def cache_search(self, term: str, ontology: str | None, full_search: bool = False) -> list:
+    def cache_search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
         """
         Search a term in cache files and return them as list.
 
