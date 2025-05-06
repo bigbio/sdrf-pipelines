@@ -21,22 +21,6 @@ from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
 from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
 
-
-def validate_sdrf_df(sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False) -> List[LogicError]:
-    """
-    Validate an SDRF DataFrame.
-
-    Parameters:
-        sdrf: SDRFDataFrame to validate
-        template: Template name to determine the validation rules
-        use_ols_cache_only: Whether to use only the cache for ontology validation
-
-    Returns:
-        List of validation errors
-    """
-    return sdrf.validate(template, use_ols_cache_only=use_ols_cache_only)
-
-
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
