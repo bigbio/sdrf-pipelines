@@ -88,7 +88,7 @@ def get_cache_parquet_files() -> tuple:
     parquet_files = [str(f) for f in parquet_dir.glob("*.parquet")]
 
     if not parquet_files:
-        logger.info("No parquet files found in %s", parquet_files_pattern)
+        logger.info("No parquet files found with %s", parquet_files_pattern)
         return parquet_files_pattern, []
 
     # select from all the parquets the ontology names and return a list of the unique ones

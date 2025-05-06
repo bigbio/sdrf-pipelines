@@ -252,9 +252,7 @@ class OntologyValidator(SDRFValidator):
                         )
                 else:
                     ontology_terms = self.client.search(
-                        term=term[self.term_name],
-                        exact=True,
-                        # Don't specify use_ols_cache_only, let OlsClient handle fallback automatically
+                        term=term[self.term_name], exact=True, use_ols_cache_only=self.use_ols_cache_only
                     )
 
             if ontology_terms is not None:

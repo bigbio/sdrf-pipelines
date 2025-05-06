@@ -209,7 +209,9 @@ class SchemaValidator:
 
         return validator_class(params=validator_params)
 
-    def validate(self, df: pd.DataFrame | SDRFDataFrame, schema_name: str) -> list[LogicError]:
+    def validate(
+        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False
+    ) -> list[LogicError]:
         """Validate a DataFrame against a schema."""
         schema = self.registry.get_schema(schema_name)
         if not schema:
@@ -219,6 +221,7 @@ class SchemaValidator:
 
         # Apply global validators
         for validator_config in schema.validators:
+            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
             validator = self._create_validator_instance(validator_config)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
@@ -241,6 +244,7 @@ class SchemaValidator:
 
                 # Apply specific validators defined for this column
                 for validator_config in column_def.validators:
+                    validator_config.params["use_ols_cache_only"] = use_ols_cache_only
                     validator = self._create_validator_instance(validator_config)
                     if validator:
                         errors.extend(validator.validate(column_series, column_name=column_def.name))

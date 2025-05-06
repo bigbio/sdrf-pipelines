@@ -193,11 +193,15 @@ def maxquant_from_sdrf(
     default="default",
     required=False,
 )
+@click.option(
+    "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
+)
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
+    use_ols_cache_only: bool,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
@@ -222,7 +226,7 @@ def validate_sdrf(
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
 
-    errors = validator.validate(sdrf_df, template)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
 
     for error in errors:
@@ -369,15 +373,11 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
     without the additional options for skipping specific validations.
     """
 
-    if use_ols_cache_only:
-        raise DeprecationWarning(
-            'The "--use-ols-cache-only" flag is deprecated and will have no effect. It will be removed in the future.'
-        )
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
 
-    errors = validator.validate(sdrf_df, template)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     if errors:
         for error in errors:
             if error.error_type == logging.ERROR:
