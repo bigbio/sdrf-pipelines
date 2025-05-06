@@ -180,7 +180,7 @@ class SchemaRegistry:
         # Create and store the schema
         schema = SchemaDefinition(**processed_data)
         self.schemas[schema_name] = schema
-        logging.info("Added schema '{}' to registry", schema_name)
+        logging.info("Added schema '%s' to registry", schema_name)
 
     def get_schema(self, schema_name: str) -> Optional[SchemaDefinition]:
         """Get a schema by name."""
