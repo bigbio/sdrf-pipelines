@@ -681,10 +681,10 @@ class Maxquant:
                 for index in indexes:
                     if mq_position[index].lower() == pp and aa == mq_site[mq_title[index]]:
                         tag = 1
+                        oms_mods.append(mq_title[index])
                         break
                 if tag == 1:
-                    oms_mods.append(mq_title[index])
-
+                    pass
                 elif mqconfdir:
                     if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                         if aa == new_site[new_title[new_name.index(name.lower())]]:
