@@ -3,7 +3,7 @@ import re
 from typing import Any, Optional, Type, Union
 
 import pandas as pd
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
@@ -12,7 +12,7 @@ from sdrf_pipelines.utils.exceptions import LogicError
 
 
 class SDRFValidator(BaseModel):
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = Field(default_factory=dict)
 
     def __init__(self, params: dict[str, Any] | None = None, **data):
         super().__init__(**data)

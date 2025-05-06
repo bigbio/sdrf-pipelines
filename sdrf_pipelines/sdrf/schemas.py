@@ -6,7 +6,7 @@ from typing import Any, Optional, Type
 
 import pandas as pd
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NOT_APPLICABLE, NOT_AVAILABLE
@@ -24,7 +24,7 @@ class RequirementLevel(str, Enum):
 
 class ValidatorConfig(BaseModel):
     validator_name: str
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class ColumnDefinition(BaseModel):
@@ -33,14 +33,14 @@ class ColumnDefinition(BaseModel):
     requirement: RequirementLevel
     allow_not_applicable: bool = False
     allow_not_available: bool = False
-    validators: list[ValidatorConfig] = []
+    validators: list[ValidatorConfig] = Field(default_factory=list)
 
 
 class SchemaDefinition(BaseModel):
     name: str
     description: str
-    validators: list[ValidatorConfig] = []
-    columns: list[ColumnDefinition] = []
+    validators: list[ValidatorConfig] = Field(default_factory=list)
+    columns: list[ColumnDefinition] = Field(default_factory=list)
 
 
 class SchemaRegistry:
