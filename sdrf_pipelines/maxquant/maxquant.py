@@ -3,13 +3,15 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from xml.dom.minidom import Document, parse
 
+import defusedxml
 import numpy as np
 import pandas as pd
 import yaml
 
 from sdrf_pipelines.utils.utils import tsv_line
+
+defusedxml.defuse_stdlib()
 
 
 class Maxquant:
