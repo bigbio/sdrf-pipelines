@@ -30,7 +30,7 @@ CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
-    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration files.
+    This tool validates SDRF files and can convert them for use in data analysis pipelines.
     """
 
 
