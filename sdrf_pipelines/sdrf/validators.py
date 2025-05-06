@@ -19,7 +19,7 @@ class SDRFValidator(BaseModel):
         if params:
             self.params = params
 
-    def validate(
+    def validate(  # type: ignore[override]
         self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
     ) -> list[LogicError]:
         """
@@ -82,7 +82,7 @@ def get_all_validators() -> dict[str, Type[SDRFValidator]]:
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
-    def validate(
+    def validate(  # type: ignore[override]
         self, value: Union[str, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
     ) -> list[LogicError]:
         """
@@ -183,7 +183,7 @@ class MinimumColumns(SDRFValidator):
                 if key == "min_columns":
                     self.minimum_columns = int(value)
 
-    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:
+    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         errors = []
         if len(value.columns) < self.minimum_columns:
             errors.append(
@@ -221,7 +221,7 @@ class OntologyValidator(SDRFValidator):
                 if key == "use_ols_cache_only":
                     self.use_ols_cache_only = value
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if the term is present in the provided ontology. This method looks in the provided
         ontology _ontology_name
@@ -334,7 +334,7 @@ class PatternValidator(SDRFValidator):
             if "case_sensitive" in params:
                 self.case_sensitive = params["case_sensitive"]
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if values in the series match the specified regex pattern.
 
@@ -380,7 +380,7 @@ class PatternValidator(SDRFValidator):
 class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
-    def validate(self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:
+    def validate(self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if columns are in the correct order in the SDRF file.
 
@@ -453,7 +453,7 @@ class ColumnOrderValidator(SDRFValidator):
 class EmptyCellValidator(SDRFValidator):
     """Validator that checks for empty cells in the SDRF file."""
 
-    def validate(self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None) -> list[LogicError]:
+    def validate(self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
 
