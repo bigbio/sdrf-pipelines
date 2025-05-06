@@ -27,8 +27,7 @@ class ValidationWarning:
         """
         if self.row is not None and self.column is not None and self.value is not None:
             return '{{row: {}, column: "{}"}}: "{}" {}'.format(self.row, self.column, self.value, self.message)
-        else:
-            return self.message
+        return self.message
 
 
 class AppException(Exception):
