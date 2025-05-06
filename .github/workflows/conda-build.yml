@@ -43,3 +43,7 @@ jobs:
       - name: Test validation of SDRF file
         run: |
           parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
+
+      - name: Test validation of SDRF file with cache only
+        run: |
+          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use-ols-cache-only
