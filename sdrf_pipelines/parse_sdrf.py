@@ -345,7 +345,7 @@ cli.add_command(build_index_ontology)
 @click.argument("sdrf_file", type=click.Path(exists=True))
 @click.option("--template", "-t", default="default", help="The template to validate against.")
 @click.option(
-    "--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
+    "--use_ols_cache_only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
 )
 def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
     """
