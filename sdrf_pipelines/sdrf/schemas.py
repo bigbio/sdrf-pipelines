@@ -60,7 +60,7 @@ class SchemaRegistry:
 
     def _load_schema_file(self, schema_path: str) -> dict[str, Any]:
         """Load a schema file and return the raw data."""
-        with open(schema_path, "r") as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             if schema_path.endswith(".json"):
                 return json.load(f)
             else:  # YAML file
