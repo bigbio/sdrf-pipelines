@@ -5,8 +5,6 @@ import logging
 import os
 import re
 import sys
-from pathlib import Path
-from typing import List
 
 import click
 import pandas as pd
@@ -19,7 +17,7 @@ from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
-from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
+from sdrf_pipelines.utils.exceptions import AppConfigException
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
