@@ -375,7 +375,7 @@ class OlsClient:
                 if terms is None and self.use_cache:
                     terms = self.cache_search(term, ontology)
             except requests.exceptions.ConnectionError as e:
-                logger.warning("Connection error during OLS search: {}", e)
+                logger.warning("Connection error during OLS search: %s", e)
                 if self.use_cache:
                     logger.info("Falling back to cache search due to connection error")
                     terms = self.cache_search(term, ontology)
@@ -383,7 +383,7 @@ class OlsClient:
                     logger.error("Cache is not enabled, cannot fall back to cache search")
                     raise
             except Exception as e:
-                logger.error("Error during OLS search: {}", e)
+                logger.error("Error during OLS search: %s", e)
                 if self.use_cache:
                     logger.info("Falling back to cache search due to error")
                     terms = self.cache_search(term, ontology)
@@ -413,7 +413,7 @@ class OlsClient:
             )
 
             if req.status_code != 200:
-                logger.error("OLS search term {} error, retry number {}", name, retry_num)
+                logger.error("OLS search term %s error, retry number %s", name, retry_num)
                 req.raise_for_status()
 
             response_json = req.json()
@@ -430,9 +430,9 @@ class OlsClient:
 
             return docs
         except requests.exceptions.ConnectionError as e:
-            logger.exception("Connection error during OLS search: {}", e)
+            logger.exception("Connection error during OLS search: %s", e)
             if retry_num < 10:
-                logger.info("Retrying OLS search (attempt {}/10)...", retry_num + 1)
+                logger.info("Retrying OLS search (attempt %s/10)...", retry_num + 1)
                 return self._perform_ols_search(params, name, exact, retry_num + 1)
             else:
                 logger.error("Max retry attempts reached.  OLS search failed.")
