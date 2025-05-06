@@ -83,7 +83,7 @@ class SchemaRegistry:
             processed_schema = self._process_schema_inheritance(schema_name, raw_data)
             schema = SchemaDefinition(**processed_schema)
             self.schemas[schema_name] = schema
-            logging.info(f"Added schema '{schema_name}' to registry")
+            logging.info("Added schema '{}' to registry", schema_name)
 
     def _process_schema_inheritance(self, schema_name: str, schema_data: dict[str, Any]) -> dict[str, Any]:
         """Process schema inheritance by merging with parent schemas."""
@@ -180,7 +180,7 @@ class SchemaRegistry:
         # Create and store the schema
         schema = SchemaDefinition(**processed_data)
         self.schemas[schema_name] = schema
-        logging.info(f"Added schema '{schema_name}' to registry")
+        logging.info("Added schema '{}' to registry", schema_name)
 
     def get_schema(self, schema_name: str) -> Optional[SchemaDefinition]:
         """Get a schema by name."""
@@ -204,7 +204,7 @@ class SchemaValidator:
 
         validator_class = get_validator(validator_name)
         if not validator_class:
-            logging.warning(f"Validator type '{validator_name}' not found in registry")
+            logging.warning("Validator type '{}' not found in registry", validator_name)
             return None
 
         return validator_class(params=validator_params)
@@ -284,8 +284,8 @@ class SchemaValidator:
                 errors = self.validate(df, schema_name)
                 results[schema_name] = errors
             except Exception as e:
-                logging.error(f"Error validating against schema '{schema_name}': {str(e)}")
-                results[schema_name] = [LogicError(message=f"Validation error: {str(e)}", error_type=logging.ERROR)]
+                logging.error("Error validating against schema '{}': {}", schema_name, e)
+                results[schema_name] = [LogicError(message=f"Validation error: {e}", error_type=logging.ERROR)]
 
         return results
 
