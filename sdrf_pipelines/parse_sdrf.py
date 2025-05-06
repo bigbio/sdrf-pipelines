@@ -19,7 +19,7 @@ from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
 from sdrf_pipelines.utils.exceptions import AppConfigException
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.version_option(
