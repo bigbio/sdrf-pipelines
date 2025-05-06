@@ -247,7 +247,7 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
     for key in d:
         dataframe = d[key]
         file_name = os.path.split(sdrf_file)[-1]
-        Path = os.path.split(sdrf_file)[0] + "/"
+        path = os.path.split(sdrf_file)[0] + "/"
         if prefix is None:
             if len(file_name.split(".")) > 2:
                 prefix = ".".join(file_name.split(".")[:-2])
@@ -257,13 +257,13 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
             new_file = prefix + "-" + "-".join(key).replace(" ", "_") + ".sdrf.tsv"
         else:
             new_file = prefix + "-" + key.replace(" ", "_") + ".sdrf.tsv"
-        dataframe.to_csv(Path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
+        dataframe.to_csv(path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
 
         # Handling duplicate column names
-        with open(Path + new_file, "r+", encoding="utf-8") as f:
+        with open(path + new_file, "r+", encoding="utf-8") as f:
             data = f.read()
         data = pattern.sub("]\t", data)
-        with open(Path + new_file, "w", encoding="utf-8") as f:
+        with open(path + new_file, "w", encoding="utf-8") as f:
             f.write(data)
 
 
