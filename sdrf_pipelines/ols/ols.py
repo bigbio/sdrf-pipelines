@@ -15,7 +15,6 @@ import logging
 import os.path
 import urllib.parse
 from pathlib import Path
-from typing import Union
 
 import duckdb
 import pandas as pd
@@ -36,7 +35,7 @@ API_ANCESTORS = "/api/ontologies/{ontology}/terms/{iri}/ancestors"
 API_PROPERTIES = "/api/ontologies/{ontology}/properties?lang=en"
 
 
-def _concat_str_or_list(input_str: Union[str, list]) -> str:
+def _concat_str_or_list(input_str: str | list) -> str:
     """
     Always returns a comma joined list, whether the input is a
     single string or an iterable
@@ -103,7 +102,7 @@ def get_cache_parquet_files() -> tuple:
     return parquet_files, ontologies
 
 
-def get_obo_accession(uri: str) -> Union[str, None]:
+def get_obo_accession(uri: str) -> str | None:
     """
     Get the OBO accession from the URI.
     The URI is expected to be in the form of 'http://www.ebi.ac.uk/efo/EFO_0000001'
@@ -176,7 +175,7 @@ def read_obo_file(ontology_file: str, ontology_name=None) -> list:
     def split_terms(content_str: str) -> list:
         return content_str.split("[Term]")[1:]  # Skip the header and split by [Term]
 
-    def get_ontology_name(content_str: str) -> Union[str, None]:
+    def get_ontology_name(content_str: str) -> str | None:
         lines = content_str.split("\n")
         for line in lines:
             if line.startswith("ontology:"):
@@ -307,7 +306,7 @@ class OlsClient:
         df.to_parquet(output_file, compression="gzip", index=False)
         logger.info("Index has finished, output file: %s", output_file)
 
-    def besthit(self, name, **kwargs) -> Union[dict, None]:
+    def besthit(self, name, **kwargs) -> dict | None:
         """
         select a first element of the /search API response
         """
