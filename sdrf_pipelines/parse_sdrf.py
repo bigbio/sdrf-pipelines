@@ -207,9 +207,6 @@ def validate_sdrf(
 
     @param sdrf_file: SDRF file to be validated
     @param template: template to be used for a validation
-    @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
-    @param skip_factor_validation: flag to skip the validation of factor values
-    @param skip_experimental_design_validation: flag to skip the validation of experimental design
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
     """
 
