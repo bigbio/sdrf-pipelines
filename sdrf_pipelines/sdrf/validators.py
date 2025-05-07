@@ -183,7 +183,9 @@ class MinimumColumns(SDRFValidator):
                 if key == "min_columns":
                     self.minimum_columns = int(value)
 
-    def validate(self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(  # type: ignore[override]
+        self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+    ) -> list[LogicError]:
         errors = []
         if len(value.columns) < self.minimum_columns:
             errors.append(
@@ -271,7 +273,10 @@ class OntologyValidator(SDRFValidator):
                 column_info = f" in column '{column_name}'" if column_name else ""
                 errors.append(
                     LogicError(
-                        message=f"Term: {series[idx]}{column_info}, is not found in the given ontology list {';'.join(self.ontologies)}",
+                        message=(
+                            f"Term: {series[idx]}{column_info}, is not found in the "
+                            f"given ontology list {';'.join(self.ontologies)}"
+                        ),
                         row=idx,
                         column=column_name,
                         error_type=self.error_level,
@@ -378,7 +383,9 @@ class PatternValidator(SDRFValidator):
 class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
-    def validate(self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(  # type: ignore[override]
+        self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+    ) -> list[LogicError]:
         """
         Validate if columns are in the correct order in the SDRF file.
 
@@ -451,7 +458,9 @@ class ColumnOrderValidator(SDRFValidator):
 class EmptyCellValidator(SDRFValidator):
     """Validator that checks for empty cells in the SDRF file."""
 
-    def validate(self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(  # type: ignore[override]
+        self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None
+    ) -> list[LogicError]:
         """
         Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
 

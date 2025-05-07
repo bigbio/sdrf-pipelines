@@ -257,7 +257,10 @@ class SchemaValidator:
                     if not not_applicable_values.empty:
                         errors.append(
                             LogicError(
-                                message=f"Column '{column_def.name}' contains 'not applicable' values, which are not allowed for this column",
+                                message=(
+                                    f"Column '{column_def.name}' contains 'not applicable' values, "
+                                    "which are not allowed for this column"
+                                ),
                                 error_type=logging.ERROR,
                             )
                         )
@@ -269,7 +272,10 @@ class SchemaValidator:
                     if not not_available_values.empty:
                         errors.append(
                             LogicError(
-                                message=f"Column '{column_def.name}' contains 'not available' values, which are not allowed for this column",
+                                message=(
+                                    f"Column '{column_def.name}' contains 'not available' values, "
+                                    "which are not allowed for this column"
+                                ),
                                 error_type=logging.ERROR,
                             )
                         )
