@@ -214,7 +214,7 @@ class OpenMS:
 
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
-                raise Exception("only UNIMOD modifications supported. " + m)
+                raise ValueError("only UNIMOD modifications supported. " + m)
 
             name = re.search("NT=(.+?)(;|$)", m).group(1)
             name = name.capitalize()
@@ -282,15 +282,13 @@ class OpenMS:
         if split_by_columns:
             split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
             split_by_columns_list = split_by_columns.split(",")
-            for i, value in enumerate(split_by_columns_list):
-                split_by_columns_list[i] = value
             print("User selected factor columns: " + str(split_by_columns_list))
 
         # load sdrf file
         sdrf = pd.read_table(sdrf_file)
         null_cols = sdrf.columns[sdrf.isnull().any()]
         if sdrf.isnull().values.any():
-            raise Exception(
+            raise ValueError(
                 "Encountered empty cells while reading SDRF."
                 "Please check your file, e.g. for too many column headers or empty fields"
                 f"Columns with empty values: {list(null_cols)}"
@@ -416,12 +414,14 @@ class OpenMS:
                 source_name2n_reps[source_name] = int(f2c.file2technical_rep[raw])
             cleavage_agent_details = row["comment[cleavage agent details]"]
             enzyme_search_result = re.search("NT=(.+?)(;|$)", cleavage_agent_details)
+
             if enzyme_search_result is not None:
                 enzyme = enzyme_search_result.group(1)
             else:
-                raise ValueError(
+                logger.warning(
                     f"Could not find a cleavage agent in {cleavage_agent_details} with the regex {r'NT=(.+?)(;|$)'}."
                 )
+                enzyme = ""
 
             enzyme = enzyme.capitalize()
             # This is to check if the openMS map of enzymes
@@ -453,7 +453,7 @@ class OpenMS:
                 elif "ITRAQ" in row["comment[label]"]:
                     label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
                 else:
-                    raise Exception("Label " + str(row["comment[label]"]) + " is not recognized")
+                    raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
                 f2c.file2label[raw] = label
 
             if not split_by_columns:
@@ -647,63 +647,60 @@ class OpenMS:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
-                if source_name in sample_id_map.keys():
+                if source_name in sample_id_map:
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
                     sample = sample_id
                     sample_id += 1
 
-            label = file2label[raw]
-            if "label free sample" in label:
+            labels = file2label[raw]
+            label_set = set(labels)
+            if "label free sample" in labels:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
-                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
                     choice = self.tmt18plex
                 elif (
-                    len(label) > 11
-                    or "TMT134N" in label
-                    or "TMT133C" in label
-                    or "TMT133N" in label
-                    or "TMT132C" in label
-                    or "TMT132N" in label
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or "TMT131C" in label:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     choice = self.tmt11plex
-                elif len(label) > 6:
+                elif len(label_set) > 6:
                     choice = self.tmt10plex
                 else:
                     choice = self.tmt6plex
-                label = str(choice[label[label_index[raw]]])
+                label = str(choice[labels[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
             elif "SILAC" in ",".join(file2label[raw]):
-                if len(label) == 3:
-                    label = str(self.silac3[label[label_index[raw]].lower()])
+                if len(label_set) == 3:
+                    label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.silac2[label[label_index[raw]].lower()])
+                    label = str(self.silac2[labels[label_index[raw]].lower()])
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                    len(label) > 4
-                    or "ITRAQ113" in label
-                    or "ITRAQ118" in label
-                    or "ITRAQ119" in label
-                    or "ITRAQ121" in label
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
-                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq8plex[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
-            f += tsv_line(
-                str(Fraction_group[raw]),
-                file2fraction[raw],
-                out,
-                label,
-                str(sample),
-            )
+            f += tsv_line(str(Fraction_group[raw]), file2fraction[raw], out, label, str(sample))
 
         # sample table
         f += "\n"
@@ -906,50 +903,53 @@ class OpenMS:
                 condition = file2combined_factors[raw + row["comment[label]"]]
 
             # convert sdrf's label to openms's label
-            label = file2label[raw]
-            if "label free sample" in label:
+            labels = file2label[raw]
+            label_set = set(labels)
+            if "label free sample" in labels:
                 label = "1"
 
             elif "TMT" in ",".join(file2label[raw]):
-                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
                     choice = self.tmt18plex
                 elif (
-                    len(label) > 11
-                    or "TMT134N" in label
-                    or "TMT133C" in label
-                    or "TMT133N" in label
-                    or "TMT132C" in label
-                    or "TMT132N" in label
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or "TMT131C" in label:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     choice = self.tmt11plex
-                elif len(label) > 6:
+                elif len(label_set) > 6:
                     choice = self.tmt10plex
                 else:
                     choice = self.tmt6plex
-                label = str(choice[label[label_index[raw]]])
+                label = str(choice[labels[label_index[raw]]])
 
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
             elif "SILAC" in ",".join(file2label[raw]):
-                if len(label) == 3:
-                    label = str(self.silac3[label[label_index[raw]].lower()])
+                if len(label_set) == 3:
+                    label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.silac2[label[label_index[raw]].lower()])
+                    label = str(self.silac2[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                    len(label) > 4
-                    or "ITRAQ113" in label
-                    or "ITRAQ118" in label
-                    or "ITRAQ119" in label
-                    or "ITRAQ121" in label
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
-                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq8plex[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(labels) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
@@ -1057,21 +1057,22 @@ class OpenMS:
                 continue
             raws.append(raw)
             labels = f2c.file2label[raw]
+            label_set = set(labels)
             if "TMT" in ",".join(labels):
-                if len(labels) > 16 or "TMT134C" in labels or "TMT135N" in labels:
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
                     label = "tmt18plex"
                 elif (
-                    len(labels) > 11
-                    or "TMT134N" in labels
-                    or "TMT133C" in labels
-                    or "TMT133N" in labels
-                    or "TMT132C" in labels
-                    or "TMT132N" in labels
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     label = "tmt16plex"
-                elif len(labels) == 11 or "TMT131C" in labels:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     label = "tmt11plex"
-                elif len(labels) > 6:
+                elif len(label_set) > 6:
                     label = "tmt10plex"
                 else:
                     label = "tmt6plex"
@@ -1087,21 +1088,18 @@ class OpenMS:
                         VarMod = ",".join(f2c.file2mods[raw][1].split(",") + tmt_var_mod)
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], VarMod)
                     else:
-                        f2c.file2mods[raw] = (
-                            f2c.file2mods[raw][0],
-                            ",".join(tmt_var_mod),
-                        )
-            elif "label free sample" in labels:
+                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(tmt_var_mod))
+            elif "label free sample" in label_set:
                 label = "label free sample"
-            elif "silac" in ",".join(labels):
+            elif "silac" in ",".join(label_set):
                 label = "SILAC"
-            elif "ITRAQ" in ",".join(labels):
+            elif "ITRAQ" in ",".join(label_set):
                 if (
-                    len(labels) > 4
-                    or "ITRAQ113" in labels
-                    or "ITRAQ118" in labels
-                    or "ITRAQ119" in labels
-                    or "ITRAQ121" in labels
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
                     label = "itraq8plex"
                 else:
@@ -1124,9 +1122,9 @@ class OpenMS:
                         )
 
             else:
-                raise Exception(
+                raise ValueError(
                     "Failed to find any supported labels. Supported labels are 'silac', 'label free "
-                    "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
+                    f"sample', 'ITRAQ', and tmt labels in the format 'TMT131C', found {labels}"
                 )
 
             # Why is the file name modified on the experimental design but not in the openms.tsv?
