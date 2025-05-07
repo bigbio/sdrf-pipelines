@@ -609,7 +609,7 @@ class OpenMS:
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             replicate = file2technical_rep[raw]
@@ -721,7 +721,7 @@ class OpenMS:
         mixture_sample_tag = {}
         BioReplicate = []
 
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             if re.search(sample_identifier_re, source_name) is not None:
@@ -842,7 +842,7 @@ class OpenMS:
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             replicate = file2technical_rep[raw]
@@ -1038,7 +1038,7 @@ class OpenMS:
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
             "itraq8plex": ["iTRAQ8plex (K)", "iTRAQ8plex (N-term)"],
         }
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
             if "comment[proteomics data acquisition method]" not in row:
