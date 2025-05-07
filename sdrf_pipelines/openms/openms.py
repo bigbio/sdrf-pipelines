@@ -704,8 +704,8 @@ class OpenMS:
 
         # sample table
         f += "\n"
-        if "tmt" in ",".join(map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])) or "itraq" in ",".join(
-            map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])
+        if "tmt" in ",".join(map(str.lower, file2label[sdrf["comment[data file]"].iloc[0]])) or "itraq" in ",".join(
+            map(str.lower, file2label[sdrf["comment[data file]"].iloc[0]])
         ):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
@@ -786,7 +786,7 @@ class OpenMS:
         file2fraction,
     ):
         experimental_design = ""
-        cdf = file2label[sdrf["comment[data file]"].tolist()[0]].lower()
+        cdf = file2label[sdrf["comment[data file]"].iloc[0]].lower()
         if "tmt" in cdf or "itraq" in cdf:
             if legacy:
                 open_ms_experimental_design_header = [

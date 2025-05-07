@@ -991,7 +991,7 @@ class Maxquant:
                 else:
                     warning_message = "Only a silac label! Does it make sense?"
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    file2label[raw] = label_arr.flatten().tolist()[0]
+                    file2label[raw] = label_arr.flatten().iloc[0]
 
             elif row["comment[label]"].lower().startswith("itraq"):
                 lt = ""

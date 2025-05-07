@@ -46,7 +46,7 @@ class NormalyzerDE:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [c for c in sdrf.columns.tolist() if c.startswith("factor value[")]
+            factor_cols = [c for c in sdrf.columns if c.startswith("factor value[")]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
