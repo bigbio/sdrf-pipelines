@@ -480,7 +480,7 @@ class EmptyCellValidator(SDRFValidator):
                 cell_value = str(cell_value)
             return cell_value != "nan" and len(cell_value.strip()) > 0
 
-        validation_results = df.map(validate_string)
+        validation_results = df.applymap(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [
