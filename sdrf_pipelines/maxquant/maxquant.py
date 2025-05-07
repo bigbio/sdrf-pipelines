@@ -1,16 +1,9 @@
-"""
-Created on Sun Apr 19 09:46:14 2020
-
-@author: ChengXin
-"""
-
 import os
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from xml.dom.minidom import Document
-from xml.dom.minidom import parse
+from xml.dom.minidom import Document, parse
 
 import numpy as np
 import pandas as pd
@@ -197,10 +190,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -222,7 +217,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
@@ -263,10 +258,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -288,7 +285,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
@@ -387,7 +384,8 @@ class Maxquant:
                         else:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modification.setAttribute(
-                            "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                            "create_date",
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute(
                             "last_modified_date",
@@ -413,7 +411,7 @@ class Maxquant:
                             mod_site.appendChild(neu_col)
                             mod_site.appendChild(dia_col)
                             modification.appendChild(mod_site)
-                        mod_type = mod_local.createElement("type")
+                        mod_type = mod_local.createElement("name")
                         if "->" in name:
                             mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                         else:
@@ -446,10 +444,12 @@ class Maxquant:
                     else:
                         offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                     modification.setAttribute(
-                        "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                        "create_date",
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute(
-                        "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                        "last_modified_date",
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute("user", "root")
                     modification.setAttribute("reporterCorrectionM2", "0")
@@ -469,7 +469,7 @@ class Maxquant:
                         mod_site.appendChild(neu_col)
                         mod_site.appendChild(dia_col)
                         modification.appendChild(mod_site)
-                    mod_type = mod_local.createElement("type")
+                    mod_type = mod_local.createElement("name")
                     if "->" in name:
                         mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                     else:
@@ -501,10 +501,12 @@ class Maxquant:
                 else:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
-                    "create_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "create_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
-                    "last_modified_date", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset
+                    "last_modified_date",
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -526,7 +528,7 @@ class Maxquant:
                     mod_site.appendChild(neu_col)
                     mod_site.appendChild(dia_col)
                     modification.appendChild(mod_site)
-                mod_type = mod_local.createElement("type")
+                mod_type = mod_local.createElement("name")
                 if "->" in name:
                     mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                 else:
@@ -679,10 +681,10 @@ class Maxquant:
                 for index in indexes:
                     if mq_position[index].lower() == pp and aa == mq_site[mq_title[index]]:
                         tag = 1
+                        oms_mods.append(mq_title[index])
                         break
                 if tag == 1:
-                    oms_mods.append(mq_title[index])
-
+                    pass
                 elif mqconfdir:
                     if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                         if aa == new_site[new_title[new_name.index(name.lower())]]:
@@ -989,7 +991,7 @@ class Maxquant:
                 else:
                     warning_message = "Only a silac label! Does it make sense?"
                     self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    file2label[raw] = label_arr.flatten().tolist()[0]
+                    file2label[raw] = label_arr.flatten().iloc[0]
 
             elif row["comment[label]"].lower().startswith("itraq"):
                 lt = ""
@@ -2466,7 +2468,7 @@ class Maxquant:
         sdrf.columns = sdrf.columns.str.lower()
         f = open(output, "w", encoding="utf-8")
         f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
-        for index, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
             if "comment[fraction identifier]" in row:

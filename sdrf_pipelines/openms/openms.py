@@ -160,7 +160,14 @@ class OpenMS:
             "TMT130C": 9,
             "TMT131": 10,
         }
-        self.tmt6plex = {"TMT126": 1, "TMT127": 2, "TMT128": 3, "TMT129": 4, "TMT130": 5, "TMT131": 6}
+        self.tmt6plex = {
+            "TMT126": 1,
+            "TMT127": 2,
+            "TMT128": 3,
+            "TMT129": 4,
+            "TMT130": 5,
+            "TMT131": 6,
+        }
         # Hardcode enzymes from OpenMS
         self.enzymes = {
             "Glutamyl endopeptidase": "glutamyl endopeptidase",
@@ -400,15 +407,20 @@ class OpenMS:
             # store highest replicate number for this source name
             if source_name in source_name2n_reps:
                 source_name2n_reps[source_name] = max(
-                    int(source_name2n_reps[source_name]), int(f2c.file2technical_rep[raw])
+                    int(source_name2n_reps[source_name]),
+                    int(f2c.file2technical_rep[raw]),
                 )
             else:
                 source_name2n_reps[source_name] = int(f2c.file2technical_rep[raw])
+            cleavage_agent_details = row["comment[cleavage agent details]"]
+            enzyme_search_result = re.search("NT=(.+?)(;|$)", cleavage_agent_details)
 
-            enzyme_search_result = re.search("NT=(.+?)(;|$)", row["comment[cleavage agent details]"])
             if enzyme_search_result is not None:
                 enzyme = enzyme_search_result.group(1)
             else:
+                logger.warning(
+                    f"Could not find a cleavage agent in {cleavage_agent_details} with the regex {r'NT=(.+?)(;|$)'}."
+                )
                 enzyme = ""
 
             enzyme = enzyme.capitalize()
@@ -581,7 +593,13 @@ class OpenMS:
         file2fraction,
         file2combined_factors,
     ):
-        openms_file_header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
+        openms_file_header = [
+            "Fraction_Group",
+            "Fraction",
+            "Spectra_Filepath",
+            "Label",
+            "Sample",
+        ]
         f = ""
         f += "\t".join(openms_file_header) + "\n"
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
@@ -591,7 +609,7 @@ class OpenMS:
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             replicate = file2technical_rep[raw]
@@ -686,12 +704,16 @@ class OpenMS:
 
         # sample table
         f += "\n"
-        if "tmt" in ",".join(map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])) or "itraq" in ",".join(
-            map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]])
+        if "tmt" in ",".join(map(str.lower, file2label[sdrf["comment[data file]"].iloc[0]])) or "itraq" in ",".join(
+            map(str.lower, file2label[sdrf["comment[data file]"].iloc[0]])
         ):
             openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture"]
         else:
-            openms_sample_header = ["Sample", "MSstats_Condition", "MSstats_BioReplicate"]
+            openms_sample_header = [
+                "Sample",
+                "MSstats_Condition",
+                "MSstats_BioReplicate",
+            ]
         f += "\t".join(openms_sample_header) + "\n"
         sample_row_written = []
         mixture_identifier = 1
@@ -699,7 +721,7 @@ class OpenMS:
         mixture_sample_tag = {}
         BioReplicate = []
 
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             if re.search(sample_identifier_re, source_name) is not None:
@@ -763,10 +785,9 @@ class OpenMS:
         extension_convert,
         file2fraction,
     ):
-        f = ""
-        if "tmt" in map(str.lower, file2label[sdrf["comment[data file]"].tolist()[0]]) or "itraq" in map(
-            str.lower, file2label[sdrf["comment[data file]"].tolist()[0]]
-        ):
+        experimental_design = ""
+        cdf = file2label[sdrf["comment[data file]"].iloc[0]].lower()
+        if "tmt" in cdf or "itraq" in cdf:
             if legacy:
                 open_ms_experimental_design_header = [
                     "Fraction_Group",
@@ -809,7 +830,7 @@ class OpenMS:
                     "MSstats_BioReplicate",
                 ]
 
-        f += "\t".join(open_ms_experimental_design_header) + "\n"
+        experimental_design += tsv_line(*open_ms_experimental_design_header)
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         Fraction_group = {}
@@ -821,7 +842,7 @@ class OpenMS:
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
             source_name = row["source name"]
             replicate = file2technical_rep[raw]
@@ -946,7 +967,7 @@ class OpenMS:
                     mix_id = mixture_raw_tag[raw]
 
                 if legacy:
-                    f += tsv_line(
+                    experimental_design += tsv_line(
                         str(Fraction_group[raw]),
                         file2fraction[raw],
                         out,
@@ -957,7 +978,7 @@ class OpenMS:
                         str(mix_id),
                     )
                 else:
-                    f += tsv_line(
+                    experimental_design += tsv_line(
                         str(Fraction_group[raw]),
                         file2fraction[raw],
                         out,
@@ -968,7 +989,7 @@ class OpenMS:
                     )
             else:
                 if legacy:
-                    f += tsv_line(
+                    experimental_design += tsv_line(
                         str(Fraction_group[raw]),
                         file2fraction[raw],
                         out,
@@ -978,15 +999,15 @@ class OpenMS:
                         MSstatsBioReplicate,
                     )
                 else:
-                    f += tsv_line(
+                    experimental_design += tsv_line(
                         str(Fraction_group[raw]), file2fraction[raw], out, label, condition, MSstatsBioReplicate
                     )
 
-        with open(output_filename, "w+", encoding="utf-8") as of:
-            of.write(f)
+        with open(output_filename, "w+", encoding="utf-8") as f:
+            f.write(experimental_design)
 
     def save_search_settings_to_file(self, output_filename, sdrf, f2c):
-        f = ""
+        search_settings = ""
         open_ms_search_settings_header = [
             "URI",
             "Filename",
@@ -1001,7 +1022,7 @@ class OpenMS:
             "DissociationMethod",
             "Enzyme",
         ]
-        f += "\t".join(open_ms_search_settings_header) + "\n"
+        search_settings += tsv_line(*open_ms_search_settings_header)
         raws = []
         TMT_mod = {
             "tmt6plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
@@ -1017,7 +1038,7 @@ class OpenMS:
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
             "itraq8plex": ["iTRAQ8plex (K)", "iTRAQ8plex (N-term)"],
         }
-        for _0, row in sdrf.iterrows():
+        for _, row in sdrf.iterrows():
             URI = row["comment[file uri]"]
             raw = row["comment[data file]"]
             if "comment[proteomics data acquisition method]" not in row:
@@ -1095,7 +1116,10 @@ class OpenMS:
                         VarMod = ",".join(f2c.file2mods[raw][1].split(",") + itraq_var_mod)
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], VarMod)
                     else:
-                        f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(itraq_var_mod))
+                        f2c.file2mods[raw] = (
+                            f2c.file2mods[raw][0],
+                            ",".join(itraq_var_mod),
+                        )
 
             else:
                 raise ValueError(
@@ -1107,7 +1131,7 @@ class OpenMS:
             # out_fname = get_openms_file_name(raw, extension_convert=extension_convert)
             out_fname = raw
 
-            f += tsv_line(
+            search_settings += tsv_line(
                 URI,
                 out_fname,
                 f2c.file2mods[raw][0],
@@ -1122,5 +1146,5 @@ class OpenMS:
                 f2c.file2enzyme[raw],
             )
         # openms.tsv
-        with open(output_filename, "w+", encoding="utf-8") as of:
-            of.write(f)
+        with open(output_filename, "w+", encoding="utf-8") as f:
+            f.write(search_settings)

@@ -12,7 +12,12 @@ class Msstats:
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
-        self, sdrf_file, split_by_columns, annotation_path, openswathtomsstats, maxqtomsstats
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        openswathtomsstats,
+        maxqtomsstats,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)

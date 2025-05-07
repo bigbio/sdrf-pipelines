@@ -4,8 +4,7 @@ import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
 
-from .helpers import compare_files
-from .helpers import run_and_check_status_code
+from .helpers import compare_files, run_and_check_status_code
 
 
 def _check_output_existance(out_dir: Path, two_files=True, min_num_samples=6):

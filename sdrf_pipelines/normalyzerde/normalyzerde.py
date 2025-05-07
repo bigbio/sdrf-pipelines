@@ -15,7 +15,12 @@ class NormalyzerDE:
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
-        self, sdrf_file, split_by_columns, annotation_path, comparisons_path, maxquant_exp_design_file
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        comparisons_path,
+        maxquant_exp_design_file,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
@@ -41,7 +46,7 @@ class NormalyzerDE:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith("factor value[")]
+            factor_cols = [c for c in sdrf.columns if c.startswith("factor value[")]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
@@ -104,7 +109,13 @@ class NormalyzerDE:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 
-    def get_replicates(self, sdrf, sample_identifier_re="comment[organism]", sample_id_map=None, sample_id=1):
+    def get_replicates(
+        self,
+        sdrf,
+        sample_identifier_re="comment[organism]",
+        sample_id_map=None,
+        sample_id=1,
+    ):
         replicates = []
         value = []
         BioReplicate = []
@@ -146,7 +157,7 @@ class NormalyzerDE:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
-            warning_message = "No factors specified. Adding Source Name as factor. Will be used " "as condition. "
+            warning_message = "No factors specified. Adding Source Name as factor. Will be used as condition."
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             combined_factors = row["source name"]
         return combined_factors

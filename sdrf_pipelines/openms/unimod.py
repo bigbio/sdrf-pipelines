@@ -3,6 +3,8 @@ from pathlib import Path
 
 import defusedxml.ElementTree as et
 
+PACKAGED_UNIMOD_FILE = str(Path(__file__).parent / "unimod.xml")
+
 
 class PTMSite:
     def __init__(self, site: str, position: str) -> None:
@@ -29,7 +31,13 @@ class OntologyTerm:
 
 
 class PostTranslationalModification:
-    def __init__(self, ontology_term: OntologyTerm, delta_composition: str, sites, delta_mono_mass) -> None:
+    def __init__(
+        self,
+        ontology_term: OntologyTerm,
+        delta_composition: str,
+        sites,
+        delta_mono_mass,
+    ) -> None:
         self._ontology_term = ontology_term
         self._delta_composition = delta_composition
         self._site = sites
@@ -55,11 +63,11 @@ class UnimodDatabase:
     """Wrapper for the Unimod database"""
 
     xmlns = "{http://www.unimod.org/xmlns/schema/unimod_2}"
-    unimodfile = "unimod.xml"
+    unimodfile = PACKAGED_UNIMOD_FILE
     hidden = True
 
     def __init__(self, **kwargs):
-        self.unimodfile = Path(__file__).parent / "unimod.xml"
+        self.unimodfile = PACKAGED_UNIMOD_FILE
         self.hidden = kwargs.get("hidden", True)
         node = et.parse(self.unimodfile)
         _ = node.getroot()
