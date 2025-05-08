@@ -57,3 +57,15 @@ target_version = ["py310","py311","py312","py313"]
 
 [tool.isort]
 profile = "black"
+
+[tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
+packages = ["sdrf_pipelines"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
