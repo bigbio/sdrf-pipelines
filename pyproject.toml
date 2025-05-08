@@ -59,9 +59,7 @@ target_version = ["py310","py311","py312","py313"]
 profile = "black"
 
 [tool.mypy]
-plugins = [
-  "pydantic.mypy"
-]
+plugins = ["pydantic.mypy"]
 packages = ["sdrf_pipelines"]
 
 [tool.pydantic-mypy]
