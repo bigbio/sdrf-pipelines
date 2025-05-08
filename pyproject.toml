@@ -43,6 +43,7 @@ mypy = "*"
 pre-commit = "*"
 pylint = "*"
 pytest = "*"
+pytest-datadir = "*"
 
 [tool.poetry.scripts]
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
