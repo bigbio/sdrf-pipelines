@@ -636,45 +636,46 @@ class OpenMS:
                     sample = sample_id
                     sample_id += 1
 
-            label = file2label[raw]
-            if "label free sample" in label:
+            labels = file2label[raw]
+            label_set = set(labels)
+            if "label free sample" in labels:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
-                if len(label) > 16 or "TMT134C" in label or "TMT135N" in label:
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
                     choice = self.tmt18plex
                 elif (
-                    len(label) > 11
-                    or "TMT134N" in label
-                    or "TMT133C" in label
-                    or "TMT133N" in label
-                    or "TMT132C" in label
-                    or "TMT132N" in label
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or "TMT131C" in label:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     choice = self.tmt11plex
-                elif len(label) > 6:
+                elif len(label_set) > 6:
                     choice = self.tmt10plex
                 else:
                     choice = self.tmt6plex
-                label = str(choice[label[label_index[raw]]])
+                label = str(choice[labels[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
             elif "SILAC" in ",".join(file2label[raw]):
-                if len(label) == 3:
-                    label = str(self.silac3[label[label_index[raw]].lower()])
+                if len(label_set) == 3:
+                    label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.silac2[label[label_index[raw]].lower()])
+                    label = str(self.silac2[labels[label_index[raw]].lower()])
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                    len(label) > 4
-                    or "ITRAQ113" in label
-                    or "ITRAQ118" in label
-                    or "ITRAQ119" in label
-                    or "ITRAQ121" in label
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
-                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq8plex[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
             else:
                 raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
