@@ -1,7 +1,6 @@
 import pytest
 
-from sdrf_pipelines.openms.openms import get_openms_file_name
-from sdrf_pipelines.openms.openms import parse_tolerance
+from sdrf_pipelines.openms.openms import get_openms_file_name, parse_tolerance
 
 test_functions = [
     ("file.raw", "file.mzML", "raw:mzML"),

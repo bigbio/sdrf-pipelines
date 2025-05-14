@@ -1,0 +1,9 @@
+name: vertebrates
+description: SDRF schema for vertebrate samples
+extends: default
+columns:
+  - name: characteristics[developmental stage]
+    description: Developmental stage
+    requirement: optional
+    allow_not_applicable: true
+    allow_not_available: true
