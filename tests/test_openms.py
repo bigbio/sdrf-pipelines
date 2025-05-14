@@ -1,6 +1,12 @@
 import pytest
 
-from sdrf_pipelines.openms.openms import get_openms_file_name, parse_tolerance
+from sdrf_pipelines.openms.openms import (
+    TMT_PLEXES,
+    OpenMS,
+    get_openms_file_name,
+    infer_tmtplex,
+    parse_tolerance,
+)
 
 test_functions = [
     ("file.raw", "file.mzML", "raw:mzML"),
@@ -37,3 +43,14 @@ test_tol_string = [
 @pytest.mark.parametrize("input_str,expected_tol,expected_unit", test_tol_string)
 def test_parse_tolerence(input_str, expected_tol, expected_unit):
     assert parse_tolerance(input_str) == (expected_tol, expected_unit)
+
+
+@pytest.mark.parametrize("plex_name", TMT_PLEXES)
+def test_tmt_label_inference_full_plexes(plex_name):
+    assert plex_name == infer_tmtplex(TMT_PLEXES[plex_name])
+
+
+@pytest.mark.parametrize("plex_name", TMT_PLEXES)
+def test_tmt_label_inference_from_incomplete_plexes(plex_name):
+    labels = {**TMT_PLEXES[plex_name]}
+    assert plex_name == infer_tmtplex(TMT_PLEXES[plex_name])

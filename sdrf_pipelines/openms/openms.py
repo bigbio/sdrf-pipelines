@@ -35,6 +35,28 @@ class FileToColumnEntries:
     file2technical_rep: dict[str, str] = {}
 
 
+def infer_tmtplex(label_set: set) -> str:
+    """Infer the tmt plex from a set of labels"""
+    if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
+        label = "tmt18plex"
+    elif (
+        len(label_set) > 11
+        or "TMT134N" in label_set
+        or "TMT133C" in label_set
+        or "TMT133N" in label_set
+        or "TMT132C" in label_set
+        or "TMT132N" in label_set
+    ):
+        label = "tmt16plex"
+    elif len(label_set) == 11 or "TMT131C" in label_set:
+        label = "tmt11plex"
+    elif len(label_set) > 6:
+        label = "tmt10plex"
+    else:
+        label = "tmt6plex"
+    return label
+
+
 def get_openms_file_name(raw, extension_convert: str | None = None):
     """
     Convert file name for OpenMS. If extension_convert is set, the extension will be converted to the specified format.
@@ -92,82 +114,86 @@ def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str | None, s
     return None, None
 
 
+TMT_PLEXES = {
+    "tmt18plex": {
+        "TMT126": 1,
+        "TMT127N": 2,
+        "TMT127C": 3,
+        "TMT128N": 4,
+        "TMT128C": 5,
+        "TMT129N": 6,
+        "TMT129C": 7,
+        "TMT130N": 8,
+        "TMT130C": 9,
+        "TMT131N": 10,
+        "TMT131C": 11,
+        "TMT132N": 12,
+        "TMT132C": 13,
+        "TMT133N": 14,
+        "TMT133C": 15,
+        "TMT134N": 16,
+        "TMT134C": 17,
+        "TMT135N": 18,
+    },
+    "tmt16plex": {
+        "TMT126": 1,
+        "TMT127N": 2,
+        "TMT127C": 3,
+        "TMT128N": 4,
+        "TMT128C": 5,
+        "TMT129N": 6,
+        "TMT129C": 7,
+        "TMT130N": 8,
+        "TMT130C": 9,
+        "TMT131N": 10,
+        "TMT131C": 11,
+        "TMT132N": 12,
+        "TMT132C": 13,
+        "TMT133N": 14,
+        "TMT133C": 15,
+        "TMT134N": 16,
+    },
+    "tmt11plex": {
+        "TMT126": 1,
+        "TMT127N": 2,
+        "TMT127C": 3,
+        "TMT128N": 4,
+        "TMT128C": 5,
+        "TMT129N": 6,
+        "TMT129C": 7,
+        "TMT130N": 8,
+        "TMT130C": 9,
+        "TMT131N": 10,
+        "TMT131C": 11,
+    },
+    "tmt10plex": {
+        "TMT126": 1,
+        "TMT127N": 2,
+        "TMT127C": 3,
+        "TMT128N": 4,
+        "TMT128C": 5,
+        "TMT129N": 6,
+        "TMT129C": 7,
+        "TMT130N": 8,
+        "TMT130C": 9,
+        "TMT131": 10,
+    },
+    "tmt6plex": {
+        "TMT126": 1,
+        "TMT127": 2,
+        "TMT128": 3,
+        "TMT129": 4,
+        "TMT130": 5,
+        "TMT131": 6,
+    },
+}
+
+
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
         self.warnings: dict[str, int] = {}
         self._unimod_database = UnimodDatabase()
-        self.tmt18plex = {
-            "TMT126": 1,
-            "TMT127N": 2,
-            "TMT127C": 3,
-            "TMT128N": 4,
-            "TMT128C": 5,
-            "TMT129N": 6,
-            "TMT129C": 7,
-            "TMT130N": 8,
-            "TMT130C": 9,
-            "TMT131N": 10,
-            "TMT131C": 11,
-            "TMT132N": 12,
-            "TMT132C": 13,
-            "TMT133N": 14,
-            "TMT133C": 15,
-            "TMT134N": 16,
-            "TMT134C": 17,
-            "TMT135N": 18,
-        }
-        self.tmt16plex = {
-            "TMT126": 1,
-            "TMT127N": 2,
-            "TMT127C": 3,
-            "TMT128N": 4,
-            "TMT128C": 5,
-            "TMT129N": 6,
-            "TMT129C": 7,
-            "TMT130N": 8,
-            "TMT130C": 9,
-            "TMT131N": 10,
-            "TMT131C": 11,
-            "TMT132N": 12,
-            "TMT132C": 13,
-            "TMT133N": 14,
-            "TMT133C": 15,
-            "TMT134N": 16,
-        }
-        self.tmt11plex = {
-            "TMT126": 1,
-            "TMT127N": 2,
-            "TMT127C": 3,
-            "TMT128N": 4,
-            "TMT128C": 5,
-            "TMT129N": 6,
-            "TMT129C": 7,
-            "TMT130N": 8,
-            "TMT130C": 9,
-            "TMT131N": 10,
-            "TMT131C": 11,
-        }
-        self.tmt10plex = {
-            "TMT126": 1,
-            "TMT127N": 2,
-            "TMT127C": 3,
-            "TMT128N": 4,
-            "TMT128C": 5,
-            "TMT129N": 6,
-            "TMT129C": 7,
-            "TMT130N": 8,
-            "TMT130C": 9,
-            "TMT131": 10,
-        }
-        self.tmt6plex = {
-            "TMT126": 1,
-            "TMT127": 2,
-            "TMT128": 3,
-            "TMT129": 4,
-            "TMT130": 5,
-            "TMT131": 6,
-        }
         # Hardcode enzymes from OpenMS
         self.enzymes = {
             "Glutamyl endopeptidase": "glutamyl endopeptidase",
@@ -655,35 +681,20 @@ class OpenMS:
                     sample_id += 1
 
             labels = file2label[raw]
+            labels_str = ",".join(labels)
             label_set = set(labels)
             if "label free sample" in labels:
                 label = "1"
-            elif "TMT" in ",".join(file2label[raw]):
-                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
-                    choice = self.tmt18plex
-                elif (
-                    len(label_set) > 11
-                    or "TMT134N" in label_set
-                    or "TMT133C" in label_set
-                    or "TMT133N" in label_set
-                    or "TMT132C" in label_set
-                    or "TMT132N" in label_set
-                ):
-                    choice = self.tmt16plex
-                elif len(label_set) == 11 or "TMT131C" in label_set:
-                    choice = self.tmt11plex
-                elif len(label_set) > 6:
-                    choice = self.tmt10plex
-                else:
-                    choice = self.tmt6plex
+            elif "TMT" in labels_str:
+                choice = TMT_PLEXES[infer_tmtplex(label_set)]
                 label = str(choice[labels[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
-            elif "SILAC" in ",".join(file2label[raw]):
+            elif "SILAC" in labels_str:
                 if len(label_set) == 3:
                     label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[labels[label_index[raw]].lower()])
-            elif "ITRAQ" in ",".join(file2label[raw]):
+            elif "ITRAQ" in labels_str:
                 if (
                     len(label_set) > 4
                     or "ITRAQ113" in label_set
@@ -904,39 +915,24 @@ class OpenMS:
 
             # convert sdrf's label to openms's label
             labels = file2label[raw]
+            labels_str = ",".join(labels)
             label_set = set(labels)
             if "label free sample" in labels:
                 label = "1"
 
-            elif "TMT" in ",".join(file2label[raw]):
-                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
-                    choice = self.tmt18plex
-                elif (
-                    len(label_set) > 11
-                    or "TMT134N" in label_set
-                    or "TMT133C" in label_set
-                    or "TMT133N" in label_set
-                    or "TMT132C" in label_set
-                    or "TMT132N" in label_set
-                ):
-                    choice = self.tmt16plex
-                elif len(label_set) == 11 or "TMT131C" in label_set:
-                    choice = self.tmt11plex
-                elif len(label_set) > 6:
-                    choice = self.tmt10plex
-                else:
-                    choice = self.tmt6plex
+            elif "TMT" in labels_str:
+                choice = TMT_PLEXES[infer_tmtplex(label_set)]
                 label = str(choice[labels[label_index[raw]]])
 
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
-            elif "SILAC" in ",".join(file2label[raw]):
+            elif "SILAC" in labels_str:
                 if len(label_set) == 3:
                     label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
                     label = str(self.silac2[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
-            elif "ITRAQ" in ",".join(file2label[raw]):
+            elif "ITRAQ" in labels_str:
                 if (
                     len(label_set) > 4
                     or "ITRAQ113" in label_set
@@ -1057,25 +1053,10 @@ class OpenMS:
                 continue
             raws.append(raw)
             labels = f2c.file2label[raw]
+            labels_str = ",".join(labels)
             label_set = set(labels)
-            if "TMT" in ",".join(labels):
-                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
-                    label = "tmt18plex"
-                elif (
-                    len(label_set) > 11
-                    or "TMT134N" in label_set
-                    or "TMT133C" in label_set
-                    or "TMT133N" in label_set
-                    or "TMT132C" in label_set
-                    or "TMT132N" in label_set
-                ):
-                    label = "tmt16plex"
-                elif len(label_set) == 11 or "TMT131C" in label_set:
-                    label = "tmt11plex"
-                elif len(label_set) > 6:
-                    label = "tmt10plex"
-                else:
-                    label = "tmt6plex"
+            if "TMT" in labels_str:
+                label = infer_tmtplex(label_set)
                 # add default TMT modification when sdrf with label not contains TMT modification
                 if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
                     warning_message = (
@@ -1091,9 +1072,9 @@ class OpenMS:
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(tmt_var_mod))
             elif "label free sample" in label_set:
                 label = "label free sample"
-            elif "silac" in ",".join(label_set):
+            elif "silac" in labels_str:
                 label = "SILAC"
-            elif "ITRAQ" in ",".join(label_set):
+            elif "ITRAQ" in labels_str:
                 if (
                     len(label_set) > 4
                     or "ITRAQ113" in label_set
