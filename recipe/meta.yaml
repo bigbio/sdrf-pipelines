@@ -1,7 +1,7 @@
 # recipe/meta.yaml
 package:
   name: sdrf-pipelines
-  version: "0.0.33"
+  version: "0.0.32"
 
 source:
   path: ../
