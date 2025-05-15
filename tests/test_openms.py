@@ -32,6 +32,7 @@ test_tol_string = [
     ("40Da", "40", "Da"),
     ("50da", "50", "Da"),
     ("1daaaaaa", "1", "Da"),  # good?
+    ("2mmu", "0.002", "Da"),
 ]
 
 

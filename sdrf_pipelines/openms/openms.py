@@ -77,7 +77,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
     return raw
 
 
-def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str, str]:
+def parse_tolerance(pc_tol_str: str, units=("ppm", "da", "mmu")) -> tuple[str, str]:
     """Find tolerance in string."""
     # check that only one unit is specified?
     pc_tol_str = pc_tol_str.lower()
@@ -89,7 +89,10 @@ def parse_tolerance(pc_tol_str: str, units=("ppm", "da")) -> tuple[str, str]:
                 logger.warning(msg)
             _ = float(tol)  # should be an number
             if unit == "da":
-                unit = unit.capitalize()
+                unit = "Da"
+            if unit == "mmu":
+                # convert mmu to Da
+                tol, unit = str(float(tol) * 0.001), "Da"
             return tol, unit
     return None, None
 
