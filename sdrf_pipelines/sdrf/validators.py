@@ -56,7 +56,6 @@ def register_validator(validator_name=None):
 
         # Store the class in the registry
         _VALIDATOR_REGISTRY[validator_name] = cls
-        print(f"Registered {cls.__name__} as {validator_name}")
 
         return cls
 

@@ -1,8 +1,40 @@
+import re
+from textwrap import dedent
+
 import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
 
 from .helpers import run_and_check_status_code
+
+# Regex matchin Semantic Versioning 2.0 version numbers. Adapted from https://semver.org/
+SEMVER_REGEX = dedent(
+    r"""
+    (?P<major>0|[1-9]\d*)\.
+    (?P<minor>0|[1-9]\d*)\.
+    (?P<patch>0|[1-9]\d*)
+    (?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)
+    (?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?
+    (?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+    """
+).replace("\n", "")
+
+from subprocess import run
+
+
+def test_version():
+    # We can not use CLIRunner here because it does not run the whole program and misses output generated during startup.
+    # This test fails for unexpected additional output.
+    result = run(["parse_sdrf", "--version"], capture_output=True)
+    regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
+    match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout.decode(encoding="utf-8"))
+    assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
+
+
+def test_help():
+    result = run_and_check_status_code(cli, ["--help"])
+    match = re.search("validate-sdrf\s+Command to validate the sdrf file", result.output)
+    assert match
 
 
 def test_validate_srdf_errors_on_bad_file(shared_datadir, on_tmpdir):
