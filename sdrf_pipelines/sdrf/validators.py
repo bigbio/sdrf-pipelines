@@ -72,11 +72,6 @@ def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
     return _VALIDATOR_REGISTRY.get(validator_name)
 
 
-def get_all_validators() -> dict[str, Type[SDRFValidator]]:
-    """Get all registered validators."""
-    return _VALIDATOR_REGISTRY.copy()
-
-
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
