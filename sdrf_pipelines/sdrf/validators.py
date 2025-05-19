@@ -89,7 +89,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
         errors = []
 
         if isinstance(value, str):
-            if value and value.rstrip() != value:
+            if value.rstrip() != value:
                 errors.append(
                     LogicError(
                         message="Trailing whitespace detected",
