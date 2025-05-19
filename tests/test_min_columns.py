@@ -9,7 +9,6 @@ TESTS_DIR = Path(__file__).parent
 
 
 def test_min_columns_default_schema():
-    """Test that the minimum number of columns is 7 using the default schema."""
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
