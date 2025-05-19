@@ -117,9 +117,9 @@ class SchemaRegistry:
 
         # Merge validators (append child validators to parent validators)
         if "validators" in child_schema:
-            if "validators" not in result:
-                result["validators"] = []
-            result["validators"].extend(child_schema["validators"])
+            for child_schema_validator in child_schema["validators"]:
+                if child_schema_validator not in result["validators"]:
+                    result["validators"].append(child_schema_validator)
 
         # Merge columns:
         # Add allow_not_applicable and allow_not_available to columns if not present
@@ -155,9 +155,12 @@ class SchemaRegistry:
                     if "validators" in child_col:
                         if "validators" not in merged_col:
                             merged_col["validators"] = []
-                        parent_validators = parent_col.get("validators", [])
-                        # Replace parent validators with merged ones
-                        merged_col["validators"] = parent_validators + child_col["validators"]
+
+                        # Add child validators not yet in parent
+                        child_col_validators = child_col["validators"]
+                        for child_col_validator in child_col_validators:
+                            if child_col_validator not in merged_col["validators"]:
+                                merged_col["validators"].append(child_col_validator)
 
                     result["columns"][idx] = merged_col
                 else:

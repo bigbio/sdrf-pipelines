@@ -52,7 +52,6 @@ def test_min_columns_with_reduced_columns():
             "Required column 'characteristics[disease]' is missing",
             "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon",
             r"Value '1' in column 'characteristics[age]' does not match the required pattern: (?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)",
-            r"Value '1' in column 'characteristics[age]' does not match the required pattern: (?:^(?:\d+y)?(?:\d+m)?(?:\d+d)?$)|(?:not available)|(?:not applicable)",
         )
     )
 
