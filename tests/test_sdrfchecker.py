@@ -33,7 +33,7 @@ def test_version():
 
 def test_help():
     result = run_and_check_status_code(cli, ["--help"])
-    match = re.search("validate-sdrf\s+Command to validate the sdrf file", result.output)
+    match = re.search(r"validate-sdrf\s+Command to validate the sdrf file", result.output)
     assert match
 
 
