@@ -216,7 +216,7 @@ class OntologyValidator(SDRFValidator):
                 if key == "use_ols_cache_only":
                     self.use_ols_cache_only = value
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if the term is present in the provided ontology. This method looks in the provided
         ontology _ontology_name
@@ -228,7 +228,7 @@ class OntologyValidator(SDRFValidator):
         Returns:
             List of LogicError for values that don't match the ontology terms
         """
-        terms = [self.ontology_term_parser(x) for x in series.unique()]
+        terms = [self.ontology_term_parser(x) for x in value.unique()]
         labels = []
         for term in terms:
             if self.term_name not in term:
@@ -257,7 +257,7 @@ class OntologyValidator(SDRFValidator):
         labels.append(NOT_AVAILABLE)
         labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
         labels.append(NORM)
-        validation_indexes = series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+        validation_indexes = value.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
         # Convert to indexes of the row to LogicErrors
         errors = []
@@ -267,7 +267,7 @@ class OntologyValidator(SDRFValidator):
                 errors.append(
                     LogicError(
                         message=(
-                            f"Term: {series[idx]}{column_info}, is not found in the "
+                            f"Term: {value[idx]}{column_info}, is not found in the "
                             f"given ontology list {';'.join(self.ontologies)}"
                         ),
                         row=idx,
