@@ -261,8 +261,8 @@ class OntologyValidator(SDRFValidator):
 
         # Convert to indexes of the row to LogicErrors
         errors = []
-        for idx, value in enumerate(validation_indexes):
-            if not value:
+        for idx, val in enumerate(validation_indexes):
+            if not val:
                 column_info = f" in column '{column_name}'" if column_name else ""
                 errors.append(
                     LogicError(
