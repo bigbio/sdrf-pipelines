@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Any, Optional, Type, Union
 
 import pandas as pd
@@ -324,19 +323,7 @@ class OntologyValidator(SDRFValidator):
 class PatternValidator(SDRFValidator):
     """Validator that checks if values match a regular expression pattern."""
 
-    pattern: str | None = None
-    case_sensitive: bool = True
-
-    def __init__(self, params: dict[str, Any] | None = None, **data: Any):
-        super().__init__(**data)
-
-        if params:
-            if "pattern" in params:
-                self.pattern = params["pattern"]
-            if "case_sensitive" in params:
-                self.case_sensitive = params["case_sensitive"]
-
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(self, series: pd.Series, column_name: str) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if values in the series match the specified regex pattern.
 
@@ -347,33 +334,24 @@ class PatternValidator(SDRFValidator):
         Returns:
             List of LogicError for values that don't match the pattern
         """
-        if self.pattern is None:
-            return []
 
-        # Compile the regex pattern
-        flags = 0 if self.case_sensitive else re.IGNORECASE
-        pattern = re.compile(self.pattern, flags)
+        pattern = self.params["pattern"]
+        case = self.params.get("case_sensitive", False)
 
+        series = series.astype(str)
+        not_matched = series[~series.str.match(pat=pattern, case=case)].reset_index(drop=True)
         errors = []
 
-        # Check each value in the series
-        for idx, value in enumerate(series):
-            if pd.isna(value):
-                continue
-
-            if not isinstance(value, str):
-                value = str(value)
-
-            if not pattern.match(value):
-                column_info = f" in column '{column_name}'" if column_name else ""
-                errors.append(
-                    LogicError(
-                        message=f"Value '{value}'{column_info} does not match the required pattern: {self.pattern}",
-                        row=idx,
-                        column=column_name,
-                        error_type=logging.ERROR,
-                    )
+        for idx, value in enumerate(not_matched.values, start=1):
+            column_info = f" in column '{column_name}'"
+            errors.append(
+                LogicError(
+                    message=f"Value '{value}'{column_info} does not match the required pattern: {pattern}",
+                    row=idx,
+                    column=column_name,
+                    error_type=logging.ERROR,
                 )
+            )
 
         return errors
 
