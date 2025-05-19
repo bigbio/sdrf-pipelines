@@ -99,19 +99,18 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 )
 
         elif isinstance(value, pd.DataFrame):
-            for col in value.columns:
-                if value[col].dtype == object:  # Check string columns
-                    for idx, cell_value in enumerate(value[col]):
-                        if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
-                            errors.append(
-                                LogicError(
-                                    message="Trailing whitespace detected",
-                                    value=cell_value,
-                                    row=idx,
-                                    column=col,
-                                    error_type=logging.ERROR,
-                                )
+            for col in value.select_dtypes("object").columns:
+                for idx, cell_value in enumerate(value[col]):
+                    if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
+                        errors.append(
+                            LogicError(
+                                message="Trailing whitespace detected",
+                                value=cell_value,
+                                row=idx,
+                                column=col,
+                                error_type=logging.ERROR,
                             )
+                        )
         elif isinstance(value, SDRFDataFrame):
             original_columns = value.get_original_columns()
             for col in original_columns:
