@@ -194,7 +194,7 @@ class MinimumColumns(SDRFValidator):
 class OntologyValidator(SDRFValidator):
     client: OlsClient = OlsClient()
     term_name: str = "NT"
-    ontologies: list[str] = []
+    ontologies: list[str] = Field(default_factory=list)
     error_level: int = logging.INFO
     use_ols_cache_only: bool = False
     model_config = {"arbitrary_types_allowed": True}
