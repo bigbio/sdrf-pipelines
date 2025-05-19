@@ -220,7 +220,7 @@ class SchemaValidator:
         if not schema:
             raise ValueError(f"Schema '{schema_name}' not found in registry")
 
-        errors = []
+        errors: list[LogicError] = []
 
         # Apply global validators
         for validator_config in schema.validators:
