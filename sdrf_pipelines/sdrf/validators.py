@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Type, Union
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -19,7 +19,7 @@ class SDRFValidator(BaseModel):
             self.params = params
 
     def validate(  # type: ignore[override]
-        self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
+        self, value: str | SDRFDataFrame | pd.DataFrame | pd.Series | list[str], column_name: str | None = None
     ) -> list[LogicError]:
         """
         Validate a value.
@@ -35,7 +35,7 @@ class SDRFValidator(BaseModel):
 
 
 # Global validator registry
-_VALIDATOR_REGISTRY: dict[str, Type[SDRFValidator]] = {}
+_VALIDATOR_REGISTRY: dict[str, type[SDRFValidator]] = {}
 
 
 def register_validator(validator_name=None):
@@ -67,7 +67,7 @@ def register_validator(validator_name=None):
     return decorator
 
 
-def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
+def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     """Get a validator class by type."""
     return _VALIDATOR_REGISTRY.get(validator_name)
 
@@ -76,7 +76,7 @@ def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
 class TrailingWhitespaceValidator(SDRFValidator):
 
     def validate(  # type: ignore[override]
-        self, value: Union[str, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
+        self, value: str | pd.DataFrame | pd.Series | list[str], column_name: str | None = None
     ) -> list[LogicError]:
         """
         This method validates if the provided value contains a TrailingWhiteSpace and return it
@@ -176,7 +176,7 @@ class MinimumColumns(SDRFValidator):
                     self.minimum_columns = int(value)
 
     def validate(  # type: ignore[override]
-        self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+        self, value: SDRFDataFrame | pd.DataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         errors = []
         if len(value.columns) < self.minimum_columns:
@@ -355,7 +355,7 @@ class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
     def validate(  # type: ignore[override]
-        self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+        self, df: SDRFDataFrame | pd.DataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
         Validate if columns are in the correct order in the SDRF file.
@@ -430,7 +430,7 @@ class EmptyCellValidator(SDRFValidator):
     """Validator that checks for empty cells in the SDRF file."""
 
     def validate(  # type: ignore[override]
-        self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None
+        self, df: pd.DataFrame | SDRFDataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
         Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
