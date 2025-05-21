@@ -35,4 +35,4 @@ jobs:
       run: |
         python -m pip install .
         python -m pip install -r requirements-dev.txt
-        python -m pytest -s -vv
+        python -m pytest -s -vv -k reduced

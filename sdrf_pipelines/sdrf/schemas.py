@@ -157,8 +157,9 @@ class SchemaRegistry:
                             merged_col["validators"] = []
 
                         # Add child validators not yet in parent
+                        parent_col_validators = parent_col.get("validators", [])
                         child_col_validators = child_col["validators"]
-                        for child_col_validator in child_col_validators:
+                        for child_col_validator in child_col_validators + parent_col_validators:
                             if child_col_validator not in merged_col["validators"]:
                                 merged_col["validators"].append(child_col_validator)
 
@@ -240,17 +241,30 @@ class SchemaValidator:
                     )
                 )
 
+        print(f"\n{schema.columns=}")
+        print(f"\n{df.columns=}")
+        col_to_debug = "characteristics[age]"
+
+        def debug_col(msg):
+            if column_def.name == col_to_debug:
+                print(msg)
+
         # Apply column-specific validators
         for column_def in schema.columns:
+            print(f"\nprocessing schema column {column_def}")
             if column_def.name in df.columns:
+                debug_col(f"\nfound column {repr(col_to_debug)}")
                 column_series = df[column_def.name]
 
                 # Apply specific validators defined for this column
                 for validator_config in column_def.validators:
                     validator_config.params["use_ols_cache_only"] = use_ols_cache_only
                     validator = self._create_validator_instance(validator_config)
+                    debug_col(f"created validator for column {repr(col_to_debug)} {repr(validator)}")
                     if validator:
-                        errors.extend(validator.validate(column_series, column_name=column_def.name))
+                        col_errors = validator.validate(column_series, column_name=column_def.name)
+                        debug_col(f"ERRORS FOUND IN {[e.message for e in col_errors]}")
+                        errors.extend(col_errors)
 
                 # Validate allow_not_applicable and allow_not_available properties
                 if not column_def.allow_not_applicable:
