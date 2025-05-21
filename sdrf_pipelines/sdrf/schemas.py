@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from enum import Enum
-from typing import Any, Optional, Type
+from typing import Any
 
 import pandas as pd
 import yaml
@@ -13,7 +13,7 @@ from sdrf_pipelines.sdrf.specification import NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.sdrf.validators import SDRFValidator, get_validator
 from sdrf_pipelines.utils.exceptions import LogicError
 
-_VALIDATOR_REGISTRY: dict[str, Type[SDRFValidator]] = {}
+_VALIDATOR_REGISTRY: dict[str, type[SDRFValidator]] = {}
 
 
 class RequirementLevel(str, Enum):
@@ -45,7 +45,7 @@ class SchemaDefinition(BaseModel):
 
 class SchemaRegistry:
 
-    def __init__(self, schema_dir: Optional[str] = None):
+    def __init__(self, schema_dir: str | None = None):
         self.schemas: dict[str, SchemaDefinition] = {}
         self.raw_schema_data: dict[str, dict[str, Any]] = {}  # Store raw schema data for inheritance resolution
         if schema_dir is None:
@@ -60,7 +60,7 @@ class SchemaRegistry:
 
     def _load_schema_file(self, schema_path: str) -> dict[str, Any]:
         """Load a schema file and return the raw data."""
-        with open(schema_path, "r", encoding="utf-8") as f:
+        with open(schema_path, encoding="utf-8") as f:
             if schema_path.endswith(".json"):
                 return json.load(f)
             else:  # YAML file
@@ -117,9 +117,9 @@ class SchemaRegistry:
 
         # Merge validators (append child validators to parent validators)
         if "validators" in child_schema:
-            if "validators" not in result:
-                result["validators"] = []
-            result["validators"].extend(child_schema["validators"])
+            for child_schema_validator in child_schema["validators"]:
+                if child_schema_validator not in result["validators"]:
+                    result["validators"].append(child_schema_validator)
 
         # Merge columns:
         # Add allow_not_applicable and allow_not_available to columns if not present
@@ -155,9 +155,13 @@ class SchemaRegistry:
                     if "validators" in child_col:
                         if "validators" not in merged_col:
                             merged_col["validators"] = []
-                        parent_validators = parent_col.get("validators", [])
-                        # Replace parent validators with merged ones
-                        merged_col["validators"] = parent_validators + child_col["validators"]
+
+                        # Add child validators not yet in parent
+                        parent_col_validators = parent_col.get("validators", [])
+                        child_col_validators = child_col["validators"]
+                        for child_col_validator in child_col_validators + parent_col_validators:
+                            if child_col_validator not in merged_col["validators"]:
+                                merged_col["validators"].append(child_col_validator)
 
                     result["columns"][idx] = merged_col
                 else:
@@ -182,7 +186,7 @@ class SchemaRegistry:
         self.schemas[schema_name] = schema
         logging.info("Added schema '%s' to registry", schema_name)
 
-    def get_schema(self, schema_name: str) -> Optional[SchemaDefinition]:
+    def get_schema(self, schema_name: str) -> SchemaDefinition | None:
         """Get a schema by name."""
         return self.schemas.get(schema_name)
 
@@ -197,7 +201,7 @@ class SchemaValidator:
     def __init__(self, registry: SchemaRegistry):
         self.registry = registry
 
-    def _create_validator_instance(self, validator_config: ValidatorConfig) -> Optional[SDRFValidator]:
+    def _create_validator_instance(self, validator_config: ValidatorConfig) -> SDRFValidator | None:
         """Create a validator instance from a configuration."""
         validator_name = validator_config.validator_name
         validator_params = validator_config.params
@@ -217,7 +221,7 @@ class SchemaValidator:
         if not schema:
             raise ValueError(f"Schema '{schema_name}' not found in registry")
 
-        errors = []
+        errors: list[LogicError] = []
 
         # Apply global validators
         for validator_config in schema.validators:
@@ -237,17 +241,30 @@ class SchemaValidator:
                     )
                 )
 
+        print(f"\n{schema.columns=}")
+        print(f"\n{df.columns=}")
+        col_to_debug = "characteristics[age]"
+
+        def debug_col(msg):
+            if column_def.name == col_to_debug:
+                print(msg)
+
         # Apply column-specific validators
         for column_def in schema.columns:
+            print(f"\nprocessing schema column {column_def}")
             if column_def.name in df.columns:
+                debug_col(f"\nfound column {repr(col_to_debug)}")
                 column_series = df[column_def.name]
 
                 # Apply specific validators defined for this column
                 for validator_config in column_def.validators:
                     validator_config.params["use_ols_cache_only"] = use_ols_cache_only
                     validator = self._create_validator_instance(validator_config)
+                    debug_col(f"created validator for column {repr(col_to_debug)} {repr(validator)}")
                     if validator:
-                        errors.extend(validator.validate(column_series, column_name=column_def.name))
+                        col_errors = validator.validate(column_series, column_name=column_def.name)
+                        debug_col(f"ERRORS FOUND IN {[e.message for e in col_errors]}")
+                        errors.extend(col_errors)
 
                 # Validate allow_not_applicable and allow_not_available properties
                 if not column_def.allow_not_applicable:

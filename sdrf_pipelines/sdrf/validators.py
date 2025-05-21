@@ -1,6 +1,5 @@
 import logging
-import re
-from typing import Any, Optional, Type, Union
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -20,7 +19,7 @@ class SDRFValidator(BaseModel):
             self.params = params
 
     def validate(  # type: ignore[override]
-        self, value: Union[str, SDRFDataFrame, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
+        self, value: str | SDRFDataFrame | pd.DataFrame | pd.Series | list[str], column_name: str | None = None
     ) -> list[LogicError]:
         """
         Validate a value.
@@ -36,7 +35,7 @@ class SDRFValidator(BaseModel):
 
 
 # Global validator registry
-_VALIDATOR_REGISTRY: dict[str, Type[SDRFValidator]] = {}
+_VALIDATOR_REGISTRY: dict[str, type[SDRFValidator]] = {}
 
 
 def register_validator(validator_name=None):
@@ -68,21 +67,16 @@ def register_validator(validator_name=None):
     return decorator
 
 
-def get_validator(validator_name: str) -> Optional[Type[SDRFValidator]]:
+def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     """Get a validator class by type."""
     return _VALIDATOR_REGISTRY.get(validator_name)
-
-
-def get_all_validators() -> dict[str, Type[SDRFValidator]]:
-    """Get all registered validators."""
-    return _VALIDATOR_REGISTRY.copy()
 
 
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
     def validate(  # type: ignore[override]
-        self, value: Union[str, pd.DataFrame, pd.Series, list[str]], column_name: str | None = None
+        self, value: str | pd.DataFrame | pd.Series | list[str], column_name: str | None = None
     ) -> list[LogicError]:
         """
         This method validates if the provided value contains a TrailingWhiteSpace and return it
@@ -95,7 +89,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
         errors = []
 
         if isinstance(value, str):
-            if value and value.rstrip() != value:
+            if value.rstrip() != value:
                 errors.append(
                     LogicError(
                         message="Trailing whitespace detected",
@@ -105,19 +99,18 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 )
 
         elif isinstance(value, pd.DataFrame):
-            for col in value.columns:
-                if value[col].dtype == object:  # Check string columns
-                    for idx, cell_value in enumerate(value[col]):
-                        if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
-                            errors.append(
-                                LogicError(
-                                    message="Trailing whitespace detected",
-                                    value=cell_value,
-                                    row=idx,
-                                    column=col,
-                                    error_type=logging.ERROR,
-                                )
+            for col in value.select_dtypes("object").columns:
+                for idx, cell_value in enumerate(value[col]):
+                    if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
+                        errors.append(
+                            LogicError(
+                                message="Trailing whitespace detected",
+                                value=cell_value,
+                                row=idx,
+                                column=col,
+                                error_type=logging.ERROR,
                             )
+                        )
         elif isinstance(value, SDRFDataFrame):
             original_columns = value.get_original_columns()
             for col in original_columns:
@@ -183,7 +176,7 @@ class MinimumColumns(SDRFValidator):
                     self.minimum_columns = int(value)
 
     def validate(  # type: ignore[override]
-        self, value: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+        self, value: SDRFDataFrame | pd.DataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         errors = []
         if len(value.columns) < self.minimum_columns:
@@ -200,7 +193,7 @@ class MinimumColumns(SDRFValidator):
 class OntologyValidator(SDRFValidator):
     client: OlsClient = OlsClient()
     term_name: str = "NT"
-    ontologies: list[str] = []
+    ontologies: list[str] = Field(default_factory=list)
     error_level: int = logging.INFO
     use_ols_cache_only: bool = False
     model_config = {"arbitrary_types_allowed": True}
@@ -222,7 +215,7 @@ class OntologyValidator(SDRFValidator):
                 if key == "use_ols_cache_only":
                     self.use_ols_cache_only = value
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if the term is present in the provided ontology. This method looks in the provided
         ontology _ontology_name
@@ -234,7 +227,7 @@ class OntologyValidator(SDRFValidator):
         Returns:
             List of LogicError for values that don't match the ontology terms
         """
-        terms = [self.ontology_term_parser(x) for x in series.unique()]
+        terms = [self.ontology_term_parser(x) for x in value.unique()]
         labels = []
         for term in terms:
             if self.term_name not in term:
@@ -263,17 +256,17 @@ class OntologyValidator(SDRFValidator):
         labels.append(NOT_AVAILABLE)
         labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
         labels.append(NORM)
-        validation_indexes = series.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+        validation_indexes = value.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
 
         # Convert to indexes of the row to LogicErrors
         errors = []
-        for idx, value in enumerate(validation_indexes):
-            if not value:
+        for idx, val in enumerate(validation_indexes):
+            if not val:
                 column_info = f" in column '{column_name}'" if column_name else ""
                 errors.append(
                     LogicError(
                         message=(
-                            f"Term: {series[idx]}{column_info}, is not found in the "
+                            f"Term: {value[idx]}{column_info}, is not found in the "
                             f"given ontology list {';'.join(self.ontologies)}"
                         ),
                         row=idx,
@@ -324,19 +317,7 @@ class OntologyValidator(SDRFValidator):
 class PatternValidator(SDRFValidator):
     """Validator that checks if values match a regular expression pattern."""
 
-    pattern: str | None = None
-    case_sensitive: bool = True
-
-    def __init__(self, params: dict[str, Any] | None = None, **data: Any):
-        super().__init__(**data)
-
-        if params:
-            if "pattern" in params:
-                self.pattern = params["pattern"]
-            if "case_sensitive" in params:
-                self.case_sensitive = params["case_sensitive"]
-
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+    def validate(self, series: pd.Series, column_name: str) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if values in the series match the specified regex pattern.
 
@@ -347,33 +328,24 @@ class PatternValidator(SDRFValidator):
         Returns:
             List of LogicError for values that don't match the pattern
         """
-        if self.pattern is None:
-            return []
 
-        # Compile the regex pattern
-        flags = 0 if self.case_sensitive else re.IGNORECASE
-        pattern = re.compile(self.pattern, flags)
+        pattern = self.params["pattern"]
+        case = self.params.get("case_sensitive", False)
 
+        series = series.astype(str)
+        not_matched = series[~series.str.match(pat=pattern, case=case)].reset_index(drop=True)
         errors = []
 
-        # Check each value in the series
-        for idx, value in enumerate(series):
-            if pd.isna(value):
-                continue
-
-            if not isinstance(value, str):
-                value = str(value)
-
-            if not pattern.match(value):
-                column_info = f" in column '{column_name}'" if column_name else ""
-                errors.append(
-                    LogicError(
-                        message=f"Value '{value}'{column_info} does not match the required pattern: {self.pattern}",
-                        row=idx,
-                        column=column_name,
-                        error_type=logging.ERROR,
-                    )
+        for idx, value in enumerate(not_matched.values, start=1):
+            column_info = f" in column '{column_name}'"
+            errors.append(
+                LogicError(
+                    message=f"Value '{value}'{column_info} does not match the required pattern: {pattern}",
+                    row=idx,
+                    column=column_name,
+                    error_type=logging.ERROR,
                 )
+            )
 
         return errors
 
@@ -383,7 +355,7 @@ class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
     def validate(  # type: ignore[override]
-        self, df: Union[SDRFDataFrame, pd.DataFrame], column_name: str | None = None
+        self, df: SDRFDataFrame | pd.DataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
         Validate if columns are in the correct order in the SDRF file.
@@ -458,7 +430,7 @@ class EmptyCellValidator(SDRFValidator):
     """Validator that checks for empty cells in the SDRF file."""
 
     def validate(  # type: ignore[override]
-        self, df: Union[pd.DataFrame, SDRFDataFrame], column_name: str | None = None
+        self, df: pd.DataFrame | SDRFDataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
         Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.

@@ -2,7 +2,7 @@ import difflib
 import os
 from typing import List
 
-from click import BaseCommand
+from click import Command
 from click.testing import CliRunner, Result
 
 
@@ -19,7 +19,7 @@ def compare_files(file1: os.PathLike, file2: os.PathLike) -> List[str]:
     return out
 
 
-def run_and_check_status_code(command: BaseCommand, args: List[str], status_code: int = 0) -> Result:
+def run_and_check_status_code(command: Command, args: List[str], status_code: int = 0) -> Result:
     runner = CliRunner()
     result = runner.invoke(command, args)
 
