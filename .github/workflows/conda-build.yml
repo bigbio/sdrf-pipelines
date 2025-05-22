@@ -27,6 +27,10 @@ jobs:
           python -V
           conda install conda-build conda-verify anaconda-client
 
+      - name: Verify conda recipe
+        run: |
+          conda-verify .
+
       - name: Build the sdrf-pipelines package
         run: |
           conda build --package-format .tar.bz2 recipe
