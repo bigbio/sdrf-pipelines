@@ -4,17 +4,13 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.8
-  - conda-build
-  - anaconda-client
-  - pandas
   - click
-  - requests
-  - pyyaml
-  - numpy
   - defusedxml
+  - numpy
+  - pandas>=2.1
   - pyarrow
+  - python>=3.10
   - python-duckdb
+  - pyyaml
   - rdflib
-  - pandas_schema
-
+  - requests

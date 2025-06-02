@@ -8,15 +8,20 @@ import pandas as pd
 class Msstats:
     def __init__(self) -> None:
         """Convert sdrf to msstats annotation file (label free sample)."""
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
-        self, sdrf_file, split_by_columns, annotation_path, openswathtomsstats, maxqtomsstats
+        self,
+        sdrf_file,
+        split_by_columns,
+        annotation_path,
+        openswathtomsstats,
+        maxqtomsstats,
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
         data = {}
         condition = []
         Experiments = []
@@ -69,7 +74,7 @@ class Msstats:
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
-                if source_name in sample_id_map.keys():
+                if source_name in sample_id_map:
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
