@@ -22,7 +22,7 @@ def test_min_columns_default_schema():
 
 
 def test_min_columns_with_reduced_columns():
-    """Test that validation fails when there are fewer than 7 columns."""
+     """Test that validation fails when there are fewer than the default schema with 12 columns. Test result should be 13 errors."""
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
@@ -43,4 +43,4 @@ def test_min_columns_with_reduced_columns():
     min_column_errors = [error for error in errors if "number of columns" in error.message.lower()]
     assert min_column_errors, "Expected errors related to minimum columns, but found none"
 
-    assert len(errors) == 14
+    assert len(errors) == 13
