@@ -20,7 +20,8 @@ def test_min_columns_default_schema():
 
 
 def test_min_columns_with_reduced_columns():
-    """Test that validation fails when there are fewer than 7 columns."""
+    """Test that validation fails when there are fewer than the default schema with 12 columns.
+    Test result should be 13 errors."""
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
@@ -54,5 +55,5 @@ def test_min_columns_with_reduced_columns():
             r"Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\d+y)(?:\d+m)?(?:\d+d)?|(?:\d+y)?(?:\d+m)(?:\d+d)?|(?:\d+y)?(?:\d+m)?(?:\d+d)|(?:not available)|(?:not applicable))$",
         )
     )
-
     assert error_name_counts == expected_error_name_counts
+
