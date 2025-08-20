@@ -44,7 +44,7 @@ def test_min_columns_with_reduced_columns():
             "Trailing whitespace detected in column name",
             "Trailing whitespace detected",
             "Required column 'characteristics[biological replicate]' is missing",
-            "Required column 'technology name' is missing",
+            "Required column 'technology type' is missing",
             "Required column 'comment[technical replicate]' is missing",
             "Required column 'comment[fraction identifier]' is missing",
             "Required column 'comment[label]' is missing",
@@ -56,4 +56,3 @@ def test_min_columns_with_reduced_columns():
         )
     )
     assert error_name_counts == expected_error_name_counts
-
