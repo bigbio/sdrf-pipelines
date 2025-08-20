@@ -70,8 +70,8 @@ columns:
     cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
-  - name: technology name
-    description: Technology name
+  - name: technology type
+    description: Technology type
     requirement: required
     cardinality: unique
     allow_not_applicable: false
