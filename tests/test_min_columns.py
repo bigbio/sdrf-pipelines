@@ -1,3 +1,4 @@
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -9,15 +10,12 @@ TESTS_DIR = Path(__file__).parent
 
 
 def test_min_columns_default_schema():
-    """Test that the minimum number of columns is 7 using the default schema."""
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "default")
     num_colums = sdrf_df.get_dataframe_columns()
-    print(f"Using test file: {test_file} with {len(num_colums)} columns")
-
     assert len(errors) == 138
 
 
@@ -39,9 +37,22 @@ def test_min_columns_with_reduced_columns():
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
     errors = validator.validate(sdrf_df, "default")
-    numb_column = sdrf_df.get_dataframe_columns()
-    print(f"Using dataframe with {len(numb_column)} columns")
-    min_column_errors = [error for error in errors if "number of columns" in error.message.lower()]
-    assert min_column_errors, "Expected errors related to minimum columns, but found none"
-
-    assert len(errors) == 13
+    error_name_counts = Counter((error.message for error in errors))
+    expected_error_name_counts = Counter(
+        (
+            "The number of columns is lower than the mandatory number 12",
+            "Trailing whitespace detected in column name",
+            "Trailing whitespace detected",
+            "Required column 'characteristics[biological replicate]' is missing",
+            "Required column 'technology type' is missing",
+            "Required column 'comment[technical replicate]' is missing",
+            "Required column 'comment[fraction identifier]' is missing",
+            "Required column 'comment[label]' is missing",
+            "Required column 'comment[data file]' is missing",
+            "Required column 'comment[instrument]' is missing",
+            "Required column 'characteristics[disease]' is missing",
+            "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon",
+            r"Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\d+y)(?:\d+m)?(?:\d+d)?|(?:\d+y)?(?:\d+m)(?:\d+d)?|(?:\d+y)?(?:\d+m)?(?:\d+d)|(?:not available)|(?:not applicable))$",
+        )
+    )
+    assert error_name_counts == expected_error_name_counts

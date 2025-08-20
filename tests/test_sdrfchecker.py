@@ -33,7 +33,7 @@ def test_version():
 
 def test_help():
     result = run_and_check_status_code(cli, ["--help"])
-    match = re.search("validate-sdrf\s+Command to validate the sdrf file", result.output)
+    match = re.search(r"validate-sdrf\s+Command to validate the sdrf file", result.output)
     assert match
 
 
@@ -98,4 +98,4 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     """
     test_sdrf = shared_datadir / file_subpath
     result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)])
-    assert "ERROR" not in result.output
+    assert "ERRORS FOUND IN []" in result.output
