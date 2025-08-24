@@ -1,4 +1,5 @@
 import re
+import shutil
 from textwrap import dedent
 
 import pytest
@@ -25,7 +26,9 @@ from subprocess import run
 def test_version():
     # We can not use CLIRunner here because it does not run the whole program and misses output generated during startup.
     # This test fails for unexpected additional output.
-    result = run(["parse_sdrf", "--version"], capture_output=True)
+    parse_sdrf_path = shutil.which("parse_sdrf")
+    assert parse_sdrf_path is not None
+    result = run([parse_sdrf_path, "--version"], capture_output=True)
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
     match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout.decode(encoding="utf-8"))
     assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
