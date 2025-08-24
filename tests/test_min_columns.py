@@ -15,7 +15,6 @@ def test_min_columns_default_schema():
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "default")
-    num_colums = sdrf_df.get_dataframe_columns()
     assert len(errors) == 138
 
 
