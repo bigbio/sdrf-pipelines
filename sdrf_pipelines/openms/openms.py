@@ -98,7 +98,6 @@ def get_openms_file_name(raw, extension_convert: str | None = None):
 
 
 def parse_tolerance(pc_tol_str: str, units=("ppm", "da", "mmu")) -> tuple[str | None, str | None]:
-
     """Find tolerance in string."""
     # check that only one unit is specified?
     pc_tol_str = pc_tol_str.lower()
