@@ -106,71 +106,76 @@ class SchemaRegistry:
 
         return processed_data
 
-    def _merge_schemas(self, parent_schema: dict[str, Any], child_schema: dict[str, Any]) -> dict[str, Any]:
-        """Merge a child schema with its parent schema."""
-        result = parent_schema.copy()
-
-        # Override basic properties with child values
+    def _merge_basic_properties(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
         for key in ["name", "description"]:
             if key in child_schema:
                 result[key] = child_schema[key]
 
-        # Merge validators (append child validators to parent validators)
+    def _merge_schema_validators(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
         if "validators" in child_schema:
             for child_schema_validator in child_schema["validators"]:
                 if child_schema_validator not in result["validators"]:
                     result["validators"].append(child_schema_validator)
 
-        # Merge columns:
-        # Add allow_not_applicable and allow_not_available to columns if not present
-        for col in result["columns"]:
+    def _ensure_column_defaults(self, columns: list[dict[str, Any]]) -> None:
+        for col in columns:
             if "allow_not_applicable" not in col:
                 col["allow_not_applicable"] = False
             if "allow_not_available" not in col:
                 col["allow_not_available"] = False
-        # 1. Keep all parent columns that aren't overridden by child
-        # 2. Add child columns, overriding parent columns with the same name
-        if "columns" in child_schema:
-            if "columns" not in result:
-                result["columns"] = []
 
-            # Create a lookup of columns by name for faster access
-            parent_columns_by_name = {col["name"]: (i, col) for i, col in enumerate(result["columns"])}
+    def _merge_column_validators(
+        self, merged_col: dict[str, Any], parent_col: dict[str, Any], child_col: dict[str, Any]
+    ) -> None:
+        if "validators" in child_col:
+            if "validators" not in merged_col:
+                merged_col["validators"] = []
 
-            for child_col in child_schema["columns"]:
-                col_name = child_col["name"]
-                if col_name in parent_columns_by_name:
-                    # Override existing column
-                    idx, parent_col = parent_columns_by_name[col_name]
-                    merged_col = parent_col.copy()
-                    merged_col.update(child_col)
+            parent_col_validators = parent_col.get("validators", [])
+            child_col_validators = child_col["validators"]
+            for validator in child_col_validators + parent_col_validators:
+                if validator not in merged_col["validators"]:
+                    merged_col["validators"].append(validator)
 
-                    # Handle allow_not_applicable and allow_not_available
-                    if "allow_not_applicable" in child_col:
-                        merged_col["allow_not_applicable"] = child_col["allow_not_applicable"]
-                    if "allow_not_available" in child_col:
-                        merged_col["allow_not_available"] = child_col["allow_not_available"]
+    def _merge_single_column(self, parent_col: dict[str, Any], child_col: dict[str, Any]) -> dict[str, Any]:
+        merged_col = parent_col.copy()
+        merged_col.update(child_col)
 
-                    # Special handling for validators - append child validators to parent validators
-                    if "validators" in child_col:
-                        if "validators" not in merged_col:
-                            merged_col["validators"] = []
+        for key in ["allow_not_applicable", "allow_not_available"]:
+            if key in child_col:
+                merged_col[key] = child_col[key]
 
-                        # Add child validators not yet in parent
-                        parent_col_validators = parent_col.get("validators", [])
-                        child_col_validators = child_col["validators"]
-                        for child_col_validator in child_col_validators + parent_col_validators:
-                            if child_col_validator not in merged_col["validators"]:
-                                merged_col["validators"].append(child_col_validator)
+        self._merge_column_validators(merged_col, parent_col, child_col)
+        return merged_col
 
-                    result["columns"][idx] = merged_col
-                else:
-                    # Add new column
-                    result["columns"].append(child_col)
+    def _merge_columns(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
+        self._ensure_column_defaults(result["columns"])
 
-        # Preserve extends field for reference but it's not needed for processing anymore
+        if "columns" not in child_schema:
+            return
+
+        if "columns" not in result:
+            result["columns"] = []
+
+        parent_columns_by_name = {col["name"]: (i, col) for i, col in enumerate(result["columns"])}
+
+        for child_col in child_schema["columns"]:
+            col_name = child_col["name"]
+            if col_name in parent_columns_by_name:
+                idx, parent_col = parent_columns_by_name[col_name]
+                merged_col = self._merge_single_column(parent_col, child_col)
+                result["columns"][idx] = merged_col
+            else:
+                result["columns"].append(child_col)
+
+    def _merge_schemas(self, parent_schema: dict[str, Any], child_schema: dict[str, Any]) -> dict[str, Any]:
+        result = parent_schema.copy()
+
+        self._merge_basic_properties(result, child_schema)
+        self._merge_schema_validators(result, child_schema)
+        self._merge_columns(result, child_schema)
+
         result["extends"] = child_schema.get("extends")
-
         return result
 
     def add_schema(self, schema_name: str, schema_data: dict[str, Any]):
@@ -213,24 +218,21 @@ class SchemaValidator:
 
         return validator_class(params=validator_params)
 
-    def validate(
-        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False
+    def _apply_global_validators(
+        self, df: pd.DataFrame | SDRFDataFrame, schema: SchemaDefinition, use_ols_cache_only: bool
     ) -> list[LogicError]:
-        """Validate a DataFrame against a schema."""
-        schema = self.registry.get_schema(schema_name)
-        if not schema:
-            raise ValueError(f"Schema '{schema_name}' not found in registry")
-
-        errors: list[LogicError] = []
-
-        # Apply global validators
+        errors = []
         for validator_config in schema.validators:
             validator_config.params["use_ols_cache_only"] = use_ols_cache_only
             validator = self._create_validator_instance(validator_config)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
+        return errors
 
-        # Validate required columns exist
+    def _validate_required_columns(
+        self, df: pd.DataFrame | SDRFDataFrame, schema: SchemaDefinition
+    ) -> list[LogicError]:
+        errors = []
         required_columns = [col.name for col in schema.columns if col.requirement == RequirementLevel.REQUIRED]
         for col_name in required_columns:
             if col_name not in df.columns:
@@ -240,6 +242,85 @@ class SchemaValidator:
                         error_type=logging.ERROR,
                     )
                 )
+        return errors
+
+    def _apply_column_validators(
+        self, column_series: pd.Series, column_def: ColumnDefinition, use_ols_cache_only: bool, debug_col
+    ) -> list[LogicError]:
+        errors = []
+        for validator_config in column_def.validators:
+            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
+            validator = self._create_validator_instance(validator_config)
+            debug_col(f"created validator for column {repr('characteristics[age]')} {repr(validator)}")
+            if validator:
+                col_errors = validator.validate(column_series, column_name=column_def.name)
+                debug_col(f"ERRORS FOUND IN {[e.message for e in col_errors]}")
+                errors.extend(col_errors)
+        return errors
+
+    def _validate_not_applicable_values(
+        self, column_series: pd.Series, column_def: ColumnDefinition
+    ) -> list[LogicError]:
+        errors = []
+        if not column_def.allow_not_applicable:
+            str_series = column_series.fillna("").astype(str)
+            not_applicable_values = str_series[str_series.str.lower().str.contains(NOT_APPLICABLE)]
+            if not not_applicable_values.empty:
+                errors.append(
+                    LogicError(
+                        message=(
+                            f"Column '{column_def.name}' contains 'not applicable' values, "
+                            "which are not allowed for this column"
+                        ),
+                        error_type=logging.ERROR,
+                    )
+                )
+        return errors
+
+    def _validate_not_available_values(
+        self, column_series: pd.Series, column_def: ColumnDefinition
+    ) -> list[LogicError]:
+        errors = []
+        if not column_def.allow_not_available:
+            str_series = column_series.fillna("").astype(str)
+            not_available_values = str_series[str_series.str.lower().str.contains(NOT_AVAILABLE)]
+            if not not_available_values.empty:
+                errors.append(
+                    LogicError(
+                        message=(
+                            f"Column '{column_def.name}' contains 'not available' values, "
+                            "which are not allowed for this column"
+                        ),
+                        error_type=logging.ERROR,
+                    )
+                )
+        return errors
+
+    def _process_column_validation(
+        self, df: pd.DataFrame | SDRFDataFrame, column_def: ColumnDefinition, use_ols_cache_only: bool, debug_col
+    ) -> list[LogicError]:
+        errors = []
+        if column_def.name in df.columns:
+            debug_col(f"\nfound column {repr('characteristics[age]')}")
+            column_series = df[column_def.name]
+
+            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, debug_col))
+            errors.extend(self._validate_not_applicable_values(column_series, column_def))
+            errors.extend(self._validate_not_available_values(column_series, column_def))
+
+        return errors
+
+    def validate(
+        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False
+    ) -> list[LogicError]:
+        schema = self.registry.get_schema(schema_name)
+        if not schema:
+            raise ValueError(f"Schema '{schema_name}' not found in registry")
+
+        errors: list[LogicError] = []
+
+        errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only))
+        errors.extend(self._validate_required_columns(df, schema))
 
         print(f"\n{schema.columns=}")
         print(f"\n{df.columns=}")
@@ -249,53 +330,9 @@ class SchemaValidator:
             if column_def.name == col_to_debug:
                 print(msg)
 
-        # Apply column-specific validators
         for column_def in schema.columns:
             print(f"\nprocessing schema column {column_def}")
-            if column_def.name in df.columns:
-                debug_col(f"\nfound column {repr(col_to_debug)}")
-                column_series = df[column_def.name]
-
-                # Apply specific validators defined for this column
-                for validator_config in column_def.validators:
-                    validator_config.params["use_ols_cache_only"] = use_ols_cache_only
-                    validator = self._create_validator_instance(validator_config)
-                    debug_col(f"created validator for column {repr(col_to_debug)} {repr(validator)}")
-                    if validator:
-                        col_errors = validator.validate(column_series, column_name=column_def.name)
-                        debug_col(f"ERRORS FOUND IN {[e.message for e in col_errors]}")
-                        errors.extend(col_errors)
-
-                # Validate allow_not_applicable and allow_not_available properties
-                if not column_def.allow_not_applicable:
-                    # Handle potential NaN values by converting to string first
-                    str_series = column_series.fillna("").astype(str)
-                    not_applicable_values = str_series[str_series.str.lower().str.contains(NOT_APPLICABLE)]
-                    if not not_applicable_values.empty:
-                        errors.append(
-                            LogicError(
-                                message=(
-                                    f"Column '{column_def.name}' contains 'not applicable' values, "
-                                    "which are not allowed for this column"
-                                ),
-                                error_type=logging.ERROR,
-                            )
-                        )
-
-                if not column_def.allow_not_available:
-                    # Handle potential NaN values by converting to string first
-                    str_series = column_series.fillna("").astype(str)
-                    not_available_values = str_series[str_series.str.lower().str.contains(NOT_AVAILABLE)]
-                    if not not_available_values.empty:
-                        errors.append(
-                            LogicError(
-                                message=(
-                                    f"Column '{column_def.name}' contains 'not available' values, "
-                                    "which are not allowed for this column"
-                                ),
-                                error_type=logging.ERROR,
-                            )
-                        )
+            errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, debug_col))
 
         return errors
 

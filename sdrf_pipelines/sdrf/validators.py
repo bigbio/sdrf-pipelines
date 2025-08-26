@@ -75,6 +75,72 @@ def get_validator(validator_name: str) -> type[SDRFValidator] | None:
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
+    def _has_trailing_whitespace(self, text: str) -> bool:
+        return isinstance(text, str) and bool(text) and text.rstrip() != text
+
+    def _create_trailing_whitespace_error(
+        self,
+        value: str,
+        row: int | None = None,
+        column: str | None = None,
+        message: str = "Trailing whitespace detected",
+    ) -> LogicError:
+        return LogicError(
+            message=message,
+            value=value,
+            row=row if row is not None else -1,
+            column=column,
+            error_type=logging.ERROR,
+        )
+
+    def _validate_string(self, value: str) -> list[LogicError]:
+        if self._has_trailing_whitespace(value):
+            return [self._create_trailing_whitespace_error(value)]
+        return []
+
+    def _validate_dataframe(self, value: pd.DataFrame) -> list[LogicError]:
+        errors = []
+        for col in value.select_dtypes("object").columns:
+            for idx, cell_value in enumerate(value[col]):
+                if self._has_trailing_whitespace(cell_value):
+                    errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
+        return errors
+
+    def _validate_sdrf_dataframe(self, value: SDRFDataFrame) -> list[LogicError]:
+        errors = []
+
+        # Check column names
+        original_columns = value.get_original_columns()
+        for col in original_columns:
+            if col.rstrip() != col:
+                errors.append(
+                    self._create_trailing_whitespace_error(col, message="Trailing whitespace detected in column name")
+                )
+
+        # Check cell values
+        for col in value.columns:
+            if value[col].dtype == object:
+                for idx, cell_value in enumerate(value[col]):
+                    if self._has_trailing_whitespace(cell_value):
+                        errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
+
+        return errors
+
+    def _validate_series(self, value: pd.Series) -> list[LogicError]:
+        errors = []
+        if value.dtype == object:
+            for idx, cell_value in enumerate(value):
+                if self._has_trailing_whitespace(cell_value):
+                    errors.append(self._create_trailing_whitespace_error(cell_value, row=idx))
+        return errors
+
+    def _validate_list(self, value: list[str]) -> list[LogicError]:
+        errors = []
+        for idx, item in enumerate(value):
+            if self._has_trailing_whitespace(item):
+                errors.append(self._create_trailing_whitespace_error(item, row=idx))
+        return errors
+
     def validate(  # type: ignore[override]
         self, value: str | pd.DataFrame | pd.Series | list[str], column_name: str | None = None
     ) -> list[LogicError]:
@@ -86,81 +152,19 @@ class TrailingWhitespaceValidator(SDRFValidator):
             value: The value to validate
             column_name: The name of the column being validated (if applicable)
         """
-        errors = []
-
-        if isinstance(value, str):
-            if value.rstrip() != value:
-                errors.append(
-                    LogicError(
-                        message="Trailing whitespace detected",
-                        value=value,
-                        error_type=logging.ERROR,
-                    )
-                )
-
-        elif isinstance(value, pd.DataFrame):
-            for col in value.select_dtypes("object").columns:
-                for idx, cell_value in enumerate(value[col]):
-                    if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
-                        errors.append(
-                            LogicError(
-                                message="Trailing whitespace detected",
-                                value=cell_value,
-                                row=idx,
-                                column=col,
-                                error_type=logging.ERROR,
-                            )
-                        )
-        elif isinstance(value, SDRFDataFrame):
-            original_columns = value.get_original_columns()
-            for col in original_columns:
-                if col.rstrip() != col:
-                    errors.append(
-                        LogicError(
-                            message="Trailing whitespace detected in column name",
-                            value=col,
-                            error_type=logging.ERROR,
-                        )
-                    )
-            for col in value.columns:
-                if value[col].dtype == object:  # Check string columns
-                    for idx, cell_value in enumerate(value[col]):
-                        if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
-                            errors.append(
-                                LogicError(
-                                    message="Trailing whitespace detected",
-                                    value=cell_value,
-                                    row=idx,
-                                    column=col,
-                                    error_type=logging.ERROR,
-                                )
-                            )
-        elif isinstance(value, pd.Series):
-            if value.dtype == object:  # Check if Series contains strings
-                for idx, cell_value in enumerate(value):
-                    if isinstance(cell_value, str) and cell_value and cell_value.rstrip() != cell_value:
-                        errors.append(
-                            LogicError(
-                                message="Trailing whitespace detected",
-                                value=cell_value,
-                                row=idx,
-                                error_type=logging.ERROR,
-                            )
-                        )
-
-        elif isinstance(value, list):
-            for idx, item in enumerate(value):
-                if isinstance(item, str) and item and item.rstrip() != item:
-                    errors.append(
-                        LogicError(
-                            message="Trailing whitespace detected",
-                            value=item,
-                            row=idx,
-                            error_type=logging.ERROR,
-                        )
-                    )
-
-        return errors
+        match value:
+            case str():
+                return self._validate_string(value)
+            case pd.DataFrame():
+                return self._validate_dataframe(value)
+            case SDRFDataFrame():
+                return self._validate_sdrf_dataframe(value)
+            case pd.Series():
+                return self._validate_series(value)
+            case list():
+                return self._validate_list(value)
+            case _:
+                return []
 
 
 @register_validator(validator_name="min_columns")

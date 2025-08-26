@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 from textwrap import dedent
@@ -28,9 +29,13 @@ def test_version():
     # This test fails for unexpected additional output.
     parse_sdrf_path = shutil.which("parse_sdrf")
     assert parse_sdrf_path is not None
-    result = run([parse_sdrf_path, "--version"], capture_output=True)
+
+    # Validate that the path is safe and expected
+    assert os.path.isfile(parse_sdrf_path) and os.access(parse_sdrf_path, os.X_OK)
+
+    result = run([parse_sdrf_path, "--version"], capture_output=True, text=True, check=False, timeout=30)
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
-    match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout.decode(encoding="utf-8"))
+    match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout)
     assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
 
 
