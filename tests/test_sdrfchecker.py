@@ -46,7 +46,7 @@ def test_version():
         shell=False,  # Explicitly disable shell to prevent injection
     )
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
-    match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout)
+    match = re.fullmatch(regex, result.stdout)
     assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
 
 
