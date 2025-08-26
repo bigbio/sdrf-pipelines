@@ -358,6 +358,77 @@ class PatternValidator(SDRFValidator):
 class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
+    def _check_characteristics_before_assay(self, cnames: list[str], assay_index: int) -> list[LogicError]:
+        errors = []
+        characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
+        if characteristics_after_assay:
+            error_message = f"All characteristics columns must be before 'assay name'. Found after: {', '.join(characteristics_after_assay)}"
+            errors.append(LogicError(message=error_message, error_type=logging.ERROR))
+        return errors
+
+    def _validate_column_before_assay(self, column: str, idx: int, assay_index: int) -> tuple[str, int | None]:
+        error_message, error_type = "", None
+
+        if "comment" in column:
+            error_message = f"The column '{column}' cannot be before the assay name"
+            error_type = logging.ERROR
+        elif "technology type" in column:
+            error_message = f"The column '{column}' must be immediately after the assay name"
+            if assay_index - idx > 1:
+                error_type = logging.ERROR
+            else:
+                error_type = logging.WARNING
+
+        return error_message, error_type
+
+    def _validate_column_after_assay(self, column: str, idx: int, assay_index: int) -> tuple[str, int | None]:
+        error_message, error_type = "", None
+
+        if "characteristics" in column or ("material type" in column and "factor value" not in column):
+            error_message = f"The column '{column}' cannot be after the assay name"
+            error_type = logging.ERROR
+        elif "technology type" in column and idx > assay_index + 1:
+            error_message = f"The column '{column}' must be immediately after the assay name"
+            error_type = logging.ERROR
+
+        return error_message, error_type
+
+    def _validate_individual_columns(self, cnames: list[str], assay_index: int) -> tuple[list[LogicError], int | None]:
+        errors = []
+        factor_index = None
+
+        for idx, column in enumerate(cnames):
+            if idx < assay_index:
+                error_message, error_type = self._validate_column_before_assay(column, idx, assay_index)
+            else:
+                error_message, error_type = self._validate_column_after_assay(column, idx, assay_index)
+
+            if error_type is not None:
+                errors.append(LogicError(message=error_message, error_type=error_type))
+
+            if "factor value" in column and factor_index is None:
+                factor_index = idx
+
+        return errors, factor_index
+
+    def _validate_factor_columns(self, cnames: list[str], factor_index: int) -> list[LogicError]:
+        errors = []
+        temp: list[str] = []
+        error = []
+
+        for column in cnames[factor_index:]:
+            if "comment" in column or "characteristics" in column:
+                error.extend(temp)
+                temp = []
+            elif "factor value" in column:
+                temp.append(column)
+
+        if len(error):
+            error_message = f"The following factor column should be last: {', '.join(error)}"
+            errors.append(LogicError(message=error_message, error_type=logging.ERROR))
+
+        return errors
+
     def validate(  # type: ignore[override]
         self, df: SDRFDataFrame | pd.DataFrame, column_name: str | None = None
     ) -> list[LogicError]:
@@ -371,60 +442,21 @@ class ColumnOrderValidator(SDRFValidator):
         Returns:
             List of LogicError for column order issues
         """
-        error_columns_order = []
+        error_columns_order: list[LogicError] = []
 
-        if "assay name" in list(df):
-            cnames = list(df)
-            assay_index = cnames.index("assay name")
+        if "assay name" not in list(df):
+            return error_columns_order
 
-            # Check that all characteristics columns are before assay name
-            characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
-            if characteristics_after_assay:
-                error_message = f"All characteristics columns must be before 'assay name'. Found after: {', '.join(characteristics_after_assay)}"
-                error_columns_order.append(LogicError(message=error_message, error_type=logging.ERROR))
-            factor_tag = False
+        cnames = list(df)
+        assay_index = cnames.index("assay name")
 
-            for idx, column in enumerate(cnames):
-                error_message, error_type = "", None
+        error_columns_order.extend(self._check_characteristics_before_assay(cnames, assay_index))
 
-                if idx < assay_index:
-                    if "comment" in column:
-                        error_message = f"The column '{column}' cannot be before the assay name"
-                        error_type = logging.ERROR
-                    if "technology type" in column:
-                        error_message = f"The column '{column}' must be immediately after the assay name"
-                        if assay_index - idx > 1:
-                            error_type = logging.ERROR
-                        else:
-                            error_type = logging.WARNING
-                else:
-                    if "characteristics" in column or ("material type" in column and "factor value" not in column):
-                        error_message = f"The column '{column}' cannot be after the assay name"
-                        error_type = logging.ERROR
-                    if "technology type" in column and idx > assay_index + 1:
-                        error_message = f"The column '{column}' must be immediately after the assay name"
-                        error_type = logging.ERROR
+        column_errors, factor_index = self._validate_individual_columns(cnames, assay_index)
+        error_columns_order.extend(column_errors)
 
-                if error_type is not None:
-                    error_columns_order.append(LogicError(message=error_message, error_type=error_type))
-
-                if "factor value" in column and not factor_tag:
-                    factor_index = idx
-                    factor_tag = True
-
-            if factor_tag:
-                temp: list[str] = []
-                error = []
-                for column in cnames[factor_index:]:
-                    if "comment" in column or "characteristics" in column:
-                        error.extend(temp)
-                        temp = []
-                    elif "factor value" in column:
-                        temp.append(column)
-
-                if len(error):
-                    error_message = f"The following factor column should be last: {', '.join(error)}"
-                    error_columns_order.append(LogicError(message=error_message, error_type=logging.ERROR))
+        if factor_index is not None:
+            error_columns_order.extend(self._validate_factor_columns(cnames, factor_index))
 
         return error_columns_order
 

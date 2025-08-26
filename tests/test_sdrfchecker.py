@@ -33,7 +33,18 @@ def test_version():
     # Validate that the path is safe and expected
     assert os.path.isfile(parse_sdrf_path) and os.access(parse_sdrf_path, os.X_OK)
 
-    result = run([parse_sdrf_path, "--version"], capture_output=True, text=True, check=False, timeout=30)
+    # Additional security: ensure path is absolute and contains expected executable name
+    parse_sdrf_path = os.path.abspath(parse_sdrf_path)
+    assert "parse_sdrf" in os.path.basename(parse_sdrf_path)
+
+    result = run(
+        [parse_sdrf_path, "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        shell=False,  # Explicitly disable shell to prevent injection
+    )
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
     match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout)
     assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
