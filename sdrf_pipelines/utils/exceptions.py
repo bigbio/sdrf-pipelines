@@ -49,7 +49,7 @@ class LogicError(ValidationWarning):
         Initialize an instance of AppException with a specified value.
 
         Parameters:
-            message"
+            message: Message describing the logic error.
             value: The value associated with the exception.
         """
         super().__init__(message, value, row, column)
