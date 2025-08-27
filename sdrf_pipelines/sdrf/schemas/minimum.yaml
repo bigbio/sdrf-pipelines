@@ -53,7 +53,7 @@ columns:
             - cl
             - bto
             - clo
-          description: The cell name should be a valid Cell Ontology (CL), BRENDA Tissue Ontology (BTO), or Cell Line Ontology (CLO) term
+          description: The cell type should be a valid Cell Ontology (CL), BRENDA Tissue Ontology (BTO), or Cell Line Ontology (CLO) term
           examples:
             - hepatocyte
             - neuron
