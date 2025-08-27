@@ -1,9 +1,8 @@
-import os
 import re
-import shutil
 from textwrap import dedent
 
 import pytest
+from click.testing import CliRunner
 
 from sdrf_pipelines.parse_sdrf import cli
 
@@ -21,33 +20,15 @@ SEMVER_REGEX = dedent(
     """
 ).replace("\n", "")
 
-from subprocess import run
-
 
 def test_version():
-    # We can not use CLIRunner here because it does not run the whole program and misses output generated during startup.
-    # This test fails for unexpected additional output.
-    parse_sdrf_path = shutil.which("parse_sdrf")
-    assert parse_sdrf_path is not None
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--version"])
 
-    # Validate that the path is safe and expected
-    assert os.path.isfile(parse_sdrf_path) and os.access(parse_sdrf_path, os.X_OK)
-
-    # Additional security: ensure path is absolute and contains expected executable name
-    parse_sdrf_path = os.path.abspath(parse_sdrf_path)
-    assert "parse_sdrf" in os.path.basename(parse_sdrf_path)
-
-    result = run(
-        [parse_sdrf_path, "--version"],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
-        shell=False,  # Explicitly disable shell to prevent injection
-    )
+    assert result.exit_code == 0
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
-    match = re.fullmatch(regex, result.stdout)
-    assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
+    match = re.fullmatch(regex, result.output)
+    assert match, f"{repr(result.output)} does not match {repr(regex)}"
 
 
 def test_help():
