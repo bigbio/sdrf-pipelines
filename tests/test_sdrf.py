@@ -12,7 +12,7 @@ def test_sdrf_parse():
             "characteristics[organism]": ["homo sapiens", "homo sapiens"],
             "characteristics[organism part]": ["liver", "brain"],
             "characteristics[disease]": ["normal", "normal"],
-            "characteristics[cell name]": ["hepatocyte", "neuron"],
+            "characteristics[cell type]": ["hepatocyte", "neuron"],
             "characteristics[biological replicate]": ["1", "2"],
             "assay name": ["run 1", "run 2"],
             "comment[technical replicate]": ["1", "1"],

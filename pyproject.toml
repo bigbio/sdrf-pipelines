@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdrf-pipelines"
-version = "0.0.32"  # You can set your preferred version here
+version = "1.0.0"
 description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
 authors = ["BigBio Team <ypriverol@gmail.com>"]

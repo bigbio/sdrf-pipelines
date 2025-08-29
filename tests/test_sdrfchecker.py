@@ -2,6 +2,7 @@ import re
 from textwrap import dedent
 
 import pytest
+from click.testing import CliRunner
 
 from sdrf_pipelines.parse_sdrf import cli
 
@@ -19,21 +20,20 @@ SEMVER_REGEX = dedent(
     """
 ).replace("\n", "")
 
-from subprocess import run
-
 
 def test_version():
-    # We can not use CLIRunner here because it does not run the whole program and misses output generated during startup.
-    # This test fails for unexpected additional output.
-    result = run(["parse_sdrf", "--version"], capture_output=True)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--version"])
+
+    assert result.exit_code == 0
     regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
-    match = re.fullmatch(f"sdrf_pipelines {SEMVER_REGEX}\n", result.stdout.decode(encoding="utf-8"))
-    assert match, f"{repr(result.stdout)} does not match {repr(regex)}"
+    match = re.fullmatch(regex, result.output)
+    assert match, f"{repr(result.output)} does not match {repr(regex)}"
 
 
 def test_help():
     result = run_and_check_status_code(cli, ["--help"])
-    match = re.search("validate-sdrf\s+Command to validate the sdrf file", result.output)
+    match = re.search(r"validate-sdrf\s+Command to validate the sdrf file", result.output)
     assert match
 
 
@@ -98,4 +98,4 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     """
     test_sdrf = shared_datadir / file_subpath
     result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)])
-    assert "ERROR" not in result.output
+    assert "ERRORS FOUND IN []" in result.output

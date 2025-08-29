@@ -52,8 +52,8 @@ The SDRF validator now uses a YAML schema-based validation system that makes it 
 ```json
 {
   "name": "characteristics_cell_type",
-  "sdrf_name": "characteristics[cell name]",
-  "description": "Cell name",
+  "sdrf_name": "characteristics[cell type]",
+  "description": "Cell type",
   "required": true,
   "validators": [
     {
@@ -66,7 +66,7 @@ The SDRF validator now uses a YAML schema-based validation system that makes it 
         "ontologies": ["cl", "bto", "clo"],
         "allow_not_applicable": true,
         "allow_not_available": true,
-        "description": "The cell name should be a valid Cell Ontology term",
+        "description": "The cell type should be a valid Cell Ontology term",
         "examples": ["hepatocyte", "neuron", "fibroblast"]
       }
     }

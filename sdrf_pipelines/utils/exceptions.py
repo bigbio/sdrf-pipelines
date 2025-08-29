@@ -26,7 +26,7 @@ class ValidationWarning:
         The entire warning message as a string
         """
         if self.row is not None and self.column is not None and self.value is not None:
-            return '{{row: {}, column: "{}"}}: "{}" {}'.format(self.row, self.column, self.value, self.message)
+            return f'{{row: {self.row}, column: "{self.column}"}}: "{self.value}" {self.message}'
         return self.message
 
 
@@ -49,7 +49,7 @@ class LogicError(ValidationWarning):
         Initialize an instance of AppException with a specified value.
 
         Parameters:
-            message"
+            message: Message describing the logic error.
             value: The value associated with the exception.
         """
         super().__init__(message, value, row, column)
