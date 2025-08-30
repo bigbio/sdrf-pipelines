@@ -366,7 +366,7 @@ class OpenMS:
 
         source_name_list: list[str] = []
         source_name2n_reps: dict[str, int] = {}
-
+        list_of_combined_factors = []
         f2c = FileToColumnEntries()
         for row_index, row in sdrf.iterrows():
             # extract mods
@@ -516,11 +516,10 @@ class OpenMS:
 
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf["_conditions_from_factors"] = pd.Series([None] * sdrf.shape[0], dtype="object")
-            sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
-
             f2c.file2combined_factors[raw + row["comment[label]"]] = combined_factors
+            list_of_combined_factors.append(combined_factors)
 
-            # print("Combined factors: " + str(combined_factors))
+        sdrf["_conditions_from_factors"] = list_of_combined_factors
 
         conditions = Counter(f2c.file2combined_factors.values()).keys()
         files_per_condition = Counter(f2c.file2combined_factors.values()).values()
