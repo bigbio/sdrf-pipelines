@@ -118,7 +118,7 @@ reference_samples = [
     "reference/PDC000113/PDC000113.sdrf.tsv",
     "reference/PDC000180/PDC000180.sdrf.tsv",
     "reference/PXD000612/PXD000612.sdrf.tsv",
-    "reference/PXD022621/PXD022621.sdrf.tsv",
+    "reference/PXD022661/PXD022661.sdrf.tsv",
     "reference/PXD027125/PXD027125.sdrf.tsv",
     "reference/PXD030304/PXD030304.sdrf.tsv",
     "reference/PXD030598/PXD030598.sdrf.tsv",
