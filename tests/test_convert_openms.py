@@ -113,6 +113,17 @@ reference_samples = [
     "reference/PXD008934/PXD008934.sdrf.tsv",
     "reference/PXD006482/PXD006482.sdrf.tsv",
     "reference/PXD004684/PXD004684.sdrf.tsv",
+    "reference/MSV000079033/MSV000079033-Blood-Plasma-iTRAQ.sdrf.tsv",
+    "reference/MSV000079033/MSV000079033-Blood-Plasma-TMT10.sdrf.tsv",
+    "reference/PDC000113/PDC000113.sdrf.tsv",
+    "reference/PDC000180/PDC000180.sdrf.tsv",
+    "reference/PXD000612/PXD000612.sdrf.tsv",
+    "reference/PXD022661/PXD022661.sdrf.tsv",
+    "reference/PXD027125/PXD027125.sdrf.tsv",
+    "reference/PXD030304/PXD030304.sdrf.tsv",
+    "reference/PXD030598/PXD030598.sdrf.tsv",
+    "reference/PXD038526/PXD038526.sdrf.tsv",
+    "reference/PXD034244/PXD034244.sdrf.tsv",
 ]
 
 
