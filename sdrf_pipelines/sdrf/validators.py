@@ -231,7 +231,31 @@ class OntologyValidator(SDRFValidator):
         Returns:
             List of LogicError for values that don't match the ontology terms
         """
-        terms = [self.ontology_term_parser(x) for x in value.unique()]
+
+        def _validate_cell(cell_value, labels):
+            try:
+                return self.validate_ontology_terms(cell_value, labels)
+            except Exception:
+                return False
+
+        errors = []
+        terms = []
+        for x in value.unique():
+            try:
+                term = self.ontology_term_parser(x)
+                terms.append(term)
+            except ValueError as e:
+                column_info = f" in column '{column_name}'" if column_name else ""
+                errors.append(
+                    LogicError(
+                        message=f"Term: {x}{column_info}, is not a valid ontology term. Error: {str(e)}",
+                        row=-1,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                    )
+                )
+                continue
+
         labels = []
         for term in terms:
             if self.term_name not in term:
@@ -260,10 +284,10 @@ class OntologyValidator(SDRFValidator):
         labels.append(NOT_AVAILABLE)
         labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
         labels.append(NORM)
-        validation_indexes = value.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+
+        validation_indexes = value.apply(lambda cell_value: _validate_cell(cell_value, labels))
 
         # Convert to indexes of the row to LogicErrors
-        errors = []
         for idx, val in enumerate(validation_indexes):
             if not val:
                 column_info = f" in column '{column_name}'" if column_name else ""
