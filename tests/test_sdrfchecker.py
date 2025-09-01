@@ -88,6 +88,7 @@ reference_samples = [
     "reference/PXD008934/PXD008934.sdrf.tsv",
     "reference/PXD006482/PXD006482.sdrf.tsv",
     "reference/PXD004684/PXD004684.sdrf.tsv",
+    "reference/PXD001474/PXD001474.sdrf.tsv",
 ]
 
 

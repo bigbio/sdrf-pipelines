@@ -26,7 +26,7 @@ columns:
     validators:
       - validator_name: pattern
         params:
-          pattern: ^(?:(?:\d+y)(?:\d+m)?(?:\d+d)?|(?:\d+y)?(?:\d+m)(?:\d+d)?|(?:\d+y)?(?:\d+m)?(?:\d+d)|(?:not available)|(?:not applicable))$
+          pattern: ^(?:(?:\d+[yY])(?:\d+[mM])?(?:\d+[dD])?|(?:\d+[yY])?(?:\d+[mM])(?:\d+[dD])?|(?:\d+[yY])?(?:\d+[mM])?(?:\d+[dD])|(?:(?:\d+[yY])(?:\d+[mM])?(?:\d+[dD])?-(?:\d+[yY])(?:\d+[mM])?(?:\d+[dD])?)|(?:(?:\d+[yY])?(?:\d+[mM])(?:\d+[dD])?-(?:\d+[yY])?(?:\d+[mM])(?:\d+[dD])?)|(?:(?:\d+[yY])?(?:\d+[mM])?(?:\d+[dD])-(?:\d+[yY])?(?:\d+[mM])?(?:\d+[dD]))|(?:not available)|(?:not applicable))$
           case_sensitive: false
   - name: characteristics[sex]
     description: Sex

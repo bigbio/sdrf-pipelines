@@ -225,7 +225,7 @@ class OntologyValidator(SDRFValidator):
         ontology _ontology_name
 
         Parameters:
-            series: The pandas Series to validate
+            value: The pandas Series to validate
             column_name: The name of the column being validated
 
         Returns:
