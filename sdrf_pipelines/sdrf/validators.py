@@ -72,6 +72,38 @@ def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     return _VALIDATOR_REGISTRY.get(validator_name)
 
 
+@register_validator(validator_name="unique_values_validator")
+class UniqueValuesValidator(SDRFValidator):
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if values in the series are unique.
+
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+
+        Returns:
+            List of LogicError for duplicate values
+        """
+        duplicates = series[series.duplicated(keep=False)].unique()
+        errors = []
+
+        for value in duplicates:
+            duplicate_indices = series[series == value].index.tolist()
+            row_info = ", ".join(str(idx) for idx in duplicate_indices)
+            column_info = f" in column '{column_name}'" if column_name else ""
+            errors.append(
+                LogicError(
+                    message=f"Value '{value}'{column_info} is duplicated at rows: {row_info}",
+                    row=-1,
+                    column=column_name,
+                    error_type=logging.ERROR,
+                )
+            )
+
+        return errors
+
+
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 

@@ -70,6 +70,9 @@ columns:
     cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
+    validators:
+      - validator_name: unique_values_validator
+        params: {}
   - name: technology type
     description: Technology type
     requirement: required
