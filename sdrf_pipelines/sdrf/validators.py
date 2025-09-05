@@ -517,6 +517,57 @@ class ColumnOrderValidator(SDRFValidator):
         return error_columns_order
 
 
+@register_validator(validator_name="multiple_column_unique_values_validator")
+class MultipleColumnUniqueValuesValidator(SDRFValidator):
+    def validate(self, df: SDRFDataFrame, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if the combination of values in the specified columns are unique.
+
+        Parameters:
+            df: The pandas DataFrame to validate
+            column_name: Not used for this validator as it operates on the entire DataFrame
+
+        Returns:
+            List of LogicError for duplicate combinations
+        """
+        if "column_name" not in self.params:
+            raise ValueError("column_name must be provided either as an argument or in params")
+        column_name = self.params["column_name"]
+        if isinstance(column_name, str):
+            columns = [col.strip() for col in column_name.split(",")]
+        elif isinstance(column_name, list):
+            columns = column_name
+        else:
+            raise ValueError("column_name must be a string or a list of strings")
+        missing_columns = [col for col in columns if col not in df.columns]
+        if missing_columns:
+            return [
+                LogicError(
+                    message=f"Columns not found in DataFrame: {', '.join(missing_columns)}",
+                    error_type=logging.ERROR,
+                )
+            ]
+        inner_df = df.df
+        duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
+        errors = []
+
+        if not duplicates.empty:
+            grouped = duplicates.groupby(columns).apply(lambda x: x.index.tolist())
+            for combo, indices in grouped.items():
+                row_info = ", ".join(str(idx) for idx in indices)
+                column_info = f" in columns '{', '.join(columns)}'"
+                errors.append(
+                    LogicError(
+                        message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
+                        row=-1,
+                        column=", ".join(columns),
+                        error_type=logging.ERROR,
+                    )
+                )
+
+        return errors
+
+
 @register_validator(validator_name="empty_cells")
 class EmptyCellValidator(SDRFValidator):
     """Validator that checks for empty cells in the SDRF file."""

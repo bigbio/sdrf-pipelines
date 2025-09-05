@@ -10,6 +10,11 @@ validators:
     params: {}
   - validator_name: empty_cells
     params: {}
+  - validator_name: multiple_column_unique_values_validator
+    params:
+      column_name:
+        - source name
+        - assay name
 columns:
   - name: source name
     description: Source name
@@ -70,9 +75,6 @@ columns:
     cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
-    validators:
-      - validator_name: unique_values_validator
-        params: {}
   - name: technology type
     description: Technology type
     requirement: required
