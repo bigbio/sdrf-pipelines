@@ -547,7 +547,7 @@ class MultipleColumnUniqueValuesValidator(SDRFValidator):
                     error_type=logging.ERROR,
                 )
             ]
-        inner_df = df.df if hasattr(df, 'df') else df
+        inner_df = df.df if hasattr(df, "df") else df
         duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
         errors = []
 
