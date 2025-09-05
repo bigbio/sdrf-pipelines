@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
-from .helpers import compare_files
-from .helpers import run_and_check_status_code
+
+from .helpers import compare_files, run_and_check_status_code
 
 
 def _check_output_existance(out_dir: Path, two_files=True, min_num_samples=6):
@@ -40,9 +40,7 @@ def _check_output_file_extensions(out_dir: Path, expected_extension):
 
     content = content[1 : content.index("\n")]
     files = [line.split("\t")[2] for line in content]
-    assert all([file.endswith(expected_extension) for file in files]), (
-        str(files) + "\n" + str(content)
-    )
+    assert all([file.endswith(expected_extension) for file in files]), str(files) + "\n" + str(content)
 
 
 def test_convert_openms(shared_datadir, on_tmpdir):
@@ -93,20 +91,18 @@ def test_convert_openms_file_extensions(change_extension, shared_datadir, on_tmp
 def test_convert_openms_file_extensions_dotd(shared_datadir, on_tmpdir):
     test_sdrf = shared_datadir / "generic/quantms_dia_dotd_sample.sdrf"
     cmd = ["convert-openms", "-t2", "-s", test_sdrf, "--extension_convert", ".d.zip:.d"]
-    result = run_and_check_status_code(cli, cmd)
+    _ = run_and_check_status_code(cli, cmd)
     _check_output_existance(on_tmpdir, min_num_samples=1)
     _check_output_file_extensions(on_tmpdir, ".d")
 
 
 @pytest.mark.parametrize("convertsion_flag", [True, False])
-def test_nocovnersion_openms_file_extensions_dotd(
-    shared_datadir, on_tmpdir, convertsion_flag
-):
+def test_nocovnersion_openms_file_extensions_dotd(shared_datadir, on_tmpdir, convertsion_flag):
     test_sdrf = shared_datadir / "generic/quantms_dia_dotd_sample_converted.sdrf"
     cmd = ["convert-openms", "-t2", "-s", test_sdrf]
     if convertsion_flag:
         cmd.extend(["--extension_convert", "raw:mzML"])
-    result = run_and_check_status_code(cli, cmd)
+    _ = run_and_check_status_code(cli, cmd)
     _check_output_existance(on_tmpdir, min_num_samples=1)
     _check_output_file_extensions(on_tmpdir, ".d")
 
@@ -117,6 +113,17 @@ reference_samples = [
     "reference/PXD008934/PXD008934.sdrf.tsv",
     "reference/PXD006482/PXD006482.sdrf.tsv",
     "reference/PXD004684/PXD004684.sdrf.tsv",
+    "reference/MSV000079033/MSV000079033-Blood-Plasma-iTRAQ.sdrf.tsv",
+    "reference/MSV000079033/MSV000079033-Blood-Plasma-TMT10.sdrf.tsv",
+    "reference/PDC000113/PDC000113.sdrf.tsv",
+    "reference/PDC000180/PDC000180.sdrf.tsv",
+    "reference/PXD000612/PXD000612.sdrf.tsv",
+    "reference/PXD022661/PXD022661.sdrf.tsv",
+    "reference/PXD027125/PXD027125.sdrf.tsv",
+    "reference/PXD030304/PXD030304.sdrf.tsv",
+    "reference/PXD030598/PXD030598.sdrf.tsv",
+    "reference/PXD038526/PXD038526.sdrf.tsv",
+    "reference/PXD034244/PXD034244.sdrf.tsv",
 ]
 
 

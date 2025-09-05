@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-
-
 import csv
 import re
 
 import pandas as pd
-
 
 # Based on msstats class
 
@@ -15,7 +11,7 @@ import pandas as pd
 class NormalyzerDE:
     def __init__(self) -> None:
         """Convert sdrf to normalyzerde design file (label free quantification assumed)."""
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_normalyzerde_design(
@@ -28,9 +24,7 @@ class NormalyzerDE:
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(
-            str.lower, sdrf.columns
-        )  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
         data = {}
         condition = []
         runs = sdrf["comment[data file]"].tolist()
@@ -52,9 +46,7 @@ class NormalyzerDE:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [
-                c for ind, c in enumerate(sdrf) if c.startswith("factor value[")
-            ]
+            factor_cols = [c for c in sdrf.columns if c.startswith("factor value[")]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
@@ -69,7 +61,7 @@ class NormalyzerDE:
         # Shorten down condition to QY only if present. Also replace '-' with '_' as reserved for comparisons.
         for con in condition:
             con = con.replace("-", "_")
-            if re.search("QY=.*", con) != None:
+            if re.search("QY=.*", con) is not None:
                 match = re.search("QY=(.*)", con)
                 groupnew = match[1]
                 if groupnew.index(";") > 0:
@@ -83,9 +75,7 @@ class NormalyzerDE:
         sample_id_map = {}
         sample_id = 1
 
-        replicates = self.get_replicates(
-            sdrf, sample_identifier_re, sample_id_map, sample_id
-        )
+        replicates = self.get_replicates(sdrf, sample_identifier_re, sample_id_map, sample_id)
 
         # For MaxQuant mapping
         if maxquant_exp_design_file != "":
@@ -115,7 +105,7 @@ class NormalyzerDE:
             for factor in uniquefactors:
                 if factor != firstfactor:
                     comparisons.append(factor + "-" + firstfactor)
-            with open(comparisons_path, "w") as target:
+            with open(comparisons_path, "w", encoding="utf-8") as target:
                 writer = csv.writer(target, delimiter=",")
                 writer.writerow(comparisons)
 
@@ -142,9 +132,7 @@ class NormalyzerDE:
                     BioReplicate.append(sample)
             else:
                 warning_message = "No sample number identifier"
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
                 if source_name in sample_id_map.keys():
@@ -169,10 +157,7 @@ class NormalyzerDE:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
-            warning_message = (
-                "No factors specified. Adding Source Name as factor. Will be used "
-                "as condition. "
-            )
+            warning_message = "No factors specified. Adding Source Name as factor. Will be used as condition."
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             combined_factors = row["source name"]
         return combined_factors

@@ -2,21 +2,23 @@ import os
 import re
 import time
 from datetime import datetime
-from importlib.resources import files
+from pathlib import Path
 from xml.dom.minidom import Document
-from xml.dom.minidom import parse
 
 import numpy as np
 import pandas as pd
 import yaml
+from defusedxml.minidom import parse
+
+from sdrf_pipelines.utils.utils import tsv_line
 
 
 class Maxquant:
     def __init__(self) -> None:
         super().__init__()
-        self.warnings = {}
-        self.modfile = str(files(__package__).joinpath("modifications.xml"))
-        self.datparamfile = str(files(__package__).joinpath("param2sdrf.yml"))
+        self.warnings: dict[str, int] = {}
+        self.modfile = Path(__file__).parent / "modifications.xml"
+        self.datparamfile = Path(__file__).parent / "param2sdrf.yml"
 
     def guess_tmt(self, lt, label_list=None):
         warning_message = "guessing TMT from number of different labels"
@@ -54,9 +56,7 @@ class Maxquant:
                     else:
                         lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
         elif len(label_list) > 2:
-            lt = ",".join(
-                ["TMT6plex-Lys" + i.replace("TMT", "").rstrip() for i in label_list]
-            )
+            lt = ",".join(["TMT6plex-Lys" + i.replace("TMT", "").rstrip() for i in label_list])
         else:
             lt = ",".join(["TMT2plex-Lys" + i.replace("TMT", "") for i in label_list])
         return lt
@@ -71,15 +71,11 @@ class Maxquant:
                 else:
                     lt += "TMTpro16plex" + "-Lys" + i.replace("TMT", "")
         else:
-            label_head = [
-                re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i
-            ]
+            label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
 
             if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
                 label_head = "TMT" + label_head[0] + "plex"
-                lt = ",".join(
-                    [label_head + "-Lys" + i.replace("TMT", "") for i in label_list]
-                )
+                lt = ",".join([label_head + "-Lys" + i.replace("TMT", "") for i in label_list])
             else:
                 lt = self.guess_tmt(lt, label_list)
         return lt
@@ -114,9 +110,7 @@ class Maxquant:
             title = str(modification.getAttribute("title"))
             mq_title.append(title)
 
-            mq_position.append(
-                modification.getElementsByTagName("position")[0].childNodes[0].data
-            )
+            mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
 
             nodes_site = modification.getElementsByTagName("modification_site")
             temp = []
@@ -132,20 +126,13 @@ class Maxquant:
             aa_equal = False
             if "AC=UNIMOD" not in mod and "AC=Unimod" not in mod:
                 warning_message = "only UNIMOD modifications supported. skip" + mod
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
             name = re.search("NT=(.+?)(;|$)", mod).group(1)
             if "Label:" in name:
-                warning_message = (
-                    name
-                    + " Label modifications is Automatically supplemented by MaxQuant"
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = name + " Label modifications is Automatically supplemented by MaxQuant"
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
             if re.search("PP=(.+?)(;|$)", mod) is None:
@@ -157,9 +144,7 @@ class Maxquant:
             pp = pp.replace(" ", "").replace("-", "").lower()
             if re.search("TA=(.+?)(;|$)", mod) is None:
                 warning_message = "Warning no TA= specified."
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 aa = ["-"]
             else:
                 ta = re.search("TA=(.+?)(;|$)", mod).group(1)  # target amino-acid
@@ -173,29 +158,15 @@ class Maxquant:
                     aa = ta.split(",")  # multiply target site e.g., S,T,Y
             if re.search("CF=(.+?)(;|$)", mod) is None:
                 warning_message = "Warning no CF= specified.Please add manually"
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 CF = ""
             else:
-                CF = (
-                    re.search("CF=(.+?)(;|$)", mod)
-                    .group(1)
-                    .replace(" ", "")
-                    .replace(")", ") ")
-                    .rstrip()
-                )
+                CF = re.search("CF=(.+?)(;|$)", mod).group(1).replace(" ", "").replace(")", ") ").rstrip()
 
             if name.lower().startswith("tmt"):
                 w = True
-                warning_message = (
-                    "Warning no "
-                    + mod
-                    + " modification in MaxQuant.Supplement manuanly some parameters"
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement manuanly some parameters"
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 modification = mod_local.createElement("modification")
                 if "-" in aa:
                     if pp == "anycterm":
@@ -221,13 +192,11 @@ class Maxquant:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
                     "create_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
                     "last_modified_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -264,14 +233,8 @@ class Maxquant:
             if name.lower().startswith("itraq"):
                 w = True
                 name = name.strip()
-                warning_message = (
-                    "Warning no "
-                    + mod
-                    + " modification in MaxQuant.Supplement manuanly some parameters"
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement manuanly some parameters"
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 modification = mod_local.createElement("modification")
                 if "-" in aa:
                     if pp == "anycterm":
@@ -297,13 +260,11 @@ class Maxquant:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
                     "create_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
                     "last_modified_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -355,9 +316,7 @@ class Maxquant:
                         pp_tag = 1
                         pp_index = index
                         a = [x for x in aa if x in mq_site[mq_title[index]]]
-                        if not [
-                            y for y in (aa + mq_site[mq_title[index]]) if y not in a
-                        ]:
+                        if not [y for y in (aa + mq_site[mq_title[index]]) if y not in a]:
                             ta_tag = 1
                             break
                     if aa == mq_site[mq_title[index]]:
@@ -365,18 +324,12 @@ class Maxquant:
                         aa_equal = True
                 if pp_tag == 0:
                     if "->" in name:
-                        warning_message = (
-                            "Warning no " + mod + " modification in MaxQuant.Supplement"
-                        )
-                        self.warnings[warning_message] = (
-                            self.warnings.get(warning_message, 0) + 1
-                        )
+                        warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement"
+                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         y = True
                         if "nterm" in pp or "cterm" in pp:
                             pp = pp.replace("cterm", "Cterm").replace("nterm", "Nterm")
-                        modifications[indexes[0]].getElementsByTagName("position")[
-                            0
-                        ].childNodes[0].data = pp
+                        modifications[indexes[0]].getElementsByTagName("position")[0].childNodes[0].data = pp
                         now_stamp = time.time()
                         local_time = datetime.fromtimestamp(now_stamp)
                         utc_time = datetime.utcfromtimestamp(now_stamp)
@@ -386,26 +339,17 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[indexes[0]].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[
-                                :-7
-                            ]
-                            + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[indexes[0]].setAttribute("user", "root")
 
                     elif aa_equal:
-                        warning_message = (
-                            "Warning no " + mod + " modification in MaxQuant.Supplement"
-                        )
-                        self.warnings[warning_message] = (
-                            self.warnings.get(warning_message, 0) + 1
-                        )
+                        warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement"
+                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         y = True
                         if "nterm" in pp or "cterm" in pp:
                             pp = pp.replace("cterm", "Cterm").replace("nterm", "Nterm")
-                        modifications[ta_index].getElementsByTagName("position")[
-                            0
-                        ].childNodes[0].data = pp
+                        modifications[ta_index].getElementsByTagName("position")[0].childNodes[0].data = pp
                         now_stamp = time.time()
                         local_time = datetime.fromtimestamp(now_stamp)
                         utc_time = datetime.utcfromtimestamp(now_stamp)
@@ -415,21 +359,14 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modifications[ta_index].setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[
-                                :-7
-                            ]
-                            + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modifications[ta_index].setAttribute("user", "root")
 
                     else:
-                        warning_message = (
-                            "Warning no " + mod + " modification in MaxQuant.Supplement"
-                        )
+                        warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement"
                         w = True
-                        self.warnings[warning_message] = (
-                            self.warnings.get(warning_message, 0) + 1
-                        )
+                        self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                         modification = mod_local.createElement("modification")
                         if "-" in aa:
                             pass
@@ -449,17 +386,11 @@ class Maxquant:
                             offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                         modification.setAttribute(
                             "create_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[
-                                :-7
-                            ]
-                            + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute(
                             "last_modified_date",
-                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[
-                                :-7
-                            ]
-                            + offset,
+                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                         )
                         modification.setAttribute("user", "root")
                         modification.setAttribute("reporterCorrectionM2", "0")
@@ -483,9 +414,7 @@ class Maxquant:
                             modification.appendChild(mod_site)
                         mod_type = mod_local.createElement("name")
                         if "->" in name:
-                            mod_type.appendChild(
-                                mod_local.createTextNode("AaSubstitution")
-                            )
+                            mod_type.appendChild(mod_local.createTextNode("AaSubstitution"))
                         else:
                             mod_type.appendChild(mod_local.createTextNode("Standard"))
                         modification.appendChild(mod_type)
@@ -496,12 +425,8 @@ class Maxquant:
 
                 if ta_tag == 0 and pp_tag == 1:
                     w = True
-                    warning_message = (
-                        "Warning no " + mod + " modification in MaxQuant.Supplement"
-                    )
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
+                    warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement"
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     modification = mod_local.createElement("modification")
                     if "-" in aa or "->" in name:
                         pass
@@ -521,13 +446,11 @@ class Maxquant:
                         offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                     modification.setAttribute(
                         "create_date",
-                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                        + offset,
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute(
                         "last_modified_date",
-                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                        + offset,
+                        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                     )
                     modification.setAttribute("user", "root")
                     modification.setAttribute("reporterCorrectionM2", "0")
@@ -559,12 +482,8 @@ class Maxquant:
                     root.appendChild(modification)
             else:
                 w = True
-                warning_message = (
-                    "Warning no " + mod + " modification in MaxQuant.Supplement"
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "Warning no " + mod + " modification in MaxQuant.Supplement"
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 modification = mod_local.createElement("modification")
                 if "-" in aa or "->" in name:
                     pass
@@ -584,13 +503,11 @@ class Maxquant:
                     offset = "-" + str(utc_time - local_time).zfill(8)[:5]
                 modification.setAttribute(
                     "create_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute(
                     "last_modified_date",
-                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7]
-                    + offset,
+                    datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f+08.00")[:-7] + offset,
                 )
                 modification.setAttribute("user", "root")
                 modification.setAttribute("reporterCorrectionM2", "0")
@@ -624,15 +541,12 @@ class Maxquant:
                 root.appendChild(modification)
         if w:
             with open(mod_local_file, "w", encoding="utf-8") as fp:
-                mod_local.writexml(
-                    fp, indent="", addindent="\t", newl="\n", encoding="utf-8"
-                )
+                mod_local.writexml(fp, indent="", addindent="\t", newl="\n", encoding="utf-8")
         if y:
             with open(mod_file, "w", encoding="utf-8") as fp:
                 domTree.writexml(fp, encoding="utf-8")
 
     def maxquant_ify_mods(self, sdrf_mods, mqconfdir):
-        mq_mods_file = self.modfile
         mod_pattern = re.compile(r"(.*?) \(")
         if mqconfdir:
             mq_new_mods = mqconfdir + "modifications.local.xml"
@@ -646,9 +560,7 @@ class Maxquant:
             for modification in new_mods:
                 title = str(modification.getAttribute("title"))
                 new_title.append(title)
-                new_position.append(
-                    modification.getElementsByTagName("position")[0].childNodes[0].data
-                )
+                new_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
                 nodes_site = modification.getElementsByTagName("modification_site")
                 temp = []
                 for node in nodes_site:
@@ -660,7 +572,8 @@ class Maxquant:
                     title = re.search(mod_pattern, title).group(1)
                 new_name.append(title.lower())
 
-        domTree = parse(mq_mods_file)
+        with open(self.modfile, encoding="utf-8") as mq_mods_file:
+            domTree = parse(mq_mods_file)
         rootNode = domTree.documentElement
         modifications = rootNode.getElementsByTagName("modification")
         oms_mods = []
@@ -671,9 +584,7 @@ class Maxquant:
         for modification in modifications:
             title = str(modification.getAttribute("title"))
             mq_title.append(title)
-            mq_position.append(
-                modification.getElementsByTagName("position")[0].childNodes[0].data
-            )
+            mq_position.append(modification.getElementsByTagName("position")[0].childNodes[0].data)
             nodes_site = modification.getElementsByTagName("modification_site")
             temp = []
             for node in nodes_site:
@@ -685,9 +596,7 @@ class Maxquant:
         for m in sdrf_mods:
             if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
                 warning_message = "only UNIMOD modifications supported. skip " + m
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
             name = re.search("NT=(.+?)(;|$)", m).group(1)
 
@@ -724,12 +633,8 @@ class Maxquant:
                 elif aa[0] == "R" and name == "Label:13C(6)":
                     oms_mods.append("Arg6")
                 else:
-                    warning_message = (
-                        "modification is not supported in MaxQuant. skip " + m
-                    )
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
+                    warning_message = "modification is not supported in MaxQuant. skip " + m
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 continue
 
             if name.lower().startswith("tmt"):
@@ -775,44 +680,29 @@ class Maxquant:
                 tag = 0
                 indexes = [i for i, x in enumerate(mq_name) if x == name.lower()]
                 for index in indexes:
-                    if (
-                        mq_position[index].lower() == pp
-                        and aa == mq_site[mq_title[index]]
-                    ):
+                    if mq_position[index].lower() == pp and aa == mq_site[mq_title[index]]:
                         tag = 1
+                        oms_mods.append(mq_title[index])
                         break
                 if tag == 1:
-                    oms_mods.append(mq_title[index])
-
+                    pass
                 elif mqconfdir:
-                    if (
-                        name.lower() in new_name
-                        and new_position[new_name.index(name.lower())].lower() == pp
-                    ):
+                    if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                         if aa == new_site[new_title[new_name.index(name.lower())]]:
                             index = new_name.index(name.lower())
                             oms_mods.append(new_title[index])
                 else:
-                    warning_message = (
-                        "modification is not supported in MaxQuant. skip " + m
-                    )
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
+                    warning_message = "modification is not supported in MaxQuant. skip " + m
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
             elif mqconfdir:
-                if (
-                    name.lower() in new_name
-                    and new_position[new_name.index(name.lower())].lower() == pp
-                ):
+                if name.lower() in new_name and new_position[new_name.index(name.lower())].lower() == pp:
                     if aa == new_site[new_title[new_name.index(name.lower())]]:
                         index = new_name.index(name.lower())
                         oms_mods.append(new_title[index])
             else:
                 warning_message = "modification is not supported in MaxQuant. skip " + m
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
         return ",".join(oms_mods)
 
@@ -833,11 +723,9 @@ class Maxquant:
 
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(
-            str.lower, sdrf.columns
-        )  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
 
-        with open(self.datparamfile) as file:
+        with open(self.datparamfile, encoding="utf-8") as file:
             param_mapping = yaml.safe_load(file)
             mapping = param_mapping["parameters"]
         datparams = {}
@@ -846,20 +734,12 @@ class Maxquant:
 
         # map filename to tuple of [fixed, variable] mods
         mod_cols = [
-            c
-            for ind, c in enumerate(sdrf)
-            if c.startswith("comment[modification parameters")
+            c for ind, c in enumerate(sdrf) if c.startswith("comment[modification parameters")
         ]  # columns with modification parameters
 
-        label_cols = [
-            c for ind, c in enumerate(sdrf) if c.startswith("comment[label")
-        ]  # columns with label parameters
+        label_cols = [c for ind, c in enumerate(sdrf) if c.startswith("comment[label")]  # columns with label parameters
 
-        enzy_cols = [
-            c
-            for ind, c in enumerate(sdrf)
-            if c.startswith("comment[cleavage agent details]")
-        ]
+        enzy_cols = [c for ind, c in enumerate(sdrf) if c.startswith("comment[cleavage agent details]")]
 
         file2mods = {}
         file2pctol = {}
@@ -895,9 +775,7 @@ class Maxquant:
                 m for m in all_mods if "MT=variable" in m or "MT=Variable" in m
             ]  # workaround for capitalization
             var_mods.sort()
-            fixed_mods = [
-                m for m in all_mods if "MT=fixed" in m or "MT=Fixed" in m
-            ]  # workaround for capitalization
+            fixed_mods = [m for m in all_mods if "MT=fixed" in m or "MT=Fixed" in m]  # workaround for capitalization
             fixed_mods.sort()
 
             raw = row["comment[data file]"]
@@ -927,19 +805,13 @@ class Maxquant:
                     file2pctol[raw] = pc_tmp[0]
                     file2pctolunit[raw] = pc_tmp[1]
                 else:
-                    warning_message = (
-                        "Invalid precursor mass tolerance set. Assuming 4.5 ppm."
-                    )
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
+                    warning_message = "Invalid precursor mass tolerance set. Assuming 4.5 ppm."
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     file2pctol[raw] = "4.5"
                     file2pctolunit[raw] = "ppm"
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 4.5 ppm."
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 file2pctol[raw] = "4.5"
                 file2pctolunit[raw] = "ppm"
 
@@ -951,19 +823,13 @@ class Maxquant:
                     file2fragtol[raw] = f_tmp[0]
                     file2fragtolunit[raw] = f_tmp[1]
                 else:
-                    warning_message = (
-                        "Invalid fragment mass tolerance set. Assuming 20 ppm."
-                    )
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
+                    warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                     file2fragtol[raw] = "20"
                     file2fragtolunit[raw] = "ppm"
             else:
                 warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 file2fragtol[raw] = "20"
                 file2fragtolunit[raw] = "ppm"
 
@@ -972,23 +838,16 @@ class Maxquant:
                 if row["comment[dissociation method]"] == "not available":
                     file2diss[raw] = "HCD"
                 else:
-                    diss_method = re.search(
-                        "NT=(.+?)(;|$)", row["comment[dissociation method]"]
-                    ).group(1)
+                    diss_method = re.search("NT=(.+?)(;|$)", row["comment[dissociation method]"]).group(1)
                     file2diss[raw] = diss_method.upper()
             else:
                 warning_message = "No dissociation method provided. Assuming HCD."
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
                 file2diss[raw] = "HCD"
 
             if "comment[technical replicate]" in row:
                 technical_replicate = str(row["comment[technical replicate]"])
-                if (
-                    "not available" in technical_replicate
-                    or "not applicable" in technical_replicate
-                ):
+                if "not available" in technical_replicate or "not applicable" in technical_replicate:
                     file2technical_rep[raw] = "1"
                 else:
                     file2technical_rep[raw] = technical_replicate
@@ -1025,10 +884,7 @@ class Maxquant:
                 file2fraction[raw] = 0
 
             # For different quantitative experiments
-            if (
-                "not available" in row["comment[label]"]
-                or "not applicable" in row["comment[label]"]
-            ):
+            if "not available" in row["comment[label]"] or "not applicable" in row["comment[label]"]:
                 file2label[raw] = "label free sample"
             elif re.search("NT=(.+?)(;|$)", row["comment[label]"]) is not None:
                 label = re.search("NT=(.+?)(;|$)", row["comment[label]"]).group(1)
@@ -1037,8 +893,7 @@ class Maxquant:
                 file2label[raw] = "iBAQ"
             elif row["comment[label]"].startswith("TMT"):
                 lt = self.extract_tmt_info(
-                    list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]),
-                    file2mods[raw],
+                    list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]), file2mods[raw]
                 )
                 file2label[raw] = lt
 
@@ -1136,78 +991,41 @@ class Maxquant:
 
                 else:
                     warning_message = "Only a silac label! Does it make sense?"
-                    self.warnings[warning_message] = (
-                        self.warnings.get(warning_message, 0) + 1
-                    )
-                    file2label[raw] = label_arr.flatten().tolist()[0]
+                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    file2label[raw] = label_arr.flatten().iloc[0]
 
             elif row["comment[label]"].lower().startswith("itraq"):
                 lt = ""
-                label_list = sorted(
-                    list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"])
-                )
-                label_head = [
-                    re.search(r"iTRAQ(\d+)plex", i).group(1)
-                    for i in file2mods[raw]
-                    if "iTRAQ" in i
-                ]
+                label_list = sorted(list(sdrf[sdrf["comment[data file]"] == raw]["comment[label]"]))
+                label_head = [re.search(r"iTRAQ(\d+)plex", i).group(1) for i in file2mods[raw] if "iTRAQ" in i]
                 if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
                     label_head = "iTRAQ" + label_head[0] + "plex"
                     for i in label_list:
                         if i == label_list[-1]:
-                            lt = (
-                                lt
-                                + label_head
-                                + "-Lys"
-                                + i.replace("iTRAQ", "").replace("reagent ", "")
-                            )
+                            lt = lt + label_head + "-Lys" + i.replace("iTRAQ", "").replace("reagent ", "")
                         else:
-                            lt = (
-                                lt
-                                + label_head
-                                + "-Lys"
-                                + i.replace("iTRAQ", "").replace("reagent ", "")
-                                + ","
-                            )
+                            lt = lt + label_head + "-Lys" + i.replace("iTRAQ", "").replace("reagent ", "") + ","
                 else:
                     if len(label_list) <= 4:
                         for i in label_list:
                             if i == label_list[-1]:
-                                lt = (
-                                    lt
-                                    + "iTRAQ4plex-Lys"
-                                    + i.replace("iTRAQ", "").replace("reagent ", "")
-                                )
+                                lt = lt + "iTRAQ4plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "")
                             else:
-                                lt = (
-                                    lt
-                                    + "iTRAQ4plex-Lys"
-                                    + i.replace("iTRAQ", "").replace("reagent ", "")
-                                    + ","
-                                )
+                                lt = lt + "iTRAQ4plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "") + ","
                     else:
                         for i in label_list:
                             if i == label_list[-1]:
-                                lt = (
-                                    lt
-                                    + "iTRAQ8plex-Lys"
-                                    + i.replace("iTRAQ", "").replace("reagent ", "")
-                                )
+                                lt = lt + "iTRAQ8plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "")
                             else:
-                                lt = (
-                                    lt
-                                    + "iTRAQ8plex-Lys"
-                                    + i.replace("iTRAQ", "").replace("reagent ", "")
-                                    + ","
-                                )
+                                lt = lt + "iTRAQ8plex-Lys" + i.replace("iTRAQ", "").replace("reagent ", "") + ","
 
                 file2label[raw] = lt
 
             # Reading data analysis parameters
-            for p in datparams.keys():
-                comment_p = "comment[" + p + "]"
+            for key, value in datparams.items():
+                comment_p = "comment[" + key + "]"
                 if comment_p in row:
-                    file2params[datparams[p]][raw] = row[comment_p]
+                    file2params[value][raw] = row[comment_p]
 
         # create maxquant parameters xml file
         doc = Document()
@@ -1278,9 +1096,7 @@ class Maxquant:
         root.appendChild(pvalThres)
 
         # create neucodeRatioBasedQuantification subnode
-        neucodeRatioBasedQuantification = doc.createElement(
-            "neucodeRatioBasedQuantification"
-        )
+        neucodeRatioBasedQuantification = doc.createElement("neucodeRatioBasedQuantification")
         neucodeRatioBasedQuantification.appendChild(doc.createTextNode("False"))
         root.appendChild(neucodeRatioBasedQuantification)
 
@@ -1331,21 +1147,15 @@ class Maxquant:
         mutatedPeptidesSeparately.appendChild(doc.createTextNode("True"))
         root.appendChild(mutatedPeptidesSeparately)
 
-        proteogenomicPeptidesSeparately = doc.createElement(
-            "proteogenomicPeptidesSeparately"
-        )
+        proteogenomicPeptidesSeparately = doc.createElement("proteogenomicPeptidesSeparately")
         proteogenomicPeptidesSeparately.appendChild(doc.createTextNode("True"))
         root.appendChild(proteogenomicPeptidesSeparately)
 
-        minDeltaScoreUnmodifiedPeptides = doc.createElement(
-            "minDeltaScoreUnmodifiedPeptides"
-        )
+        minDeltaScoreUnmodifiedPeptides = doc.createElement("minDeltaScoreUnmodifiedPeptides")
         minDeltaScoreUnmodifiedPeptides.appendChild(doc.createTextNode("0"))
         root.appendChild(minDeltaScoreUnmodifiedPeptides)
 
-        minDeltaScoreModifiedPeptides = doc.createElement(
-            "minDeltaScoreModifiedPeptides"
-        )
+        minDeltaScoreModifiedPeptides = doc.createElement("minDeltaScoreModifiedPeptides")
         minDeltaScoreModifiedPeptides.appendChild(doc.createTextNode("6"))
         root.appendChild(minDeltaScoreModifiedPeptides)
 
@@ -1362,24 +1172,15 @@ class Maxquant:
         root.appendChild(secondPeptide)
 
         matchBetweenRuns_node = doc.createElement("matchBetweenRuns")
-        if (
-            "enable_match_between_runs" in file2params
-            and len(file2params["enable_match_between_runs"]) > 0
-        ):
+        if "enable_match_between_runs" in file2params and len(file2params["enable_match_between_runs"]) > 0:
             first = list(file2params["enable_match_between_runs"].values())[0]
             matchBetweenRuns = True
             matchBetweenRuns_node.appendChild(doc.createTextNode(first))
-            warning_message = (
-                "overwriting matchBetweenRuns using the value in the sdrf file"
-            )
+            warning_message = "overwriting matchBetweenRuns using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(file2params["enable_match_between_runs"].values())) > 1:
-                warning_message = (
-                    "multiple values for match between runs, taking the first: " + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for match between runs, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             matchBetweenRuns_node.appendChild(doc.createTextNode(matchBetweenRuns))
         root.appendChild(matchBetweenRuns_node)
@@ -1408,27 +1209,19 @@ class Maxquant:
         dependentPeptidesBetweenRuns.appendChild(doc.createTextNode("False"))
         root.appendChild(dependentPeptidesBetweenRuns)
 
-        dependentPeptidesWithinExperiment = doc.createElement(
-            "dependentPeptidesWithinExperiment"
-        )
+        dependentPeptidesWithinExperiment = doc.createElement("dependentPeptidesWithinExperiment")
         dependentPeptidesWithinExperiment.appendChild(doc.createTextNode("False"))
         root.appendChild(dependentPeptidesWithinExperiment)
 
-        dependentPeptidesWithinParameterGroup = doc.createElement(
-            "dependentPeptidesWithinParameterGroup"
-        )
+        dependentPeptidesWithinParameterGroup = doc.createElement("dependentPeptidesWithinParameterGroup")
         dependentPeptidesWithinParameterGroup.appendChild(doc.createTextNode("False"))
         root.appendChild(dependentPeptidesWithinParameterGroup)
 
-        dependentPeptidesRestrictFractions = doc.createElement(
-            "dependentPeptidesRestrictFractions"
-        )
+        dependentPeptidesRestrictFractions = doc.createElement("dependentPeptidesRestrictFractions")
         dependentPeptidesRestrictFractions.appendChild(doc.createTextNode("False"))
         root.appendChild(dependentPeptidesRestrictFractions)
 
-        dependentPeptidesFractionDifference = doc.createElement(
-            "dependentPeptidesFractionDifference"
-        )
+        dependentPeptidesFractionDifference = doc.createElement("dependentPeptidesFractionDifference")
         dependentPeptidesFractionDifference.appendChild(doc.createTextNode("0"))
         root.appendChild(dependentPeptidesFractionDifference)
 
@@ -1504,23 +1297,15 @@ class Maxquant:
         root.appendChild(intensityPredictionsFile)
 
         minPepLen = doc.createElement("minPepLen")
-        if (
-            "min_peptide_length" in file2params
-            and len(file2params["min_peptide_length"]) > 0
-        ):
+        if "min_peptide_length" in file2params and len(file2params["min_peptide_length"]) > 0:
             tparam = file2params["min_peptide_length"]
             first = list(tparam.values())[0]
             minPepLen.appendChild(doc.createTextNode(first))
             warning_message = "overwriting minPepLen using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter minimum peptide length, taking the first: "
-                    + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter minimum peptide length, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             minPepLen.appendChild(doc.createTextNode("7"))
         root.appendChild(minPepLen)
@@ -1530,45 +1315,29 @@ class Maxquant:
         root.appendChild(psmFdrCrosslink)
 
         peptideFdr = doc.createElement("peptideFdr")
-        if (
-            "ident_fdr_peptide" in file2params
-            and len(file2params["ident_fdr_peptide"]) > 0
-        ):
+        if "ident_fdr_peptide" in file2params and len(file2params["ident_fdr_peptide"]) > 0:
             tparam = file2params["ident_fdr_peptide"]
             first = list(tparam.values())[0]
             warning_message = "overwriting peptide FDR using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             peptideFdr.appendChild(doc.createTextNode(first))
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter Peptide FDR, taking the first: "
-                    + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter Peptide FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             peptideFdr.appendChild(doc.createTextNode(str(peptideFDR)))
         root.appendChild(peptideFdr)
 
         proteinFdr = doc.createElement("proteinFdr")
-        if (
-            "ident_fdr_protein" in file2params
-            and len(file2params["ident_fdr_protein"]) > 0
-        ):
+        if "ident_fdr_protein" in file2params and len(file2params["ident_fdr_protein"]) > 0:
             tparam = file2params["ident_fdr_protein"]
             first = list(tparam.values())[0]
             warning_message = "overwriting protein FDR using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             proteinFdr.appendChild(doc.createTextNode(first))
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter Protein FDR, taking the first: "
-                    + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter Protein FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             proteinFdr.appendChild(doc.createTextNode(str(proteinFDR)))
         root.appendChild(proteinFdr)
@@ -1581,25 +1350,17 @@ class Maxquant:
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             siteFdr.appendChild(doc.createTextNode(first))
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter PSM FDR, taking the first: " + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter PSM FDR, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             siteFdr.appendChild(doc.createTextNode("0.01"))
         root.appendChild(siteFdr)
 
-        minPeptideLengthForUnspecificSearch = doc.createElement(
-            "minPeptideLengthForUnspecificSearch"
-        )
+        minPeptideLengthForUnspecificSearch = doc.createElement("minPeptideLengthForUnspecificSearch")
         minPeptideLengthForUnspecificSearch.appendChild(doc.createTextNode("8"))
         root.appendChild(minPeptideLengthForUnspecificSearch)
 
-        maxPeptideLengthForUnspecificSearch = doc.createElement(
-            "maxPeptideLengthForUnspecificSearch"
-        )
+        maxPeptideLengthForUnspecificSearch = doc.createElement("maxPeptideLengthForUnspecificSearch")
         maxPeptideLengthForUnspecificSearch.appendChild(doc.createTextNode("25"))
         root.appendChild(maxPeptideLengthForUnspecificSearch)
 
@@ -1608,23 +1369,15 @@ class Maxquant:
         root.appendChild(useNormRatiosForOccupancy)
 
         minPeptides = doc.createElement("minPeptides")
-        if (
-            "min_num_peptides" in file2params
-            and len(file2params["min_num_peptides"]) > 0
-        ):
+        if "min_num_peptides" in file2params and len(file2params["min_num_peptides"]) > 0:
             tparam = file2params["min_num_peptides"]
             first = list(tparam.values())[0]
             minPeptides.appendChild(doc.createTextNode(first))
             warning_message = "overwriting minPeptides using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter minimum number of peptides, taking the first: "
-                    + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter minimum number of peptides, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             minPeptides.appendChild(doc.createTextNode("1"))
         root.appendChild(minPeptides)
@@ -1649,9 +1402,7 @@ class Maxquant:
         customProteinQuantification.appendChild(doc.createTextNode("False"))
         root.appendChild(customProteinQuantification)
 
-        customProteinQuantificationFile = doc.createElement(
-            "customProteinQuantificationFile"
-        )
+        customProteinQuantificationFile = doc.createElement("customProteinQuantificationFile")
         customProteinQuantificationFile.appendChild(doc.createTextNode(""))
         root.appendChild(customProteinQuantificationFile)
 
@@ -1659,9 +1410,7 @@ class Maxquant:
         minRatioCount.appendChild(doc.createTextNode("2"))
         root.appendChild(minRatioCount)
 
-        restrictProteinQuantification = doc.createElement(
-            "restrictProteinQuantification"
-        )
+        restrictProteinQuantification = doc.createElement("restrictProteinQuantification")
         restrictProteinQuantification.appendChild(doc.createTextNode("True"))
         root.appendChild(restrictProteinQuantification)
 
@@ -1702,10 +1451,7 @@ class Maxquant:
         root.appendChild(compositionPrediction)
 
         quantMode = doc.createElement("quantMode")
-        if (
-            "protein_inference" in file2params
-            and len(file2params["protein_inference"]) > 0
-        ):
+        if "protein_inference" in file2params and len(file2params["protein_inference"]) > 0:
             tparam = file2params["protein_inference"]
             first = list(tparam.values())[0]
             if first == "unique":
@@ -1718,13 +1464,8 @@ class Maxquant:
             warning_message = "overwriting quantMode using the value in the sdrf file"
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             if len(set(tparam.values())) > 1:
-                warning_message = (
-                    "multiple values for parameter Quantification mode, taking the first: "
-                    + first
-                )
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                warning_message = "multiple values for parameter Quantification mode, taking the first: " + first
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         else:
             quantMode.appendChild(doc.createTextNode("1"))
         root.appendChild(quantMode)
@@ -1749,9 +1490,7 @@ class Maxquant:
         writePasefMsmsScansTable.appendChild(doc.createTextNode("True"))
         root.appendChild(writePasefMsmsScansTable)
 
-        writeAccumulatedPasefMsmsScansTable = doc.createElement(
-            "writeAccumulatedPasefMsmsScansTable"
-        )
+        writeAccumulatedPasefMsmsScansTable = doc.createElement("writeAccumulatedPasefMsmsScansTable")
         writeAccumulatedPasefMsmsScansTable.appendChild(doc.createTextNode("True"))
         root.appendChild(writeAccumulatedPasefMsmsScansTable)
 
@@ -1868,9 +1607,7 @@ class Maxquant:
             string.appendChild(doc.createTextNode(raw_path + key))
             filePaths.appendChild(string)
             string = doc.createElement("string")
-            string.appendChild(
-                doc.createTextNode(value + "_Tr_" + file2technical_rep[key])
-            )
+            string.appendChild(doc.createTextNode(value + "_Tr_" + file2technical_rep[key]))
             experiments.appendChild(string)
         root.appendChild(filePaths)
         root.appendChild(experiments)
@@ -1903,16 +1640,12 @@ class Maxquant:
         referenceChannel = doc.createElement("referenceChannel")
         for key1, instr_val in file2instrument.items():
             value2 = (
-                str(file2enzyme[key1])
-                + file2label[key1]
-                + str(file2mods[key1])
-                + str(file2pctol)
-                + str(file2fragtol)
+                str(file2enzyme[key1]) + file2label[key1] + str(file2mods[key1]) + str(file2pctol) + str(file2fragtol)
             )
             datanalysisparams = {}
-            for p in file2params.keys():
-                if len(file2params[p]) > 0:
-                    datanalysisparams[p] = file2params[p][key1]
+            for file, params in file2params.items():
+                if len(params) > 0:
+                    datanalysisparams[file] = params[key1]
 
             if tag == 0 and tmp == []:
                 int_node = doc.createElement("int")
@@ -1997,9 +1730,7 @@ class Maxquant:
                 msInstrument.appendChild(doc.createTextNode("1"))
                 maxCharge = doc.createElement("maxCharge")
                 if "max_precursor_charge" in datanalysisparams:
-                    maxCharge.appendChild(
-                        doc.createTextNode(datanalysisparams["max_precursor_charge"])
-                    )
+                    maxCharge.appendChild(doc.createTextNode(datanalysisparams["max_precursor_charge"]))
                 else:
                     maxCharge.appendChild(doc.createTextNode("5"))
                 minPeakLen = doc.createElement("minPeakLen")
@@ -2136,16 +1867,10 @@ class Maxquant:
             isotopeValleyFactor = doc.createElement("isotopeValleyFactor")
             isotopeValleyFactor.appendChild(doc.createTextNode("1.2"))
             labelMods = doc.createElement("labelMods")
-            if (
-                "Lys8" in j["label"]
-                or "Arg10" in j["label"]
-                or "Arg6" in j["label"]
-                or "Lys6" in j["label"]
-            ):
+            if "Lys8" in j["label"] or "Arg10" in j["label"] or "Arg6" in j["label"] or "Lys6" in j["label"]:
                 for lm in range(j["silac_shape"][0]):
                     r = j["label"].split(",")[
-                        lm * j["silac_shape"][1] : lm * j["silac_shape"][1]
-                        + lm * j["silac_shape"][1]
+                        lm * j["silac_shape"][1] : lm * j["silac_shape"][1] + lm * j["silac_shape"][1]
                     ]
                     if "Arg0" in r:
                         r.remove("Arg0")
@@ -2197,12 +1922,7 @@ class Maxquant:
             lfqMinRatioCount.appendChild(doc.createTextNode("2"))
             maxLabeledAa = doc.createElement("maxLabeledAa")
             multiplicity = doc.createElement("multiplicity")
-            if (
-                "Lys8" in j["label"]
-                or "Arg10" in j["label"]
-                or "Arg6" in j["label"]
-                or "Lys6" in j["label"]
-            ):
+            if "Lys8" in j["label"] or "Arg10" in j["label"] or "Arg6" in j["label"] or "Lys6" in j["label"]:
                 maxLabeledAa.appendChild(doc.createTextNode("3"))
                 multiplicity.appendChild(doc.createTextNode(str(j["silac_shape"][0])))
             else:
@@ -2217,9 +1937,7 @@ class Maxquant:
 
             maxMissedCleavages = doc.createElement("maxMissedCleavages")
             if "allowed_miscleavages" in datanalysisparams:
-                maxMissedCleavages.appendChild(
-                    doc.createTextNode(datanalysisparams["allowed_miscleavages"])
-                )
+                maxMissedCleavages.appendChild(doc.createTextNode(datanalysisparams["allowed_miscleavages"]))
             else:
                 maxMissedCleavages.appendChild(doc.createTextNode("2"))
             enzymeMode = doc.createElement("enzymeMode")
@@ -2271,9 +1989,7 @@ class Maxquant:
             useEnzymeFirstSearch.appendChild(doc.createTextNode("False"))
 
             # create variable modification
-            useVariableModificationsFirstSearch = doc.createElement(
-                "useVariableModificationsFirstSearch"
-            )
+            useVariableModificationsFirstSearch = doc.createElement("useVariableModificationsFirstSearch")
             useVariableModificationsFirstSearch.appendChild(doc.createTextNode("False"))
             useMultiModification = doc.createElement("useMultiModification")
             useMultiModification.appendChild(doc.createTextNode("False"))
@@ -2287,9 +2003,7 @@ class Maxquant:
                     internalLabel.appendChild(doc.createTextNode(t))
                     IsobaricLabelInfo.appendChild(internalLabel)
                     terminalLabel = doc.createElement("terminalLabel")
-                    terminalLabel.appendChild(
-                        doc.createTextNode(t.replace("-Lys", "-Nter"))
-                    )
+                    terminalLabel.appendChild(doc.createTextNode(t.replace("-Lys", "-Nter")))
                     IsobaricLabelInfo.appendChild(terminalLabel)
                     correctionFactorM2 = doc.createElement("correctionFactorM2")
                     correctionFactorM2.appendChild(doc.createTextNode("0"))
@@ -2314,9 +2028,7 @@ class Maxquant:
                     internalLabel.appendChild(doc.createTextNode(t))
                     IsobaricLabelInfo.appendChild(internalLabel)
                     terminalLabel = doc.createElement("terminalLabel")
-                    terminalLabel.appendChild(
-                        doc.createTextNode(t.replace("-Lys", "-Nter"))
-                    )
+                    terminalLabel.appendChild(doc.createTextNode(t.replace("-Lys", "-Nter")))
                     IsobaricLabelInfo.appendChild(terminalLabel)
                     correctionFactorM2 = doc.createElement("correctionFactorM2")
                     correctionFactorM2.appendChild(doc.createTextNode("0"))
@@ -2339,37 +2051,25 @@ class Maxquant:
 
             neucodeLabels = doc.createElement("neucodeLabels")
             neucodeLabels.appendChild(doc.createTextNode(""))
-            variableModificationsFirstSearch = doc.createElement(
-                "variableModificationsFirstSearch"
-            )
+            variableModificationsFirstSearch = doc.createElement("variableModificationsFirstSearch")
             variableModificationsFirstSearch.appendChild(doc.createTextNode(""))
-            hasAdditionalVariableModifications = doc.createElement(
-                "hasAdditionalVariableModifications"
-            )
+            hasAdditionalVariableModifications = doc.createElement("hasAdditionalVariableModifications")
             hasAdditionalVariableModifications.appendChild(doc.createTextNode("False"))
-            additionalVariableModifications = doc.createElement(
-                "additionalVariableModifications"
-            )
+            additionalVariableModifications = doc.createElement("additionalVariableModifications")
             additionalVariableModifications.appendChild(doc.createTextNode(""))
-            additionalVariableModificationProteins = doc.createElement(
-                "additionalVariableModificationProteins"
-            )
+            additionalVariableModificationProteins = doc.createElement("additionalVariableModificationProteins")
             additionalVariableModificationProteins.appendChild(doc.createTextNode(""))
             doMassFiltering = doc.createElement("doMassFiltering")
             doMassFiltering.appendChild(doc.createTextNode("True"))
             firstSearchTol = doc.createElement("firstSearchTol")
             mainSearchTol = doc.createElement("mainSearchTol")
             if j["pctolunit"] == "ppm":
-                firstSearchTol.appendChild(
-                    doc.createTextNode(str(float(j["pctol"]) + 15))
-                )
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 15)))
                 mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                 searchTolInPpm = doc.createElement("searchTolInPpm")
                 searchTolInPpm.appendChild(doc.createTextNode("True"))
             else:
-                firstSearchTol.appendChild(
-                    doc.createTextNode(str(float(j["pctol"]) + 0.04))
-                )
+                firstSearchTol.appendChild(doc.createTextNode(str(float(j["pctol"]) + 0.04)))
                 mainSearchTol.appendChild(doc.createTextNode(str(j["pctol"])))
                 searchTolInPpm = doc.createElement("searchTolInPpm")
                 searchTolInPpm.appendChild(doc.createTextNode("False"))
@@ -2386,9 +2086,7 @@ class Maxquant:
             checkMassDeficit.appendChild(doc.createTextNode("True"))
             recalibrationInPpm = doc.createElement("recalibrationInPpm")
             recalibrationInPpm.appendChild(doc.createTextNode("True"))
-            intensityDependentCalibration = doc.createElement(
-                "intensityDependentCalibration"
-            )
+            intensityDependentCalibration = doc.createElement("intensityDependentCalibration")
             intensityDependentCalibration.appendChild(doc.createTextNode("False"))
             minScoreForCalibration = doc.createElement("minScoreForCalibration")
             minScoreForCalibration.appendChild(doc.createTextNode("70"))
@@ -2443,9 +2141,7 @@ class Maxquant:
             minPairedPepLenXl.appendChild(doc.createTextNode("6"))
             crosslinkOnlyIntraProtein = doc.createElement("crosslinkOnlyIntraProtein")
             crosslinkOnlyIntraProtein.appendChild(doc.createTextNode("False"))
-            crosslinkMaxMonoUnsaturated = doc.createElement(
-                "crosslinkMaxMonoUnsaturated"
-            )
+            crosslinkMaxMonoUnsaturated = doc.createElement("crosslinkMaxMonoUnsaturated")
             crosslinkMaxMonoUnsaturated.appendChild(doc.createTextNode("0"))
             crosslinkMaxMonoSaturated = doc.createElement("crosslinkMaxMonoSaturated")
             crosslinkMaxMonoSaturated.appendChild(doc.createTextNode("0"))
@@ -2485,17 +2181,11 @@ class Maxquant:
             diaInitialPrecMassTolPpm.appendChild(doc.createTextNode("20"))
             diaInitialFragMassTolPpm = doc.createElement("diaInitialFragMassTolPpm")
             diaInitialFragMassTolPpm.appendChild(doc.createTextNode("20"))
-            diaCorrThresholdFeatureClustering = doc.createElement(
-                "diaCorrThresholdFeatureClustering"
-            )
+            diaCorrThresholdFeatureClustering = doc.createElement("diaCorrThresholdFeatureClustering")
             diaCorrThresholdFeatureClustering.appendChild(doc.createTextNode("0.85"))
-            diaPrecTolPpmFeatureClustering = doc.createElement(
-                "diaPrecTolPpmFeatureClustering"
-            )
+            diaPrecTolPpmFeatureClustering = doc.createElement("diaPrecTolPpmFeatureClustering")
             diaPrecTolPpmFeatureClustering.appendChild(doc.createTextNode("2"))
-            diaFragTolPpmFeatureClustering = doc.createElement(
-                "diaFragTolPpmFeatureClustering"
-            )
+            diaFragTolPpmFeatureClustering = doc.createElement("diaFragTolPpmFeatureClustering")
             diaFragTolPpmFeatureClustering.appendChild(doc.createTextNode("2"))
             diaScoreN = doc.createElement("diaScoreN")
             diaScoreN.appendChild(doc.createTextNode("7"))
@@ -2503,9 +2193,7 @@ class Maxquant:
             diaMinScore.appendChild(doc.createTextNode("2.99"))
             diaPrecursorQuant = doc.createElement("diaPrecursorQuant")
             diaPrecursorQuant.appendChild(doc.createTextNode("False"))
-            diaDiaTopNFragmentsForQuant = doc.createElement(
-                "diaDiaTopNFragmentsForQuant"
-            )
+            diaDiaTopNFragmentsForQuant = doc.createElement("diaDiaTopNFragmentsForQuant")
             diaDiaTopNFragmentsForQuant.appendChild(doc.createTextNode("3"))
 
             # appendChild in parameterGroup
@@ -2778,10 +2466,10 @@ class Maxquant:
     def maxquant_experiamental_design(self, sdrf_file, output):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(str.lower, sdrf.columns)
-        f = open(output, "w")
-        f.write("Name\tFraction\tExperiment\tPTM")
-        for index, row in sdrf.iterrows():
+        sdrf.columns = sdrf.columns.str.lower()
+        f = open(output, "w", encoding="utf-8")
+        f.write(tsv_line("Name", "Fraction", "Experiment", "PTM"))
+        for _, row in sdrf.iterrows():
             data_file = row["comment[data file]"][:-4]
             source_name = row["source name"]
             if "comment[fraction identifier]" in row:
@@ -2799,7 +2487,7 @@ class Maxquant:
             else:
                 tr = "1"
             experiment = source_name + "_Tr_" + tr
-            f.write("\n" + data_file + "\t" + fraction + "\t" + experiment + "\t")
+            f.write(tsv_line(data_file, fraction, experiment, ""))
         f.close()
         print("SUCCESS Generate maxquant experimental design file")
 

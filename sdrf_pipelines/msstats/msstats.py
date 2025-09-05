@@ -2,14 +2,13 @@ import re
 
 import pandas as pd
 
-
 # example:  parse_sdrf convert-msstats -s ./testdata/PXD000288.sdrf.tsv -o ./test1.csv
 
 
 class Msstats:
     def __init__(self) -> None:
         """Convert sdrf to msstats annotation file (label free sample)."""
-        self.warnings = {}
+        self.warnings: dict[str, int] = {}
 
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
@@ -22,9 +21,7 @@ class Msstats:
     ):
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
-        sdrf.columns = map(
-            str.lower, sdrf.columns
-        )  # convert column names to lower-case
+        sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
         data = {}
         condition = []
         Experiments = []
@@ -42,9 +39,7 @@ class Msstats:
 
         if not split_by_columns:
             # get factor columns (except constant ones)
-            factor_cols = [
-                c for ind, c in enumerate(sdrf) if c.startswith("factor value[")
-            ]
+            factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith("factor value[")]
         else:
             factor_cols = split_by_columns
         for _, row in sdrf.iterrows():
@@ -76,12 +71,10 @@ class Msstats:
                     BioReplicate.append(sample)
             else:
                 warning_message = "No sample number identifier"
-                self.warnings[warning_message] = (
-                    self.warnings.get(warning_message, 0) + 1
-                )
+                self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
                 # Solve non-sample id expression models
-                if source_name in sample_id_map.keys():
+                if source_name in sample_id_map:
                     sample = sample_id_map[source_name]
                 else:
                     sample_id_map[source_name] = sample_id
@@ -93,9 +86,7 @@ class Msstats:
             value.append(MSstatsBioReplicate)
 
             if "comment[technical replicate]" in sdrf.columns:
-                Experiments.append(
-                    row["source name"] + "_" + str(row["comment[technical replicate]"])
-                )
+                Experiments.append(row["source name"] + "_" + str(row["comment[technical replicate]"]))
             else:
                 Experiments.append(row["source name"] + "_" + "1")
 

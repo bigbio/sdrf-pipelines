@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "sdrf-pipelines"
-version = "0.0.32"  # You can set your preferred version here
-description = "Translate, convert SDRF to configuration pipelines"
+version = "1.0.0"
+description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
 authors = ["BigBio Team <ypriverol@gmail.com>"]
 license = "Apache 2.0"
@@ -26,16 +26,24 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
 click = "*"
-pandas = "*"
-requests = "*"
-pytest = "*"
-pyyaml = "*"
 defusedxml = "*"
-pyarrow = "*"
 duckdb = "*"
+pandas = "*"
+pyarrow = "*"
+pydantic = "*"
+python = ">=3.10,<4.0"
+pyyaml = "*"
 rdflib = "*"
+requests = "*"
+
+[tool.poetry.group.test.dependencies]
+flake8 = "*"
+mypy = "*"
+pre-commit = "*"
+pylint = "*"
+pytest = "*"
+pytest-datadir = "*"
 
 [tool.poetry.scripts]
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
@@ -43,3 +51,20 @@ parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 [build-system]
 requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target_version = ["py310","py311","py312","py313"]
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+packages = ["sdrf_pipelines"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true

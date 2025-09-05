@@ -10,6 +10,11 @@ validators:
     params: {}
   - validator_name: empty_cells
     params: {}
+  - validator_name: multiple_column_unique_values_validator
+    params:
+      column_name:
+        - source name
+        - assay name
 columns:
   - name: source name
     description: Source name
@@ -53,7 +58,7 @@ columns:
             - cl
             - bto
             - clo
-          description: The cell name should be a valid Cell Ontology (CL), BRENDA Tissue Ontology (BTO), or Cell Line Ontology (CLO) term
+          description: The cell type should be a valid Cell Ontology (CL), BRENDA Tissue Ontology (BTO), or Cell Line Ontology (CLO) term
           examples:
             - hepatocyte
             - neuron
@@ -70,8 +75,8 @@ columns:
     cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
-  - name: technology name
-    description: Technology name
+  - name: technology type
+    description: Technology type
     requirement: required
     cardinality: unique
     allow_not_applicable: false

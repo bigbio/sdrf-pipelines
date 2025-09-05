@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import sys
-from typing import List
 
 import click
 import pandas as pd
@@ -17,39 +16,10 @@ from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
-from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
-from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
+from sdrf_pipelines.utils.exceptions import AppConfigException
 
-
-def parse_sdrf(sdrf_file: str) -> SDRFDataFrame:
-    """Parse an SDRF file.
-
-    Parameters:
-        sdrf_file (str): Path to the SDRF file
-    Returns:
-        SDRFDataFrame: A SdrfDataFrame instance
-    """
-    return SDRFDataFrame.parse(sdrf_file)
-
-
-def validate_sdrf_df(
-    sdrf: SDRFDataFrame, template: str, use_ols_cache_only: bool = False
-) -> List[LogicError]:
-    """
-    Validate an SDRF DataFrame.
-
-    Parameters:
-        sdrf: SDRFDataFrame to validate
-        template: Template name to determine the validation rules
-        use_ols_cache_only: Whether to use only the cache for ontology validation
-
-    Returns:
-        List of validation errors
-    """
-    return sdrf.validate(template, use_ols_cache_only=use_ols_cache_only)
-
-
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.version_option(
@@ -60,9 +30,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     """
-    This is the main tool that gives access to all commands to convert SDRF files into pipelines specific configuration files.
+    This tool validates SDRF files and can convert them for use in data analysis pipelines.
     """
-    pass
 
 
 @click.command("convert-openms", short_help="convert sdrf to openms file output")
@@ -79,9 +48,7 @@ def cli():
     help="Create one-table or two-tables format.",
     default=False,
 )
-@click.option(
-    "--verbose/--quiet", "-v/-q", help="Output debug information.", default=False
-)
+@click.option("--verbose/--quiet", "-v/-q", help="Output debug information.", default=False)
 @click.option(
     "--conditionsfromcolumns",
     "-c",
@@ -90,7 +57,10 @@ def cli():
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one name to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
+    help=(
+        "convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. "
+        "The original extensions are case insensitive"
+    ),
 )
 @click.pass_context
 def openms_from_sdrf(
@@ -105,9 +75,7 @@ def openms_from_sdrf(
     if sdrf is None:
         help()
     try:
-        OpenMS().openms_convert(
-            sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert
-        )
+        OpenMS().openms_convert(sdrf, onetable, legacy, verbose, conditionsfromcolumns, extension_convert)
     except Exception as ex:
         msg = "Error: " + str(ex)
         raise ValueError(msg) from ex
@@ -207,23 +175,24 @@ def maxquant_from_sdrf(
     default="default",
     required=False,
 )
+@click.option(
+    "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
+)
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
+    use_ols_cache_only: bool,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
-    User can select the template to be used for validation. If no template is provided, the default template will be used.
-    Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
+    User can select the template to be used for validation. If no template is provided, the default template will
+    be used. Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
     the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
 
     @param sdrf_file: SDRF file to be validated
     @param template: template to be used for a validation
-    @param skip_ms_validation: flag to skip the validation of mass spectrometry fields
-    @param skip_factor_validation: flag to skip the validation of factor values
-    @param skip_experimental_design_validation: flag to skip the validation of experimental design
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
     """
 
@@ -237,9 +206,9 @@ def validate_sdrf(
 
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(sdrf_file)
+    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
 
-    errors = validator.validate(sdrf_df, template)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
 
     for error in errors:
@@ -276,7 +245,7 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
     for key in d:
         dataframe = d[key]
         file_name = os.path.split(sdrf_file)[-1]
-        Path = os.path.split(sdrf_file)[0] + "/"
+        path = os.path.split(sdrf_file)[0] + "/"
         if prefix is None:
             if len(file_name.split(".")) > 2:
                 prefix = ".".join(file_name.split(".")[:-2])
@@ -286,13 +255,13 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
             new_file = prefix + "-" + "-".join(key).replace(" ", "_") + ".sdrf.tsv"
         else:
             new_file = prefix + "-" + key.replace(" ", "_") + ".sdrf.tsv"
-        dataframe.to_csv(Path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
+        dataframe.to_csv(path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
 
         # Handling duplicate column names
-        with open(Path + new_file, "r+") as f:
+        with open(path + new_file, "r+", encoding="utf-8") as f:
             data = f.read()
         data = pattern.sub("]\t", data)
-        with open(Path + new_file, "w") as f:
+        with open(path + new_file, "w", encoding="utf-8") as f:
             f.write(data)
 
 
@@ -310,21 +279,13 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
     help="from openswathtomsstats output to msstats",
     default=False,
 )
-@click.option(
-    "--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False
-)
+@click.option("--maxqtomsstats", "-mq", help="from maxquant output to msstats", default=False)
 @click.pass_context
-def msstats_from_sdrf(
-    ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
-):
-    Msstats().convert_msstats_annotation(
-        sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats
-    )
+def msstats_from_sdrf(ctx, sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats):
+    Msstats().convert_msstats_annotation(sdrf, conditionsfromcolumns, outpath, openswathtomsstats, maxqtomsstats)
 
 
-@click.command(
-    "convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file"
-)
+@click.command("convert-normalyzerde", short_help="convert sdrf to NormalyzerDE design file")
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
 @click.option(
     "--conditionsfromcolumns",
@@ -332,9 +293,7 @@ def msstats_from_sdrf(
     help="Create conditions from provided (e.g., factor) columns.",
 )
 @click.option("--outpath", "-o", help="annotation out file path", required=True)
-@click.option(
-    "--outpathcomparisons", "-oc", help="out file path for comparisons", default=""
-)
+@click.option("--outpathcomparisons", "-oc", help="out file path for comparisons", default="")
 @click.option(
     "--maxquant_exp_design_file",
     "-mq",
@@ -359,14 +318,12 @@ def normalyzerde_from_sdrf(
     )
 
 
-@click.command(
-    "build-index-ontology", short_help="Convert an ontology file to an index file"
-)
+@click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
 @click.option("--ontology", "-in", help="ontology file")
 @click.option("--index", "-out", help="Output file in parquet format")
 @click.option("--ontology_name", "-name", help="ontology name")
 @click.pass_context
-def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str = None):
+def build_index_ontology(ctx, ontology: str, index: str, ontology_name: str | None = None):
     ols_client = OlsClient()
 
     if ontology.lower().endswith(".owl") and ontology_name is None:
@@ -384,15 +341,11 @@ cli.add_command(normalyzerde_from_sdrf)
 cli.add_command(build_index_ontology)
 
 
-@click.command(
-    "validate-sdrf-simple", short_help="Simple command to validate the sdrf file"
-)
+@click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file.")
 @click.argument("sdrf_file", type=click.Path(exists=True))
+@click.option("--template", "-t", default="default", help="The template to validate against.")
 @click.option(
-    "--template", "-t", default="default", help="The template to validate against"
-)
-@click.option(
-    "--use-ols-cache-only", is_flag=True, help="Use only the OLS cache for validation"
+    "--use_ols_cache_only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
 )
 def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
     """
@@ -401,11 +354,12 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
     This command provides a simpler interface for validating SDRF files,
     without the additional options for skipping specific validations.
     """
+
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(sdrf_file)
+    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
 
-    errors = validator.validate(sdrf_df, template)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     if errors:
         for error in errors:
             if error.error_type == logging.ERROR:
