@@ -547,7 +547,7 @@ class MultipleColumnUniqueValuesValidator(SDRFValidator):
                     error_type=logging.ERROR,
                 )
             ]
-        inner_df = df.df
+        inner_df = df.df if hasattr(df, 'df') else df
         duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
         errors = []
 
@@ -594,7 +594,7 @@ class EmptyCellValidator(SDRFValidator):
                 cell_value = str(cell_value)
             return cell_value != "nan" and len(cell_value.strip()) > 0
 
-        validation_results = df.map(validate_string)
+        validation_results = df.applymap(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [

@@ -72,7 +72,7 @@ columns:
   - name: assay name
     description: Assay name
     requirement: required
-    cardinality: unique
+    cardinality: multiple
     allow_not_applicable: false
     allow_not_available: false
   - name: technology type
