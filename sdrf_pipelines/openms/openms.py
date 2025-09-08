@@ -1081,7 +1081,7 @@ class OpenMS:
             if "TMT" in labels_str:
                 label = infer_tmtplex(label_set)
                 # add default TMT modification when sdrf with label not contains TMT modification
-                if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
+                if "tmt" not in f2c.file2mods[raw][0].lower() and "tmt" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
                         "The sdrf with TMT label doesn't contain TMT modification. Adding default "
                         "variable modifications."
@@ -1109,7 +1109,7 @@ class OpenMS:
                 else:
                     label = "itraq4plex"
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
-                if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
+                if "itraq" not in f2c.file2mods[raw][0].lower() and "itraq" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
                         "The sdrf with ITRAQ label doesn't contain label modification. Adding default "
                         "variable modifications."
