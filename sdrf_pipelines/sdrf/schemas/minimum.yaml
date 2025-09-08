@@ -10,7 +10,7 @@ validators:
     params: {}
   - validator_name: empty_cells
     params: {}
-  - validator_name: multiple_column_unique_values_validator
+  - validator_name: combination_of_columns_no_duplicate_validator
     params:
       column_name:
         - source name
@@ -21,11 +21,9 @@ columns:
     requirement: required
     allow_not_applicable: false
     allow_not_available: false
-    cardinality: unique
   - name: characteristics[organism]
     description: Organism
     requirement: required
-    cardinality: multiple
     allow_not_applicable: true
     allow_not_available: false
     validators:
@@ -66,38 +64,35 @@ columns:
   - name: characteristics[biological replicate]
     description: Biological replicate
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: assay name
     description: Assay name
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: technology type
     description: Technology type
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
+    validators:
+      - validator_name: single_cardinality_validator
+        params: {}
   - name: comment[technical replicate]
     description: Technical replicate
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: comment[fraction identifier]
     description: Fraction identifier
     requirement: required
     type: integer
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: comment[label]
     description: Label
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
     validators:
@@ -115,16 +110,16 @@ columns:
   - name: comment[data file]
     description: Data file
     requirement: required
-    cardinality: unique
     allow_not_applicable: false
     allow_not_available: false
   - name: comment[instrument]
     description: Instrument
     requirement: required
-    cardinality: multiple
     allow_not_applicable: false
     allow_not_available: false
     validators:
+      - validator_name: single_cardinality_validator
+        params: {}
       - validator_name: ontology
         params:
           ontologies:
@@ -153,7 +148,6 @@ columns:
   - name: comment[cleavage agent details]
     description: Cleavage agent details
     requirement: optional
-    cardinality: multiple
     allow_not_applicable: true
     allow_not_available: false
     validators:
@@ -170,12 +164,10 @@ columns:
   - name: comment[fragment mass tolerance]
     description: Fragment mass tolerance
     requirement: optional
-    cardinality: unique
     allow_not_applicable: true
     allow_not_available: true
   - name: comment[precursor mass tolerance]
     description: Precursor mass tolerance
     requirement: optional
-    cardinality: unique
     allow_not_applicable: true
     allow_not_available: true

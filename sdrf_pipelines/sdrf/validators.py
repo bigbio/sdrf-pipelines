@@ -104,6 +104,33 @@ class UniqueValuesValidator(SDRFValidator):
         return errors
 
 
+@register_validator(validator_name="single_cardinality_validator")
+class SingleCardinalityValidator(SDRFValidator):
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if the series has single cardinality (i.e., all values are the same).
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+        """
+
+        unique_values = series.dropna().unique()
+        errors = []
+
+        if len(unique_values) > 1:
+            column_info = f" in column '{column_name}'" if column_name else ""
+            errors.append(
+                LogicError(
+                    message=f"Column{column_info} has multiple unique values: {', '.join(map(str, unique_values))}",
+                    row=-1,
+                    column=column_name,
+                    error_type=logging.ERROR,
+                )
+            )
+
+        return errors
+
+
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
@@ -517,8 +544,8 @@ class ColumnOrderValidator(SDRFValidator):
         return error_columns_order
 
 
-@register_validator(validator_name="multiple_column_unique_values_validator")
-class MultipleColumnUniqueValuesValidator(SDRFValidator):
+@register_validator(validator_name="combination_of_columns_no_duplicate_validator")
+class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
     def validate(self, df: SDRFDataFrame, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         """
         Validate if the combination of values in the specified columns are unique.
