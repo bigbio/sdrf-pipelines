@@ -15,6 +15,10 @@ validators:
       column_name:
         - source name
         - assay name
+        - comment[label]
+      column_name_warning:
+        - source name
+        - assay name
 columns:
   - name: source name
     description: Source name
@@ -130,6 +134,22 @@ columns:
             - Q Exactive
             - TripleTOF 5600
             - Orbitrap Fusion Lumos
+  - name: comment[proteomics data acquisition method]
+    description: Proteomics data acquisition method
+    requirement: required
+    allow_not_applicable: true
+    allow_not_available: false
+    validators:
+      - validator_name: ontology
+        params:
+          ontologies:
+            - pride
+          description: The proteomics data acquisition method should be a valid PRIDE ontology term
+          examples:
+            - "Data-dependent acquisition"
+            - "Data-independent acquisition"
+            - "Parallel reaction monitoring"
+            - "Selected reaction monitoring"
   - name: comment[modification parameters]
     description: Modification parameters
     requirement: recommended

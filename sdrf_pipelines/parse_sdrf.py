@@ -178,12 +178,20 @@ def maxquant_from_sdrf(
 @click.option(
     "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
 )
+@click.option(
+    "--out",
+    "-o",
+    help="Output file to write the validation results to (default: stdout)",
+    default=None,
+    required=False,
+)
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
     use_ols_cache_only: bool,
+    out: str | None = None,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
@@ -194,6 +202,7 @@ def validate_sdrf(
     @param sdrf_file: SDRF file to be validated
     @param template: template to be used for a validation
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
+    @param out: Output file to write the validation results to (default: stdout)
     """
 
     if sdrf_file is None:
@@ -210,14 +219,28 @@ def validate_sdrf(
 
     errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
-
+    error_list = []
     for error in errors:
         if error.error_type == logging.ERROR:
-            click.secho(f"{error.message}", fg="red")
+            error_list.append({"file": sdrf_file, "type": "ERROR", "message": error.message})
         elif error.error_type == logging.WARNING:
-            click.secho(f"{error.message}", fg="yellow")
+            error_list.append({"file": sdrf_file, "type": "WARNING", "message": error.message})
         else:
+            error_list.append({"file": sdrf_file, "type": "INFO", "message": error.message})
             click.secho(f"{error.message}", fg="green")
+
+    error_df = pd.DataFrame(error_list)
+    error_df = error_df.drop_duplicates()
+    if out is not None:
+        error_df.to_csv(out, sep="\t", index=False)
+
+    for _, row in error_df.iterrows():
+        if row["type"] == "ERROR":
+            click.secho(f"ERROR: {row['message']}", fg="red")
+        elif row["type"] == "WARNING":
+            click.secho(f"WARNING: {row['message']}", fg="yellow")
+        else:
+            click.secho(f"{row['message']}", fg="green")
 
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")

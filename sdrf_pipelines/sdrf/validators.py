@@ -591,6 +591,36 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
                         error_type=logging.ERROR,
                     )
                 )
+        if "column_name_warning" in self.params:
+            column_name_warning = self.params["column_name_warning"]
+            if isinstance(column_name_warning, str):
+                columns_warning = [col.strip() for col in column_name_warning.split(",")]
+            elif isinstance(column_name_warning, list):
+                columns_warning = column_name_warning
+            else:
+                raise ValueError("column_name_warning must be a string or a list of strings")
+            missing_columns_warning = [col for col in columns_warning if col not in df.columns]
+            if missing_columns_warning:
+                return [
+                    LogicError(
+                        message=f"Columns not found in DataFrame: {', '.join(missing_columns_warning)}",
+                        error_type=logging.ERROR,
+                    )
+                ]
+            duplicates_warning = inner_df[inner_df.duplicated(subset=columns_warning, keep=False)]
+            if not duplicates_warning.empty:
+                grouped_warning = duplicates_warning.groupby(columns_warning).apply(lambda x: x.index.tolist())
+                for combo, indices in grouped_warning.items():
+                    row_info = ", ".join(str(idx) for idx in indices)
+                    column_info = f" in columns '{', '.join(columns_warning)}'"
+                    errors.append(
+                        LogicError(
+                            message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
+                            row=-1,
+                            column=", ".join(columns_warning),
+                            error_type=logging.WARNING,
+                        )
+                    )
 
         return errors
 
