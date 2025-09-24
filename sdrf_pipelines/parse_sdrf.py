@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
 import csv
-import hashlib
 import json
 import logging
 import os
 import re
 import sys
-from datetime import datetime
 from typing import Optional
 
 import click
