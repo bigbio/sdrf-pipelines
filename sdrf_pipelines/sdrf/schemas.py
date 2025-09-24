@@ -301,7 +301,7 @@ class SchemaValidator:
     ) -> list[LogicError]:
         errors = []
         if column_def.name in df.columns:
-            debug_col(f"\nfound column {repr('characteristics[age]')}")
+            logging.debug(f"\nfound column {repr('characteristics[age]')}")
             column_series = df[column_def.name]
 
             errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, debug_col))
@@ -322,8 +322,8 @@ class SchemaValidator:
         errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only))
         errors.extend(self._validate_required_columns(df, schema))
 
-        print(f"\n{schema.columns=}")
-        print(f"\n{df.columns=}")
+        logging.debug(f"{schema.columns=}")
+        logging.debug(f"{df.columns=}")
         col_to_debug = "characteristics[age]"
 
         def debug_col(msg):
@@ -331,7 +331,7 @@ class SchemaValidator:
                 print(msg)
 
         for column_def in schema.columns:
-            print(f"\nprocessing schema column {column_def}")
+            logging.debug(f"\nprocessing schema column {column_def}")
             errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, debug_col))
 
         return errors
