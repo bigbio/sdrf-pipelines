@@ -19,7 +19,7 @@ from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
-from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
+from sdrf_pipelines.sdrf.sdrf import read_sdrf
 from sdrf_pipelines.utils.exceptions import AppConfigException
 from sdrf_pipelines.utils.utils import ValidationProof
 
@@ -283,6 +283,8 @@ def validate_sdrf(
 
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")
+    elif len(errors) == len(errors_not_warnings):
+        click.secho("Most seems to be fine. There were only warnings.", fg="red")
     else:
         click.secho("There were validation errors.", fg="red")
 
