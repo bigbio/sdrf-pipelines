@@ -36,7 +36,7 @@ def test_min_columns_with_reduced_columns():
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
-    errors = validator.validate(sdrf_df, "default")
+    errors = validator.validate(sdrf_df, "human")
     error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
     expected_error_name_counts = Counter(
         {
@@ -57,5 +57,4 @@ def test_min_columns_with_reduced_columns():
             "Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$": 1,
         }
     )
-
     assert error_name_counts == expected_error_name_counts
