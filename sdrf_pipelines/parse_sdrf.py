@@ -239,7 +239,7 @@ def validate_sdrf(
 
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
+    sdrf_df = read_sdrf(sdrf_file)
     validation_proof = ValidationProof()
     template_content = ""
     if generate_proof:
@@ -439,7 +439,7 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
 
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
+    sdrf_df = read_sdrf(sdrf_file)
 
     errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     if errors:
