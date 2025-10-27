@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from collections import OrderedDict
 from enum import Enum
 from typing import Any
 
@@ -41,6 +42,12 @@ class SchemaDefinition(BaseModel):
     description: str
     validators: list[ValidatorConfig] = Field(default_factory=list)
     columns: list[ColumnDefinition] = Field(default_factory=list)
+
+
+class MergeStrategy(str, Enum):
+    FIRST = "first"
+    LAST = "last"
+    COMBINE = "combine"
 
 
 class SchemaRegistry:
@@ -198,6 +205,116 @@ class SchemaRegistry:
     def get_schema_names(self) -> list[str]:
         """Get all schema names in the registry."""
         return list(self.schemas.keys())
+
+    def compile_columns_from_schemas(
+        self, schema_names: list[str], strategy: MergeStrategy = MergeStrategy.COMBINE
+    ) -> tuple[list[str], dict[str, OrderedDict[str, ColumnDefinition]]]:
+        """Compile a unique list of columns from multiple schemas.
+        Args:
+            schema_names: List of schema names to compile columns from
+            registry: SchemaRegistry instance containing the schemas
+        Returns:
+            Tuple of (ordered list of column names, dict of sections with column definitions)
+        """
+        sections: dict[str, Any] = {
+            "source name": OrderedDict(),
+            "characteristics": OrderedDict(),
+            "special": OrderedDict(),
+            "comment": OrderedDict(),
+            "factor value": OrderedDict(),
+        }
+
+        seen_columns = set()
+        for schema_name in schema_names:
+            schema = self.get_schema(schema_name)
+            if schema:
+                for col in schema.columns:
+                    if col.name not in seen_columns:
+                        seen_columns.add(col.name)
+                        if col.name.startswith("characteristics["):
+                            if col.name not in sections["characteristics"]:
+                                sections["characteristics"][col.name] = []
+                            sections["characteristics"][col.name].append(col)
+                        elif col.name.startswith("comment["):
+                            if col.name not in sections["comment"]:
+                                sections["comment"][col.name] = []
+                            sections["comment"][col.name].append(col)
+                        elif col.name.startswith("factor value["):
+                            if col.name not in sections["factor value"]:
+                                sections["factor value"][col.name] = []
+                            sections["factor value"][col.name].append(col)
+                        elif col.name.startswith("source name"):
+                            if col.name not in sections["source name"]:
+                                sections["source name"][col.name] = []
+                            sections["source name"][col.name].append(col)
+                        else:
+                            if col.name not in sections["special"]:
+                                sections["special"][col.name] = []
+                            sections["special"][col.name].append(col)
+        for section in sections:
+            if sections[section]:
+                for col_name in sections[section]:
+                    if len(sections[section][col_name]) == 1:
+                        sections[section][col_name] = sections[section][col_name][0]
+                    else:
+                        merged_col = merge_column_defs(sections[section][col_name], strategy=strategy)
+                        sections[section][col_name] = merged_col
+
+        ordered_columns = []
+        for section in ["source name", "characteristics", "special", "comment", "factor value"]:
+            for col_name in sections[section]:
+                ordered_columns.append(col_name)
+        return ordered_columns, sections
+
+    def combine_schemas(
+        self, schema_names: list[str], strategy: MergeStrategy = MergeStrategy.COMBINE
+    ) -> SchemaDefinition:
+        """
+        Combine multiple schemas into one, merging columns and validators.
+
+        Args:
+            schema_names: List of schema names to combine
+            registry: SchemaRegistry instance containing the schemas
+            strategy: Strategy for merging column definitions ('first', 'last', 'combine')
+        Returns:
+            Combined SchemaDefinition
+        """
+        if not schema_names:
+            raise ValueError("No schema names provided for combination")
+
+        base_schema = self.get_schema(schema_names[0])
+        if not base_schema:
+            raise ValueError(f"Schema '{schema_names[0]}' not found in registry")
+
+        combined_schema = SchemaDefinition(
+            name="CombinedSchema",
+            description="Combined schema from: " + ", ".join(schema_names),
+            validators=[],
+            columns=[],
+        )
+
+        # Combine global validators
+        existing_validators = {}
+        for schema_name in schema_names:
+            schema = self.get_schema(schema_name)
+            if schema:
+                for v in schema.validators:
+                    if v.validator_name not in existing_validators:
+                        existing_validators[v.validator_name] = v
+                        combined_schema.validators.append(v)
+            else:
+                raise ValueError(f"Schema '{schema_name}' not found in registry")
+
+        # Compile and merge columns
+        ordered_columns, merge_column_definitions = self.compile_columns_from_schemas(schema_names, strategy)
+        columns = []
+        for section in ["source name", "characteristics", "special", "comment", "factor value"]:
+            for col_name in merge_column_definitions[section]:
+                columns.append(merge_column_definitions[section][col_name])
+
+        combined_schema.columns = columns
+
+        return combined_schema
 
 
 class SchemaValidator:
@@ -400,3 +517,73 @@ def load_and_validate_sdrf(sdrf_path: str, schema_dir: str | None = None, schema
         # Find best matching schema
         results = validator.validate_with_best_schema(df)
         return df, results
+
+
+def merge_column_defs(
+    col_defs: list[ColumnDefinition], strategy: MergeStrategy = MergeStrategy.LAST
+) -> ColumnDefinition:
+    """
+    Merge multiple ColumnDefinition instances into one, combining validators.
+    Args:
+        col_defs: List of ColumnDefinition instances to merge
+        strategy: Strategy for merging basic properties ('first', 'last', 'combine')
+    Returns:
+        Merged ColumnDefinition
+    """
+
+    if not col_defs:
+        raise ValueError("No column definitions to merge")
+
+    merged = col_defs[0].copy(deep=True)
+
+    for col_def in col_defs[1:]:
+        # Merge basic properties based on strategy
+        if strategy == MergeStrategy.FIRST:
+            # Use first non-null value
+            for field in ["description", "requirement", "allow_not_applicable", "allow_not_available"]:
+                if getattr(merged, field) is None and getattr(col_def, field) is not None:
+                    setattr(merged, field, getattr(col_def, field))
+        elif strategy == MergeStrategy.LAST:
+            # Use last non-null value
+            for field in ["description", "requirement", "allow_not_applicable", "allow_not_available"]:
+                if getattr(col_def, field) is not None:
+                    setattr(merged, field, getattr(col_def, field))
+        elif strategy == MergeStrategy.COMBINE:
+            # Combine descriptions and use stricter requirement level
+            for field in ["description"]:
+                if getattr(col_def, field) and getattr(col_def, field) not in (None, ""):
+                    if getattr(merged, field):
+                        combined = f"{getattr(merged, field)}; {getattr(col_def, field)}"
+                        setattr(merged, field, combined)
+                    else:
+                        setattr(merged, field, getattr(col_def, field))
+            for field in ["requirement"]:
+                if getattr(col_def, field) and getattr(col_def, field) != RequirementLevel.OPTIONAL:
+                    setattr(merged, field, getattr(col_def, field))
+            for field in ["allow_not_applicable", "allow_not_available"]:
+                if getattr(col_def, field):
+                    setattr(merged, field, True)
+
+        # Merge validators without duplicates
+        existing_validators = {v.validator_name: v for v in merged.validators}
+        for v in col_def.validators:
+            if v.validator_name not in existing_validators:
+                merged.validators.append(v)
+
+    return merged
+
+
+def schema_to_tsv(schema: SchemaDefinition) -> str:
+    """
+    Convert sdrf schema definition to TSV format.
+
+    Args:
+        schema: SchemaDefinition instance
+    Returns:
+        TSV string with header line
+    """
+    header_list = []
+    for col in schema.columns:
+        header_list.append(col.name)
+    tsv_content = "\t".join(header_list) + "\n"
+    return tsv_content

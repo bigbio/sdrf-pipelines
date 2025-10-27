@@ -263,7 +263,7 @@ class OntologyValidator(SDRFValidator):
 
     def __init__(self, params: dict[str, Any] | None = None, **data: Any):
         super().__init__(**data)
-        logging.info(params)
+        logging.debug(params)
         if params:
             for key, value in params.items():
                 if key == "ontologies":

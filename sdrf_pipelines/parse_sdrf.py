@@ -280,11 +280,10 @@ def validate_sdrf(
             click.secho(f"WARNING: {row['message']}", fg="yellow")
         else:
             click.secho(f"{row['message']}", fg="green")
-
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")
-    elif len(errors) == len(errors_not_warnings):
-        click.secho("Most seems to be fine. There were only warnings.", fg="red")
+    elif error_df[error_df["type"] == "WARNING"].shape[0] > 0 and not errors_not_warnings:
+        click.secho("Most seems to be fine. There were only warnings.", fg="yellow")
     else:
         click.secho("There were validation errors.", fg="red")
 
