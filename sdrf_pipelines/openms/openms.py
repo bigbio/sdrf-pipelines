@@ -243,7 +243,12 @@ class OpenMS:
 
     def _extract_modification_name(self, mod_string):
         name = re.search("NT=(.+?)(;|$)", mod_string).group(1)
-        name = name.capitalize()
+        # Check for combined modifications like "Phospho+Oxidation"
+        if '+' in name:
+            name = [it.capitalize() for it in name.split('+')]
+            name = '+'.join(name)
+        else:
+            name = name.capitalize()
 
         accession = re.search("AC=(.+?)(;|$)", mod_string).group(1)
         ptm = self._unimod_database.get_by_accession(accession)
