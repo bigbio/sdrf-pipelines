@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import csv
+import json
 import logging
 import os
 import re
 import sys
+from typing import Optional
 
 import click
 import pandas as pd
+import yaml
 
 from sdrf_pipelines import __version__
 from sdrf_pipelines.maxquant.maxquant import Maxquant
@@ -16,8 +19,9 @@ from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
-from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
+from sdrf_pipelines.sdrf.sdrf import read_sdrf
 from sdrf_pipelines.utils.exceptions import AppConfigException
+from sdrf_pipelines.utils.utils import ValidationProof
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
@@ -178,12 +182,40 @@ def maxquant_from_sdrf(
 @click.option(
     "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
 )
+@click.option(
+    "--out",
+    "-o",
+    help="Output file to write the validation results to (default: stdout)",
+    default=None,
+    required=False,
+)
+@click.option(
+    "--proof_out",
+    "-po",
+    help="Output file to write the validation proof",
+    default=None,
+    required=False,
+)
+@click.option(
+    "--generate_proof",
+    help="Generate cryptographic proof of validation",
+    is_flag=True,
+)
+@click.option(
+    "--proof_salt",
+    help="Optional user-provided salt for proof generation",
+    default=None,
+)
 @click.pass_context
 def validate_sdrf(
     ctx,
     sdrf_file: str,
     template: str,
     use_ols_cache_only: bool,
+    out: Optional[str] = None,
+    proof_out: Optional[str] = None,
+    generate_proof: bool = False,
+    proof_salt: Optional[str] = None,
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
@@ -194,6 +226,7 @@ def validate_sdrf(
     @param sdrf_file: SDRF file to be validated
     @param template: template to be used for a validation
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
+    @param out: Output file to write the validation results to (default: stdout)
     """
 
     if sdrf_file is None:
@@ -204,25 +237,75 @@ def validate_sdrf(
     if template is None:
         template = "default"
 
-    registry = SchemaRegistry()  # Default registry, but users can create their own
+    registry = SchemaRegistry()
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
+    sdrf_df = read_sdrf(sdrf_file)
+    validation_proof = ValidationProof()
+    template_content = ""
+    if generate_proof:
+        try:
+
+            if hasattr(registry, "raw_schema_data") and template in registry.raw_schema_data:
+                template_content = yaml.dump(registry.raw_schema_data[template], sort_keys=True)
+            else:
+                schema_dir = os.path.join(os.path.dirname(__file__), "sdrf", "schemas")
+                template_file = os.path.join(schema_dir, f"{template}.yaml")
+                if os.path.exists(template_file):
+                    with open(template_file, "r", encoding="utf-8") as f:
+                        template_content = f.read()
+        except Exception as e:
+            logging.warning("Could not load template content for proof generation: %s", e)
 
     errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
-
+    error_list = []
     for error in errors:
         if error.error_type == logging.ERROR:
-            click.secho(f"{error.message}", fg="red")
+            error_list.append({"file": sdrf_file, "type": "ERROR", "message": error.message})
         elif error.error_type == logging.WARNING:
-            click.secho(f"{error.message}", fg="yellow")
+            error_list.append({"file": sdrf_file, "type": "WARNING", "message": error.message})
         else:
+            error_list.append({"file": sdrf_file, "type": "INFO", "message": error.message})
             click.secho(f"{error.message}", fg="green")
 
+    error_df = pd.DataFrame(error_list)
+    error_df = error_df.drop_duplicates()
+    if out is not None:
+        error_df.to_csv(out, sep="\t", index=False)
+
+    for _, row in error_df.iterrows():
+        if row["type"] == "ERROR":
+            click.secho(f"ERROR: {row['message']}", fg="red")
+        elif row["type"] == "WARNING":
+            click.secho(f"WARNING: {row['message']}", fg="yellow")
+        else:
+            click.secho(f"{row['message']}", fg="green")
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")
+    elif error_df[error_df["type"] == "WARNING"].shape[0] > 0 and not errors_not_warnings:
+        click.secho("Most seems to be fine. There were only warnings.", fg="yellow")
     else:
         click.secho("There were validation errors.", fg="red")
+
+    if generate_proof or proof_out:
+        try:
+            proof = validation_proof.generate_validation_proof(
+                sdrf_df=sdrf_df, validator_version=__version__, template_content=template_content, user_salt=proof_salt
+            )
+            proof_output = json.dumps(proof, indent=2)
+            if proof_out:
+                with open(proof_out, "w", encoding="utf-8") as f:
+                    f.write(proof_output)
+                click.secho(f"Validation proof generated: {proof_out}", fg="blue")
+            else:
+                click.secho(f"SDRF Hash: {proof['sdrf_hash']}", fg="blue")
+                click.secho(f"Template Hash: {proof['template_hash']}", fg="blue")
+                click.secho(f"Validator Version: {proof['validator_version']}", fg="blue")
+                click.secho(f"Timestamp: {proof['timestamp']}", fg="blue")
+            click.secho(f"Proof hash: {proof['proof_hash']}", fg="blue")
+
+        except Exception as e:
+            click.secho(f"Warning: Could not generate validation proof: {e}", fg="yellow")
 
     sys.exit(bool(errors_not_warnings))
 
@@ -357,7 +440,7 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
 
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
-    sdrf_df = SDRFDataFrame(read_sdrf(sdrf_file))
+    sdrf_df = read_sdrf(sdrf_file)
 
     errors = validator.validate(sdrf_df, template, use_ols_cache_only)
     if errors:

@@ -72,6 +72,65 @@ def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     return _VALIDATOR_REGISTRY.get(validator_name)
 
 
+@register_validator(validator_name="unique_values_validator")
+class UniqueValuesValidator(SDRFValidator):
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if values in the series are unique.
+
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+
+        Returns:
+            List of LogicError for duplicate values
+        """
+        duplicates = series[series.duplicated(keep=False)].unique()
+        errors = []
+
+        for value in duplicates:
+            duplicate_indices = series[series == value].index.tolist()
+            row_info = ", ".join(str(idx) for idx in duplicate_indices)
+            column_info = f" in column '{column_name}'" if column_name else ""
+            errors.append(
+                LogicError(
+                    message=f"Value '{value}'{column_info} is duplicated at rows: {row_info}",
+                    row=-1,
+                    column=column_name,
+                    error_type=logging.ERROR,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="single_cardinality_validator")
+class SingleCardinalityValidator(SDRFValidator):
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if the series has single cardinality (i.e., all values are the same).
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+        """
+
+        unique_values = series.dropna().unique()
+        errors = []
+
+        if len(unique_values) > 1:
+            column_info = f" in column '{column_name}'" if column_name else ""
+            errors.append(
+                LogicError(
+                    message=f"Column{column_info} has multiple unique values: {', '.join(map(str, unique_values))}",
+                    row=-1,
+                    column=column_name,
+                    error_type=logging.ERROR,
+                )
+            )
+
+        return errors
+
+
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
 
@@ -204,7 +263,7 @@ class OntologyValidator(SDRFValidator):
 
     def __init__(self, params: dict[str, Any] | None = None, **data: Any):
         super().__init__(**data)
-        logging.info(params)
+        logging.debug(params)
         if params:
             for key, value in params.items():
                 if key == "ontologies":
@@ -225,13 +284,37 @@ class OntologyValidator(SDRFValidator):
         ontology _ontology_name
 
         Parameters:
-            series: The pandas Series to validate
+            value: The pandas Series to validate
             column_name: The name of the column being validated
 
         Returns:
             List of LogicError for values that don't match the ontology terms
         """
-        terms = [self.ontology_term_parser(x) for x in value.unique()]
+
+        def _validate_cell(cell_value, labels):
+            try:
+                return self.validate_ontology_terms(cell_value, labels)
+            except Exception:
+                return False
+
+        errors = []
+        terms = []
+        for x in value.unique():
+            try:
+                term = self.ontology_term_parser(x)
+                terms.append(term)
+            except ValueError as e:
+                column_info = f" in column '{column_name}'" if column_name else ""
+                errors.append(
+                    LogicError(
+                        message=f"Term: {x}{column_info}, is not a valid ontology term. Error: {str(e)}",
+                        row=-1,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                    )
+                )
+                continue
+
         labels = []
         for term in terms:
             if self.term_name not in term:
@@ -260,10 +343,10 @@ class OntologyValidator(SDRFValidator):
         labels.append(NOT_AVAILABLE)
         labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
         labels.append(NORM)
-        validation_indexes = value.apply(lambda cell_value: self.validate_ontology_terms(cell_value, labels))
+
+        validation_indexes = value.apply(lambda cell_value: _validate_cell(cell_value, labels))
 
         # Convert to indexes of the row to LogicErrors
-        errors = []
         for idx, val in enumerate(validation_indexes):
             if not val:
                 column_info = f" in column '{column_name}'" if column_name else ""
@@ -459,6 +542,87 @@ class ColumnOrderValidator(SDRFValidator):
             error_columns_order.extend(self._validate_factor_columns(cnames, factor_index))
 
         return error_columns_order
+
+
+@register_validator(validator_name="combination_of_columns_no_duplicate_validator")
+class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
+    def validate(self, df: SDRFDataFrame, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if the combination of values in the specified columns are unique.
+
+        Parameters:
+            df: The pandas DataFrame to validate
+            column_name: Not used for this validator as it operates on the entire DataFrame
+
+        Returns:
+            List of LogicError for duplicate combinations
+        """
+        if "column_name" not in self.params:
+            raise ValueError("column_name must be provided either as an argument or in params")
+        column_name = self.params["column_name"]
+        if isinstance(column_name, str):
+            columns = [col.strip() for col in column_name.split(",")]
+        elif isinstance(column_name, list):
+            columns = column_name
+        else:
+            raise ValueError("column_name must be a string or a list of strings")
+        missing_columns = [col for col in columns if col not in df.columns]
+        if missing_columns:
+            return [
+                LogicError(
+                    message=f"Columns not found in DataFrame: {', '.join(missing_columns)}",
+                    error_type=logging.ERROR,
+                )
+            ]
+        inner_df = df.df
+        duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
+        errors = []
+
+        if not duplicates.empty:
+            grouped = duplicates.groupby(columns).apply(lambda x: x.index.tolist())
+            for combo, indices in grouped.items():
+                row_info = ", ".join(str(idx) for idx in indices)
+                column_info = f" in columns '{', '.join(columns)}'"
+                errors.append(
+                    LogicError(
+                        message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
+                        row=-1,
+                        column=", ".join(columns),
+                        error_type=logging.ERROR,
+                    )
+                )
+        if "column_name_warning" in self.params:
+            column_name_warning = self.params["column_name_warning"]
+            if isinstance(column_name_warning, str):
+                columns_warning = [col.strip() for col in column_name_warning.split(",")]
+            elif isinstance(column_name_warning, list):
+                columns_warning = column_name_warning
+            else:
+                raise ValueError("column_name_warning must be a string or a list of strings")
+            missing_columns_warning = [col for col in columns_warning if col not in df.columns]
+            if missing_columns_warning:
+                return [
+                    LogicError(
+                        message=f"Columns not found in DataFrame: {', '.join(missing_columns_warning)}",
+                        error_type=logging.ERROR,
+                    )
+                ]
+            duplicates_warning = inner_df[inner_df.duplicated(subset=columns_warning, keep=False)]
+            if not duplicates_warning.empty:
+                grouped_warning = duplicates_warning.groupby(columns_warning).apply(lambda x: x.index.tolist())
+                for combo, indices in grouped_warning.items():
+                    row_info = ", ".join(str(idx) for idx in indices)
+                    column_info = f" in columns '{', '.join(columns_warning)}'"
+                    errors.append(
+                        LogicError(
+                            message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
+                            row=-1,
+                            column=", ".join(columns_warning),
+                            error_type=logging.WARNING,
+                        )
+                    )
+
+        return errors
 
 
 @register_validator(validator_name="empty_cells")

@@ -21,7 +21,7 @@ def compare_files(file1: os.PathLike, file2: os.PathLike) -> List[str]:
 
 def run_and_check_status_code(command: Command, args: List[str], status_code: int = 0) -> Result:
     runner = CliRunner()
-    result = runner.invoke(command, args)
+    result = runner.invoke(command, args, catch_exceptions=False, standalone_mode=False, env={"PYTHONUNBUFFERED": "1"})
 
     if result.exit_code != status_code:
         print("Output: ")

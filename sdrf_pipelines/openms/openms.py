@@ -366,7 +366,7 @@ class OpenMS:
 
         source_name_list: list[str] = []
         source_name2n_reps: dict[str, int] = {}
-
+        list_of_combined_factors = []
         f2c = FileToColumnEntries()
         for row_index, row in sdrf.iterrows():
             # extract mods
@@ -516,11 +516,10 @@ class OpenMS:
 
             # add condition from factors as extra column to sdrf so we can easily filter in pandas
             sdrf["_conditions_from_factors"] = pd.Series([None] * sdrf.shape[0], dtype="object")
-            sdrf.at[row_index, "_conditions_from_factors"] = combined_factors
-
             f2c.file2combined_factors[raw + row["comment[label]"]] = combined_factors
+            list_of_combined_factors.append(combined_factors)
 
-            # print("Combined factors: " + str(combined_factors))
+        sdrf["_conditions_from_factors"] = list_of_combined_factors
 
         conditions = Counter(f2c.file2combined_factors.values()).keys()
         files_per_condition = Counter(f2c.file2combined_factors.values()).values()
@@ -1082,7 +1081,7 @@ class OpenMS:
             if "TMT" in labels_str:
                 label = infer_tmtplex(label_set)
                 # add default TMT modification when sdrf with label not contains TMT modification
-                if "TMT" not in f2c.file2mods[raw][0] and "TMT" not in f2c.file2mods[raw][1]:
+                if "tmt" not in f2c.file2mods[raw][0].lower() and "tmt" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
                         "The sdrf with TMT label doesn't contain TMT modification. Adding default "
                         "variable modifications."
@@ -1110,7 +1109,7 @@ class OpenMS:
                 else:
                     label = "itraq4plex"
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
-                if "ITRAQ" not in f2c.file2mods[raw][0] and "ITRAQ" not in f2c.file2mods[raw][1]:
+                if "itraq" not in f2c.file2mods[raw][0].lower() and "itraq" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
                         "The sdrf with ITRAQ label doesn't contain label modification. Adding default "
                         "variable modifications."

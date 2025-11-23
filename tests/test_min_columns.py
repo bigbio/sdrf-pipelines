@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 from pathlib import Path
 
@@ -15,12 +16,12 @@ def test_min_columns_default_schema():
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "default")
-    assert len(errors) == 138
+    assert len(errors) == 139
 
 
 def test_min_columns_with_reduced_columns():
     """Test that validation fails when there are fewer than the default schema with 12 columns.
-    Test result should be 13 errors."""
+    Test result should be 15 errors."""
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
@@ -35,23 +36,25 @@ def test_min_columns_with_reduced_columns():
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
-    errors = validator.validate(sdrf_df, "default")
-    error_name_counts = Counter((error.message for error in errors))
+    errors = validator.validate(sdrf_df, "human")
+    error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
     expected_error_name_counts = Counter(
-        (
-            "The number of columns is lower than the mandatory number 12",
-            "Trailing whitespace detected in column name",
-            "Trailing whitespace detected",
-            "Required column 'characteristics[biological replicate]' is missing",
-            "Required column 'technology type' is missing",
-            "Required column 'comment[technical replicate]' is missing",
-            "Required column 'comment[fraction identifier]' is missing",
-            "Required column 'comment[label]' is missing",
-            "Required column 'comment[data file]' is missing",
-            "Required column 'comment[instrument]' is missing",
-            "Required column 'characteristics[disease]' is missing",
-            "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon",
-            r"Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\d+y)(?:\d+m)?(?:\d+d)?|(?:\d+y)?(?:\d+m)(?:\d+d)?|(?:\d+y)?(?:\d+m)?(?:\d+d)|(?:not available)|(?:not applicable))$",
-        )
+        {
+            "The number of columns is lower than the mandatory number 12": 1,
+            "Trailing whitespace detected in column name": 1,
+            "Trailing whitespace detected": 1,
+            "Columns not found in DataFrame: comment[label]": 1,
+            "Required column 'characteristics[biological replicate]' is missing": 1,
+            "Required column 'technology type' is missing": 1,
+            "Required column 'comment[technical replicate]' is missing": 1,
+            "Required column 'comment[fraction identifier]' is missing": 1,
+            "Required column 'comment[label]' is missing": 1,
+            "Required column 'comment[data file]' is missing": 1,
+            "Required column 'comment[instrument]' is missing": 1,
+            "Required column 'comment[proteomics data acquisition method]' is missing": 1,
+            "Required column 'characteristics[disease]' is missing": 1,
+            "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon": 1,
+            "Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$": 1,
+        }
     )
     assert error_name_counts == expected_error_name_counts

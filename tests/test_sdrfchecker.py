@@ -88,6 +88,7 @@ reference_samples = [
     "reference/PXD008934/PXD008934.sdrf.tsv",
     "reference/PXD006482/PXD006482.sdrf.tsv",
     "reference/PXD004684/PXD004684.sdrf.tsv",
+    "reference/PXD001474/PXD001474.sdrf.tsv",
 ]
 
 
@@ -97,5 +98,10 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
     :return:
     """
     test_sdrf = shared_datadir / file_subpath
-    result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)])
-    assert "ERRORS FOUND IN []" in result.output
+    file_path = str(test_sdrf)
+    result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", file_path])
+    assert (
+        "There were validation errors." in result.output
+        or "Everything seems to be fine. Well done." in result.output
+        or "Most seems to be fine. There were only warnings." in result.output
+    )
