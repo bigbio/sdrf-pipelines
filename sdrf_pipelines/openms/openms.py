@@ -1,9 +1,12 @@
+import logging
 import re
 from collections import Counter
 
 import pandas as pd
 
 from sdrf_pipelines.openms.unimod import UnimodDatabase
+
+logger = logging.getLogger(__name__)
 
 # example: parse_sdrf convert-openms -s .\sdrf-pipelines\sdrf_pipelines\large_sdrf.tsv -c '[characteristics[biological replicate],characteristics[individual]]'
 
@@ -42,8 +45,9 @@ def get_openms_file_name(raw, extension_convert: str = None):
         # This is a backport of the function, remove it and use the
         # built-in function when we drop support for python 3.8
         # https://peps.python.org/pep-0616/
-        if suffix and x.endswith(suffix):
-            return x[: -len(suffix)]
+        if suffix and x.lower().endswith(suffix.lower()):
+            res = re.sub(suffix + "$", "", x, flags=re.I)
+            return res
         else:
             return x[:]
 
@@ -59,7 +63,7 @@ def get_openms_file_name(raw, extension_convert: str = None):
 
     raw_bkp = raw
     for current_extension, target_extension in extension_convert_dict.items():
-        if raw.endswith(current_extension):
+        if raw.lower().endswith(current_extension.lower()):
             raw = _removesuffix(raw, current_extension)
             raw += target_extension
             if not any(raw.endswith(x) for x in possible_extension):
@@ -73,11 +77,51 @@ def get_openms_file_name(raw, extension_convert: str = None):
     return raw
 
 
+def parse_tolerance(pc_tol_str: str, units=("ppm", "da", "mmu")) -> tuple[str, str]:
+    """Find tolerance in string."""
+    # check that only one unit is specified?
+    pc_tol_str = pc_tol_str.lower()
+    for unit in units:
+        if unit in pc_tol_str:
+            tol = pc_tol_str.split(unit)[0].strip()
+            if not f" {unit}" in pc_tol_str:
+                msg = f"Missing whitespace in precursor mass tolerance: {pc_tol_str} Adding it: {tol} {unit}"
+                logger.warning(msg)
+            _ = float(tol)  # should be an number
+            if unit == "da":
+                unit = "Da"
+            if unit == "mmu":
+                # convert mmu to Da
+                tol, unit = str(float(tol) * 0.001), "Da"
+            return tol, unit
+    return None, None
+
+
 class OpenMS:
     def __init__(self) -> None:
         super().__init__()
         self.warnings = {}
         self._unimod_database = UnimodDatabase()
+        self.tmt18plex = {
+            "TMT126": 1,
+            "TMT127N": 2,
+            "TMT127C": 3,
+            "TMT128N": 4,
+            "TMT128C": 5,
+            "TMT129N": 6,
+            "TMT129C": 7,
+            "TMT130N": 8,
+            "TMT130C": 9,
+            "TMT131N": 10,
+            "TMT131C": 11,
+            "TMT132N": 12,
+            "TMT132C": 13,
+            "TMT133N": 14,
+            "TMT133C": 15,
+            "TMT134N": 16,
+            "TMT134C": 17,
+            "TMT135N": 18,
+        }
         self.tmt16plex = {
             "TMT126": 1,
             "TMT127N": 2,
@@ -305,16 +349,17 @@ class OpenMS:
                 source_name_list.append(source_name)
 
             if "comment[precursor mass tolerance]" in row:
-                pc_tol_str = row["comment[precursor mass tolerance]"]
-                if "ppm" in pc_tol_str or "Da" in pc_tol_str:
-                    pc_tmp = pc_tol_str.split(" ")
-                    f2c.file2pctol[raw] = pc_tmp[0]
-                    f2c.file2pctolunit[raw] = pc_tmp[1]
-                else:
-                    warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2pctol[raw] = "10"
-                    f2c.file2pctolunit[raw] = "ppm"
+                pc_tol_str = row["comment[precursor mass tolerance]"].strip()
+
+                tol, unit = parse_tolerance(pc_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError(f"Cannot read precursor mass tolerance: {pc_tol_str}")
+                    # warning_message = "Invalid precursor mass tolerance set. Assuming 10 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2pctol[raw] = "10"
+                    # f2c.file2pctolunit[raw] = "ppm"
+                f2c.file2pctol[raw] = tol
+                f2c.file2pctolunit[raw] = unit
             else:
                 warning_message = "No precursor mass tolerance set. Assuming 10 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -322,17 +367,16 @@ class OpenMS:
                 f2c.file2pctolunit[raw] = "ppm"
 
             if "comment[fragment mass tolerance]" in row:
-                f_tol_str = row["comment[fragment mass tolerance]"]
-                f_tol_str.replace("PPM", "ppm")  # workaround
-                if "ppm" in f_tol_str or "Da" in f_tol_str:
-                    f_tmp = f_tol_str.split(" ")
-                    f2c.file2fragtol[raw] = f_tmp[0]
-                    f2c.file2fragtolunit[raw] = f_tmp[1]
-                else:
-                    warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
-                    self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
-                    f2c.file2fragtol[raw] = "20"
-                    f2c.file2fragtolunit[raw] = "ppm"
+                f_tol_str = row["comment[fragment mass tolerance]"].strip()
+                tol, unit = parse_tolerance(f_tol_str)
+                if tol is None or unit is None:
+                    raise ValueError(f"Cannot read precursor mass tolerance: {f_tol_str}")
+                    # warning_message = "Invalid fragment mass tolerance set. Assuming 20 ppm."
+                    # self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+                    # f2c.file2fragtol[raw] = "20"
+                    # f2c.file2fragtolunit[raw] = "ppm"
+                f2c.file2fragtol[raw] = tol
+                f2c.file2fragtolunit[raw] = unit
             else:
                 warning_message = "No fragment mass tolerance set. Assuming 20 ppm."
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -595,44 +639,49 @@ class OpenMS:
                     sample = sample_id
                     sample_id += 1
 
-            label = file2label[raw]
-            if "label free sample" in label:
+            labels = file2label[raw]
+            label_set = set(labels)
+            if "label free sample" in labels:
                 label = "1"
             elif "TMT" in ",".join(file2label[raw]):
-                if (
-                    len(label) > 11
-                    or "TMT134N" in label
-                    or "TMT133C" in label
-                    or "TMT133N" in label
-                    or "TMT132C" in label
-                    or "TMT132N" in label
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
+                    choice = self.tmt18plex
+                elif (
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or "TMT131C" in label:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     choice = self.tmt11plex
-                elif len(label) > 6:
+                elif len(label_set) > 6:
                     choice = self.tmt10plex
                 else:
                     choice = self.tmt6plex
-                label = str(choice[label[label_index[raw]]])
+                label = str(choice[labels[label_index[raw]]])
                 label_index[raw] = label_index[raw] + 1
             elif "SILAC" in ",".join(file2label[raw]):
-                if len(label) == 3:
-                    label = str(self.silac3[label[label_index[raw]].lower()])
+                if len(label_set) == 3:
+                    label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.silac2[label[label_index[raw]].lower()])
+                    label = str(self.silac2[labels[label_index[raw]].lower()])
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                    len(label) > 4
-                    or "ITRAQ113" in label
-                    or "ITRAQ118" in label
-                    or "ITRAQ119" in label
-                    or "ITRAQ121" in label
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
-                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq8plex[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
@@ -847,48 +896,53 @@ class OpenMS:
                 condition = file2combined_factors[raw + row["comment[label]"]]
 
             # convert sdrf's label to openms's label
-            label = file2label[raw]
-            if "label free sample" in label:
+            labels = file2label[raw]
+            label_set = set(labels)
+            if "label free sample" in labels:
                 label = "1"
 
             elif "TMT" in ",".join(file2label[raw]):
-                if (
-                    len(label) > 11
-                    or "TMT134N" in label
-                    or "TMT133C" in label
-                    or "TMT133N" in label
-                    or "TMT132C" in label
-                    or "TMT132N" in label
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
+                    choice = self.tmt18plex
+                elif (
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     choice = self.tmt16plex
-                elif len(label) == 11 or "TMT131C" in label:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     choice = self.tmt11plex
-                elif len(label) > 6:
+                elif len(label_set) > 6:
                     choice = self.tmt10plex
                 else:
                     choice = self.tmt6plex
-                label = str(choice[label[label_index[raw]]])
+                label = str(choice[labels[label_index[raw]]])
 
                 #  This can be avoided the dicts are built based on file&label as key.
                 label_index[raw] = label_index[raw] + 1
             elif "SILAC" in ",".join(file2label[raw]):
-                if len(label) == 3:
-                    label = str(self.silac3[label[label_index[raw]].lower()])
+                if len(label_set) == 3:
+                    label = str(self.silac3[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.silac2[label[label_index[raw]].lower()])
+                    label = str(self.silac2[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
             elif "ITRAQ" in ",".join(file2label[raw]):
                 if (
-                    len(label) > 4
-                    or "ITRAQ113" in label
-                    or "ITRAQ118" in label
-                    or "ITRAQ119" in label
-                    or "ITRAQ121" in label
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
-                    label = str(self.itraq8plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq8plex[labels[label_index[raw]].lower()])
                 else:
-                    label = str(self.itraq4plex[label[label_index[raw]].lower()])
+                    label = str(self.itraq4plex[labels[label_index[raw]].lower()])
                 label_index[raw] = label_index[raw] + 1
+            else:
+                raise ValueError("Label " + str(labels) + " is not recognized")
 
             out = get_openms_file_name(raw, extension_convert)
 
@@ -1001,6 +1055,10 @@ class OpenMS:
             "tmt10plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt11plex": ["TMT6plex (K)", "TMT6plex (N-term)"],
             "tmt16plex": ["TMTpro (K)", "TMTpro (N-term)"],
+            "tmt18plex": [
+                "TMTpro (K)",
+                "TMTpro (N-term)",
+            ],  # https://www.unimod.org/modifications_view.php?editid1=2016
         }
         ITRAQ_mod = {
             "itraq4plex": ["iTRAQ4plex (K)", "iTRAQ4plex (N-term)"],
@@ -1025,19 +1083,22 @@ class OpenMS:
                 continue
             raws.append(raw)
             labels = f2c.file2label[raw]
+            label_set = set(labels)
             if "TMT" in ",".join(labels):
-                if (
-                    len(labels) > 11
-                    or "TMT134N" in labels
-                    or "TMT133C" in labels
-                    or "TMT133N" in labels
-                    or "TMT132C" in labels
-                    or "TMT132N" in labels
+                if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
+                    label = "tmt18plex"
+                elif (
+                    len(label_set) > 11
+                    or "TMT134N" in label_set
+                    or "TMT133C" in label_set
+                    or "TMT133N" in label_set
+                    or "TMT132C" in label_set
+                    or "TMT132N" in label_set
                 ):
                     label = "tmt16plex"
-                elif len(labels) == 11 or "TMT131C" in labels:
+                elif len(label_set) == 11 or "TMT131C" in label_set:
                     label = "tmt11plex"
-                elif len(labels) > 6:
+                elif len(label_set) > 6:
                     label = "tmt10plex"
                 else:
                     label = "tmt6plex"
@@ -1054,17 +1115,17 @@ class OpenMS:
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], VarMod)
                     else:
                         f2c.file2mods[raw] = (f2c.file2mods[raw][0], ",".join(tmt_var_mod))
-            elif "label free sample" in labels:
+            elif "label free sample" in label_set:
                 label = "label free sample"
-            elif "silac" in ",".join(labels):
+            elif "silac" in ",".join(label_set):
                 label = "SILAC"
-            elif "ITRAQ" in ",".join(labels):
+            elif "ITRAQ" in ",".join(label_set):
                 if (
-                    len(labels) > 4
-                    or "ITRAQ113" in labels
-                    or "ITRAQ118" in labels
-                    or "ITRAQ119" in labels
-                    or "ITRAQ121" in labels
+                    len(label_set) > 4
+                    or "ITRAQ113" in label_set
+                    or "ITRAQ118" in label_set
+                    or "ITRAQ119" in label_set
+                    or "ITRAQ121" in label_set
                 ):
                     label = "itraq8plex"
                 else:
@@ -1087,7 +1148,7 @@ class OpenMS:
             else:
                 raise Exception(
                     "Failed to find any supported labels. Supported labels are 'silac', 'label free "
-                    "sample', 'ITRAQ', and tmt labels in the format 'TMT131C'"
+                    f"sample', 'ITRAQ', and tmt labels in the format 'TMT131C', found {labels}"
                 )
 
             # Why is the file name modified on the experimental design but not in the openms.tsv?

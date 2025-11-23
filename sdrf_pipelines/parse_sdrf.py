@@ -45,7 +45,7 @@ def cli():
 @click.option(
     "--extension_convert",
     "-e",
-    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,mzML:mzML,d:d'",
+    help="convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive",
 )
 @click.pass_context
 def openms_from_sdrf(
