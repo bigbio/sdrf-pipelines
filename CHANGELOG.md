@@ -13,3 +13,13 @@
 - SchemaRegistry can be used to programmatically use to access all the built-in schemas as well as adding custom schemas
 - Remove usage of deprecated pkg_resources
 - Add validate-sdrf-simple command to quickly validate a sdrf file
+- Add cryptographic proof generation to the `validate-sdrf` command.
+- Add new options to several commands, including `convert-openms`, `convert-maxquant`, and `validate-sdrf`.
+
+### Bug Fixes (from v0.0.33)
+- Fixed Unimod modification matching bugs in OpenMS module
+- Added fallback to match modifications by name when accession lookup fails
+- Added `get_by_name()` method to UnimodDatabase for name-based modification lookup
+- Updated unimod.xml
+- Fixed modification validation in openms_ify_mods method
+- Removed debug print statements from OpenMS module

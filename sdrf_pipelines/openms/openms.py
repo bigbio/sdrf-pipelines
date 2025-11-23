@@ -258,12 +258,6 @@ class OpenMS:
             return ptm.get_name()
 
     # convert modifications in sdrf file to OpenMS notation
-    def openms_ify_mods(self, sdrf_mods):
-        oms_mods = []
-
-        for m in sdrf_mods:
-            name = self._extract_modification_name(m)
-
     def _extract_position_preference(self, mod_string):
         pp_match = re.search("PP=(.+?)(;|$)", mod_string)
         if pp_match is None:
@@ -314,8 +308,6 @@ class OpenMS:
         oms_mods = []
 
         for m in sdrf_mods:
-            self._validate_unimod_modification(m)
-
             name = self._extract_modification_name(m)
             pp = self._extract_position_preference(m)
             ta = self._extract_target_amino_acid(m, pp)
