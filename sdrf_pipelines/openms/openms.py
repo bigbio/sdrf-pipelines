@@ -207,7 +207,11 @@ class OpenMS:
         self.silac2 = {"silac light": 1, "silac heavy": 2}
 
     def _extract_modification_name(self, mod_string):
-        name = re.search("NT=(.+?)(;|$)", mod_string).group(1)
+        name_match = re.search("NT=(.+?)(;|$)", mod_string)
+        if name_match:
+            name = name_match.group(1)
+        else:
+            raise ValueError(f"Invalid modification string format (missing NT=): {mod_string}")
         accession = re.search("AC=(.+?)(;|$)", mod_string)
         if accession:
             ptm = self._unimod_database.get_by_accession(accession.group(1))
@@ -1137,7 +1141,7 @@ class OpenMS:
                     label = "itraq8plex"
                 else:
                     label = "itraq4plex"
-                logger.debug(f"ITRAQ label detected, file2mods[raw][0].lower(): {f2c.file2mods[raw][0].lower()}")
+
                 # add default ITRAQ modification when sdrf with label not contains ITRAQ modification
                 if "itraq" not in f2c.file2mods[raw][0].lower() and "itraq" not in f2c.file2mods[raw][1].lower():
                     warning_message = (
