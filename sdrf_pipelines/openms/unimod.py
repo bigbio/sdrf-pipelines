@@ -133,6 +133,6 @@ class UnimodDatabase:
 
     def get_by_accession(self, accession):
         for mod in self.modifications:
-            if mod.get_accession() == accession:
+            if mod.get_accession() == accession.upper():
                 return mod
         return None
