@@ -206,21 +206,28 @@ class OpenMS:
         self.silac3 = {"silac light": 1, "silac medium": 2, "silac heavy": 3}
         self.silac2 = {"silac light": 1, "silac heavy": 2}
 
+    def _extract_modification_name(self, mod_string):
+        name = re.search("NT=(.+?)(;|$)", mod_string).group(1)
+        accession = re.search("AC=(.+?)(;|$)", mod_string)
+        if accession:
+            ptm = self._unimod_database.get_by_accession(accession.group(1))
+        else:
+            ptm = None
+
+        if ptm is None:
+            ptm = self._unimod_database.get_by_name(name)
+
+        if ptm is None:
+            raise ValueError("only UNIMOD modifications supported. " + mod_string)
+        else:
+            return ptm.get_name()
+
     # convert modifications in sdrf file to OpenMS notation
     def openms_ify_mods(self, sdrf_mods):
         oms_mods = []
 
         for m in sdrf_mods:
-            if "AC=UNIMOD" not in m and "AC=Unimod" not in m:
-                raise Exception("only UNIMOD modifications supported. " + m)
-
-            name = re.search("NT=(.+?)(;|$)", m).group(1)
-            name = name.capitalize()
-
-            accession = re.search("AC=(.+?)(;|$)", m).group(1)
-            ptm = self._unimod_database.get_by_accession(accession)
-            if ptm is not None:
-                name = ptm.get_name()
+            name = self._extract_modification_name(m)
 
             # workaround for missing PP in some sdrf TODO: fix in sdrf spec?
             if re.search("PP=(.+?)(;|$)", m) is None:
