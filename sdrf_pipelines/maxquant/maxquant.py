@@ -700,8 +700,9 @@ class Maxquant:
             else:
                 warning_message = "modification is not supported in MaxQuant. skip " + m
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
+        oms_mods = ",".join(oms_mods)
 
-        return ",".join(oms_mods)
+        return oms_mods
 
     def maxquant_convert(
         self,
