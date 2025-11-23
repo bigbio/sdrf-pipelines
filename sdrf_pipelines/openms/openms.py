@@ -237,20 +237,22 @@ class OpenMS:
         self.silac3 = {"silac light": 1, "silac medium": 2, "silac heavy": 3}
         self.silac2 = {"silac light": 1, "silac heavy": 2}
 
-    def _validate_unimod_modification(self, mod_string):
-        if "AC=UNIMOD" not in mod_string and "AC=Unimod" not in mod_string:
-            raise ValueError("only UNIMOD modifications supported. " + mod_string)
 
     def _extract_modification_name(self, mod_string):
         name = re.search("NT=(.+?)(;|$)", mod_string).group(1)
-        name = name.capitalize()
+        accession = re.search("AC=(.+?)(;|$)", mod_string)
+        if accession:
+            ptm = self._unimod_database.get_by_accession(accession.group(1))
+        else:
+            ptm = None
 
-        accession = re.search("AC=(.+?)(;|$)", mod_string).group(1)
-        ptm = self._unimod_database.get_by_accession(accession)
-        if ptm is not None:
-            name = ptm.get_name()
+        if ptm is None:
+            ptm = self._unimod_database.get_by_name(name)
 
-        return name
+        if ptm is None:
+            raise ValueError("only UNIMOD modifications supported. " + mod_string)
+        else:
+            return ptm.get_name()
 
     def _extract_position_preference(self, mod_string):
         pp_match = re.search("PP=(.+?)(;|$)", mod_string)
@@ -302,8 +304,6 @@ class OpenMS:
         oms_mods = []
 
         for m in sdrf_mods:
-            self._validate_unimod_modification(m)
-
             name = self._extract_modification_name(m)
             pp = self._extract_position_preference(m)
             ta = self._extract_target_amino_acid(m, pp)

@@ -136,3 +136,9 @@ class UnimodDatabase:
             if mod.get_accession() == accession.upper():
                 return mod
         return None
+
+    def get_by_name(self, name):
+        for mod in self.modifications:
+            if mod.get_name().lower() == name.lower():
+                return mod
+        return None
