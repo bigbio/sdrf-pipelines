@@ -237,7 +237,6 @@ class OpenMS:
         self.silac3 = {"silac light": 1, "silac medium": 2, "silac heavy": 3}
         self.silac2 = {"silac light": 1, "silac heavy": 2}
 
-
     def _extract_modification_name(self, mod_string):
         name = re.search("NT=(.+?)(;|$)", mod_string).group(1)
         accession = re.search("AC=(.+?)(;|$)", mod_string)
