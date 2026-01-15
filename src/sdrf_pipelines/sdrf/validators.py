@@ -4,7 +4,9 @@ from typing import Any
 import pandas as pd
 from pydantic import BaseModel, Field
 
-from sdrf_pipelines.ols.ols import OlsClient
+from sdrf_pipelines.ols.ols import OLS_AVAILABLE
+if OLS_AVAILABLE:
+    from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.utils.exceptions import LogicError
@@ -252,22 +254,24 @@ class MinimumColumns(SDRFValidator):
         return errors
 
 
-@register_validator(validator_name="ontology")
-class OntologyValidator(SDRFValidator):
-    client: OlsClient = OlsClient()
-    term_name: str = "NT"
-    ontologies: list[str] = Field(default_factory=list)
-    error_level: int = logging.INFO
-    use_ols_cache_only: bool = False
-    model_config = {"arbitrary_types_allowed": True}
+# Only register OntologyValidator if OLS dependencies are available
+if OLS_AVAILABLE:
+    @register_validator(validator_name="ontology")
+    class OntologyValidator(SDRFValidator):
+        client: OlsClient = OlsClient()
+        term_name: str = "NT"
+        ontologies: list[str] = Field(default_factory=list)
+        error_level: int = logging.INFO
+        use_ols_cache_only: bool = False
+        model_config = {"arbitrary_types_allowed": True}
 
-    def __init__(self, params: dict[str, Any] | None = None, **data: Any):
-        super().__init__(**data)
-        logging.debug(params)
-        if params:
-            for key, value in params.items():
-                if key == "ontologies":
-                    self.ontologies = value
+        def __init__(self, params: dict[str, Any] | None = None, **data: Any):
+            super().__init__(**data)
+            logging.debug(params)
+            if params:
+                for key, value in params.items():
+                    if key == "ontologies":
+                        self.ontologies = value
                 if key == "error_level":
                     if value == "warning":
                         self.error_level = logging.WARNING

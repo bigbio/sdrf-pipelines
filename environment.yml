@@ -10,7 +10,7 @@ dependencies:
   - pandas>=2.1
   - pyarrow
   - python>=3.10
-  - python-duckdb
+  - python-fastparquet
   - pyyaml
   - rdflib
   - requests

@@ -9,6 +9,7 @@ import pandas as pd
 import yaml
 from pydantic import BaseModel, Field
 
+from sdrf_pipelines.ols.ols import OLS_AVAILABLE
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.sdrf.validators import SDRFValidator, get_validator
@@ -341,7 +342,15 @@ class SchemaValidator:
 
         validator_class = get_validator(validator_name)
         if not validator_class:
-            logging.warning("Validator type '%s' not found in registry", validator_name)
+            # Check if this is an ontology validator and OLS is not available
+            if validator_name == "ontology" and not OLS_AVAILABLE:
+                logging.warning(
+                    "Ontology validator '%s' is not available because OLS dependencies are not installed. "
+                    "Install them with: pip install sdrf-pipelines[ontology]",
+                    validator_name
+                )
+            else:
+                logging.warning("Validator type '%s' not found in registry", validator_name)
             return None
 
         return validator_class(params=validator_params)

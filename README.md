@@ -13,8 +13,47 @@ This is the official SDRF file validation tool and it can convert SDRF files to 
 
 ## Installation
 
+### Basic Installation (Structural Validation + Conversions)
+
+For most users who only need structural validation and pipeline conversions:
+
 ```bash
 pip install sdrf-pipelines
+```
+
+This installs the core dependencies which support:
+- ✅ **Structural validation** (8 out of 9 validators: column checks, formatting, uniqueness, etc.)
+- ✅ **All converters** (OpenMS, MaxQuant, MSstats, NormalyzerDE)
+- ❌ Ontology term validation (requires additional dependencies)
+
+### Full Installation (Including Ontology Validation)
+
+If you need ontology term validation via OLS (Ontology Lookup Service):
+
+```bash
+pip install sdrf-pipelines[ontology]
+```
+
+This adds dependencies for ontology validation: `fastparquet`, `pooch`, `rdflib`, `requests`
+
+**What happens on first use:**
+- Ontology cache files (~50-100 MB) are automatically downloaded from GitHub to `~/.cache/sdrf-pipelines/ontologies/`
+- Subsequent validations use the cached files (no internet required)
+- Files are verified with SHA256 checksums
+
+**Pre-download cache files (optional):**
+```bash
+parse_sdrf download-cache              # Download all ontologies
+parse_sdrf download-cache -o efo,cl    # Download specific ontologies
+parse_sdrf download-cache --show-info  # Show cache information
+```
+
+### All Features
+
+To install everything (currently equivalent to `[ontology]`):
+
+```bash
+pip install sdrf-pipelines[all]
 ```
 
 ## Validate SDRF files
@@ -24,6 +63,21 @@ You can validate an SDRF file by executing the following command:
 ```bash
 parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 ```
+
+### Skip Ontology Validation
+
+If you only have the base installation (without the `[ontology]` extra) or want to skip ontology term validation:
+
+```bash
+parse_sdrf validate-sdrf --sdrf_file {path_to_sdrf} --skip-ontology
+```
+
+This will perform all structural validations but skip the ontology term lookup, which is useful for:
+- Quick validation checks
+- Environments without internet access
+- CI/CD pipelines where only structural validation is needed
+
+**Note**: If ontology dependencies are not installed, the tool will automatically skip ontology validation and show a warning.
 
 ### New JSON Schema-Based Validation
 
