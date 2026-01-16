@@ -1,6 +1,6 @@
 [project]
 name = "sdrf-pipelines"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
 authors = [
@@ -44,15 +44,6 @@ all = [
     "rdflib",
     "requests",
 ]
-# Development dependencies
-dev = [
-    "flake8",
-    "mypy",
-    "pre-commit",
-    "pylint",
-    "pytest",
-    "pytest-datadir",
-]
 
 [project.urls]
 Homepage = "https://github.com/bigbio/sdrf-pipelines"
@@ -62,13 +53,33 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["uv_build>=0.9.25,<0.10.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
 
-[tool.uv.build-backend]
-# Exclude ontology cache files - these are downloaded on-demand via pooch
-source-exclude = ["data/**/*.parquet"]
-package-dir = "."
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
+
+[tool.setuptools-scm]
+# Custom version scheme that encodes branch name
+version_file = "src/sdrf_pipelines/_version.py"
+# Use a simpler approach - write version then parse it
+
+[dependency-groups]
+dev = [
+    "fastparquet",
+    "flake8",
+    "mypy",
+    "pooch",
+    "pre-commit",
+    "pylint",
+    "pytest",
+    "pytest-datadir",
+    "rdflib",
+    "requests",
+]
 
 [tool.black]
 line-length = 120

@@ -8,12 +8,13 @@ from sdrf_pipelines.parse_sdrf import cli
 
 from .helpers import run_and_check_status_code
 
-# Regex matchin Semantic Versioning 2.0 version numbers. Adapted from https://semver.org/
+# Regex matching Semantic Versioning 2.0 version numbers with Python dev versions. Adapted from https://semver.org/
 SEMVER_REGEX = dedent(
     r"""
     (?P<major>0|[1-9]\d*)\.
     (?P<minor>0|[1-9]\d*)\.
     (?P<patch>0|[1-9]\d*)
+    (?:\.dev(?P<devnum>0|[1-9]\d*))?
     (?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)
     (?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?
     (?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$

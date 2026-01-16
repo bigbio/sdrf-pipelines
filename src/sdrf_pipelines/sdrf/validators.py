@@ -272,136 +272,143 @@ if OLS_AVAILABLE:
                 for key, value in params.items():
                     if key == "ontologies":
                         self.ontologies = value
-                if key == "error_level":
-                    if value == "warning":
-                        self.error_level = logging.WARNING
-                    elif value == "error":
-                        self.error_level = logging.ERROR
-                    else:
-                        self.error_level = logging.INFO
-                if key == "use_ols_cache_only":
-                    self.use_ols_cache_only = value
+                    elif key == "error_level":
+                        if value == "warning":
+                            self.error_level = logging.WARNING
+                        elif value == "error":
+                            self.error_level = logging.ERROR
+                        else:
+                            self.error_level = logging.INFO
+                    elif key == "use_ols_cache_only":
+                        self.use_ols_cache_only = value
 
-    def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
-        """
-        Validate if the term is present in the provided ontology. This method looks in the provided
-        ontology _ontology_name
+        def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+            """
+            Validate if the term is present in the provided ontology. This method looks in the provided
+            ontology _ontology_name
 
-        Parameters:
-            value: The pandas Series to validate
-            column_name: The name of the column being validated
+            Parameters:
+                value: The pandas Series to validate
+                column_name: The name of the column being validated
 
-        Returns:
-            List of LogicError for values that don't match the ontology terms
-        """
+            Returns:
+                List of LogicError for values that don't match the ontology terms
+            """
 
-        def _validate_cell(cell_value, labels):
-            try:
-                return self.validate_ontology_terms(cell_value, labels)
-            except Exception:
-                return False
+            def _validate_cell(cell_value, labels):
+                try:
+                    return self.validate_ontology_terms(cell_value, labels)
+                except Exception:
+                    return False
 
-        errors = []
-        terms = []
-        for x in value.unique():
-            try:
-                term = self.ontology_term_parser(x)
-                terms.append(term)
-            except ValueError as e:
-                column_info = f" in column '{column_name}'" if column_name else ""
-                errors.append(
-                    LogicError(
-                        message=f"Term: {x}{column_info}, is not a valid ontology term. Error: {str(e)}",
-                        row=-1,
-                        column=column_name,
-                        error_type=logging.ERROR,
-                    )
-                )
-                continue
-
-        labels = []
-        for term in terms:
-            if self.term_name not in term:
-                ontology_terms = None
-            else:
-                if self.ontologies is not None:
-                    ontology_terms = []
-                    for ontology_name in self.ontologies:
-                        ontology_terms.extend(
-                            self.client.search(
-                                term=term[self.term_name],
-                                ontology=ontology_name,
-                                exact=True,
-                                use_ols_cache_only=self.use_ols_cache_only,
-                            )
+            errors = []
+            terms = []
+            for x in value.unique():
+                # Skip empty values - they are handled by empty_cells validator
+                if not x or str(x).strip() == '':
+                    continue
+                try:
+                    term = self.ontology_term_parser(x)
+                    terms.append(term)
+                except ValueError as e:
+                    column_info = f" in column '{column_name}'" if column_name else ""
+                    errors.append(
+                        LogicError(
+                            message=f"Term: {x}{column_info}, is not a valid ontology term. Error: {str(e)}",
+                            row=-1,
+                            column=column_name,
+                            error_type=logging.ERROR,
                         )
+                    )
+                    continue
+
+            labels = []
+            for term in terms:
+                if self.term_name not in term:
+                    ontology_terms = None
                 else:
-                    ontology_terms = self.client.search(
-                        term=term[self.term_name], exact=True, use_ols_cache_only=self.use_ols_cache_only
+                    if self.ontologies is not None:
+                        ontology_terms = []
+                        for ontology_name in self.ontologies:
+                            ontology_terms.extend(
+                                self.client.search(
+                                    term=term[self.term_name],
+                                    ontology=ontology_name,
+                                    exact=True,
+                                    use_ols_cache_only=self.use_ols_cache_only,
+                                )
+                            )
+                    else:
+                        ontology_terms = self.client.search(
+                            term=term[self.term_name], exact=True, use_ols_cache_only=self.use_ols_cache_only
+                        )
+
+                if ontology_terms is not None:
+                    query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
+                    if term[self.term_name] in query_labels:
+                        labels.append(term[self.term_name])
+            labels.append(NOT_AVAILABLE)
+            labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
+            labels.append(NORM)
+
+            validation_indexes = value.apply(lambda cell_value: _validate_cell(cell_value, labels))
+
+            # Convert to indexes of the row to LogicErrors
+            for idx, val in enumerate(validation_indexes):
+                if not val:
+                    cell_value = value.iloc[idx]
+                    # Skip empty values - they are handled by empty_cells validator
+                    if not cell_value or str(cell_value).strip() == '':
+                        continue
+                    column_info = f" in column '{column_name}'" if column_name else ""
+                    errors.append(
+                        LogicError(
+                            message=(
+                                f"Term: {cell_value}{column_info}, is not found in the "
+                                f"given ontology list {';'.join(self.ontologies)}"
+                            ),
+                            row=idx,
+                            column=column_name,
+                            error_type=self.error_level,
+                        )
                     )
+            return errors
 
-            if ontology_terms is not None:
-                query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
-                if term[self.term_name] in query_labels:
-                    labels.append(term[self.term_name])
-        labels.append(NOT_AVAILABLE)
-        labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
-        labels.append(NORM)
+        def validate_ontology_terms(self, cell_value, labels):
+            """
+            Check if a cell value is in a list of labels or list of string
+            :param cell_value: line in a cell
+            :param labels: list of labels
+            :return:
+            """
+            cell_value = cell_value.lower()
+            term = self.ontology_term_parser(cell_value)
+            if term.get(self.term_name) in labels:
+                return True
+            return False
 
-        validation_indexes = value.apply(lambda cell_value: _validate_cell(cell_value, labels))
+        def ontology_term_parser(self, cell_value: str):
+            """
+            Parse a line string and convert it into a dictionary {key -> value}
+            :param cell_value: String line
+            :return:
+            """
+            term = {}
+            values = cell_value.split(";")
+            if len(values) == 1 and "=" not in values[0]:
+                term[self.term_name] = values[0].lower()
+            else:
+                for name in values:
+                    value_terms = name.split("=", 1)
+                    if len(value_terms) == 1:
+                        raise ValueError("Not a key-value pair: " + name)
+                    if "=" in value_terms[1] and value_terms[0].lower() != "cs":
+                        raise ValueError(
+                            f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
+                        )
+                    term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
 
-        # Convert to indexes of the row to LogicErrors
-        for idx, val in enumerate(validation_indexes):
-            if not val:
-                column_info = f" in column '{column_name}'" if column_name else ""
-                errors.append(
-                    LogicError(
-                        message=(
-                            f"Term: {value[idx]}{column_info}, is not found in the "
-                            f"given ontology list {';'.join(self.ontologies)}"
-                        ),
-                        row=idx,
-                        column=column_name,
-                        error_type=self.error_level,
-                    )
-                )
-        return errors
-
-    def validate_ontology_terms(self, cell_value, labels):
-        """
-        Check if a cell value is in a list of labels or list of string
-        :param cell_value: line in a cell
-        :param labels: list of labels
-        :return:
-        """
-        cell_value = cell_value.lower()
-        term = self.ontology_term_parser(cell_value)
-        if term.get(self.term_name) in labels:
-            return True
-        return False
-
-    def ontology_term_parser(self, cell_value: str):
-        """
-        Parse a line string and convert it into a dictionary {key -> value}
-        :param cell_value: String line
-        :return:
-        """
-        term = {}
-        values = cell_value.split(";")
-        if len(values) == 1 and "=" not in values[0]:
-            term[self.term_name] = values[0].lower()
-        else:
-            for name in values:
-                value_terms = name.split("=", 1)
-                if len(value_terms) == 1:
-                    raise ValueError("Not a key-value pair: " + name)
-                if "=" in value_terms[1] and value_terms[0].lower() != "cs":
-                    raise ValueError(
-                        f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
-                    )
-                term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
-
-        return term
+            return term
 
 
 @register_validator(validator_name="pattern")

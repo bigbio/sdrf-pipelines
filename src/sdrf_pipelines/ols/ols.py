@@ -83,9 +83,35 @@ ONTOLOGY_REGISTRY = {
 # Pooch configuration for downloading ontology files from GitHub
 if OLS_AVAILABLE:
     # Determine version string for URL
-    _version = __version__ if __version__ != "dev" else "main"
-    if _version != "main" and not _version.startswith("v"):
-        _version = f"v{_version}"
+    # Parse version to extract branch information
+    # Formats from setuptools-scm with custom local scheme:
+    #   - "1.0.0" (release tag) -> v1.0.0
+    #   - "1.0.0.dev5+g1a2b3c" (main dev) -> main
+    #   - "1.0.0.dev5+feature_branch.g1a2b3c" (PR branch) -> feature/branch
+    
+    import re
+    
+    def _parse_version_to_branch(version: str) -> str:
+        """Parse version string to determine git ref (tag or branch)"""
+        # Extract branch name from local version identifier
+        # Format: +<branch>.<node> or +<node>
+        local_match = re.search(r'\+([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9]+)?', version)
+        if local_match:
+            branch_part = local_match.group(1)
+            # If it looks like a commit hash (starts with 'g'), it's main
+            if branch_part.startswith('g'):
+                return "main"
+            # Otherwise it's a branch name - restore slashes
+            return branch_part.replace('_', '/')
+        
+        # Development version without local part -> main branch
+        if "dev" in version or version == "dev":
+            return "main"
+        
+        # Release version -> tag
+        return version if version.startswith("v") else f"v{version}"
+    
+    _version = _parse_version_to_branch(__version__)
     
     ONTOLOGY_POOCH = pooch.create(
         path=pooch.os_cache("sdrf-pipelines/ontologies"),
@@ -172,9 +198,7 @@ def download_ontology_cache(
     
     # Create custom pooch instance if cache_dir is specified
     if cache_dir:
-        _version = __version__ if __version__ != "dev" else "main"
-        if _version != "main" and not _version.startswith("v"):
-            _version = f"v{_version}"
+        _version = _parse_version_to_branch(__version__)
         
         downloader = pooch.create(
             path=cache_dir,
