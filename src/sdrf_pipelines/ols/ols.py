@@ -213,7 +213,13 @@ def download_ontology_cache(
     for filename in files_to_download:
         try:
             logger.info(f"Downloading ontology file: {filename}")
-            file_path = downloader.fetch(filename, processor=pooch.Decompress() if force else None)
+            # Use progressbar=False to avoid cluttering output
+            # If force=True, delete the file first to trigger re-download
+            if force:
+                cached_path = downloader.path / filename
+                if cached_path.exists():
+                    cached_path.unlink()
+            file_path = downloader.fetch(filename, progressbar=False)
             downloaded_files.append(file_path)
             logger.info(f"Successfully cached: {file_path}")
         except Exception as e:
