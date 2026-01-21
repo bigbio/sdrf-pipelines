@@ -396,7 +396,12 @@ class SchemaValidator:
         return errors
 
     def _apply_column_validators(
-        self, column_series: pd.Series, column_def: ColumnDefinition, use_ols_cache_only: bool, skip_ontology: bool, debug_col
+        self,
+        column_series: pd.Series,
+        column_def: ColumnDefinition,
+        use_ols_cache_only: bool,
+        skip_ontology: bool,
+        debug_col,
     ) -> list[LogicError]:
         errors = []
         for validator_config in column_def.validators:
@@ -448,21 +453,32 @@ class SchemaValidator:
         return errors
 
     def _process_column_validation(
-        self, df: pd.DataFrame | SDRFDataFrame, column_def: ColumnDefinition, use_ols_cache_only: bool, skip_ontology: bool, debug_col
+        self,
+        df: pd.DataFrame | SDRFDataFrame,
+        column_def: ColumnDefinition,
+        use_ols_cache_only: bool,
+        skip_ontology: bool,
+        debug_col,
     ) -> list[LogicError]:
         errors = []
         if column_def.name in df.columns:
             logging.debug(f"\nfound column {repr('characteristics[age]')}")
             column_series = df[column_def.name]
 
-            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology, debug_col))
+            errors.extend(
+                self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology, debug_col)
+            )
             errors.extend(self._validate_not_applicable_values(column_series, column_def))
             errors.extend(self._validate_not_available_values(column_series, column_def))
 
         return errors
 
     def validate(
-        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False, skip_ontology: bool = False
+        self,
+        df: pd.DataFrame | SDRFDataFrame,
+        schema_name: str,
+        use_ols_cache_only: bool = False,
+        skip_ontology: bool = False,
     ) -> list[LogicError]:
         """Validate a DataFrame against a schema.
 
