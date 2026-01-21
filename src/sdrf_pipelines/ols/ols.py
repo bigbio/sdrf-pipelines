@@ -182,8 +182,14 @@ def download_ontology_cache(
         list: List of paths to downloaded parquet files
 
     Raises:
+        ImportError: If optional OLS dependencies are not installed
         Exception: If download fails
     """
+    if not OLS_AVAILABLE:
+        raise ImportError(
+            "Optional OLS dependencies (pooch, rdflib, requests) are required for download_ontology_cache(). "
+            "Install them with: pip install 'sdrf-pipelines[ontology]'"
+        )
     # Determine which files to download
     if ontologies is None:
         files_to_download = ONTOLOGY_FILES
@@ -323,7 +329,15 @@ def read_owl_file(ontology_file: str, ontology_name=None) -> list[dict[str, str]
 
     Returns:
         list: A list of dictionaries containing the ontology terms
+
+    Raises:
+        ImportError: If optional OLS dependencies are not installed
     """
+    if not OLS_AVAILABLE:
+        raise ImportError(
+            "Optional OLS dependencies (pooch, rdflib, requests) are required for read_owl_file(). "
+            "Install them with: pip install 'sdrf-pipelines[ontology]'"
+        )
     g = rdflib.Graph()
     g.parse(ontology_file, format="xml")
     terms_info = []
@@ -406,7 +420,15 @@ class OlsClient:
             field_list (list): A list of fields to return
             query_fields (list): A list of fields to search
             use_cache (bool): Whether to use the cache
+
+        Raises:
+            ImportError: If optional OLS dependencies are not installed
         """
+        if not OLS_AVAILABLE:
+            raise ImportError(
+                "Optional OLS dependencies (pooch, rdflib, requests) are required for OlsClient. "
+                "Install them with: pip install 'sdrf-pipelines[ontology]'"
+            )
         self.base = (ols_base if ols_base else OLS).rstrip("/")
         self.session = requests.Session()
         self.use_cache = use_cache

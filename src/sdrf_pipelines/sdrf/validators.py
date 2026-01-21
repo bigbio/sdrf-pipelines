@@ -300,14 +300,12 @@ if OLS_AVAILABLE:
             def _validate_cell(cell_value, labels):
                 try:
                     return self.validate_ontology_terms(cell_value, labels)
-                except (ValueError, KeyError, AttributeError) as e:
+                except (ValueError, KeyError, AttributeError):
                     # Expected validation exceptions - return False
                     return False
                 except Exception as e:
                     # Unexpected exception - log and re-raise
-                    logger.error(
-                        f"Unexpected error validating cell value '{cell_value}': {type(e).__name__}: {e}"
-                    )
+                    logger.error(f"Unexpected error validating cell value '{cell_value}': {type(e).__name__}: {e}")
                     raise
 
             errors = []
