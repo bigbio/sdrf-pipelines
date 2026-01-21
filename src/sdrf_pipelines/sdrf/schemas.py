@@ -52,7 +52,6 @@ class MergeStrategy(str, Enum):
 
 
 class SchemaRegistry:
-
     def __init__(self, schema_dir: str | None = None):
         self.schemas: dict[str, SchemaDefinition] = {}
         self.raw_schema_data: dict[str, dict[str, Any]] = {}  # Store raw schema data for inheritance resolution

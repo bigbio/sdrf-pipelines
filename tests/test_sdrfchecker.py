@@ -63,14 +63,6 @@ def test_validate_srdf_fails_on_bad_file3(shared_datadir, on_tmpdir):
     """
     test_sdrf = shared_datadir / "erroneous/example.sdrf.tsv"
     run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
-        ),
-        (
-            "Factor 'factor value[compound]' and column 'characteristics[compound]' do not have the same "
-            "values for the following rows: [11, 20] -- ERROR"
-        ),
-    ]
-    # for expected_error in expected_errors:
-    #     assert expected_error in result.output, result.output
 
 
 reference_samples = [

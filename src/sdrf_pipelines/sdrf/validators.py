@@ -136,7 +136,6 @@ class SingleCardinalityValidator(SDRFValidator):
 
 @register_validator(validator_name="trailing_whitespace_validator")
 class TrailingWhitespaceValidator(SDRFValidator):
-
     def _has_trailing_whitespace(self, text: str) -> bool:
         return isinstance(text, str) and bool(text) and text.rstrip() != text
 
@@ -284,9 +283,7 @@ if OLS_AVAILABLE:
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
 
-        def validate(
-            self, value: pd.Series, column_name: str | None = None
-        ) -> list[LogicError]:  # type: ignore[override]
+        def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
             """
             Validate if the term is present in the provided ontology. This method looks in the provided
             ontology _ontology_name
@@ -408,8 +405,7 @@ if OLS_AVAILABLE:
                         raise ValueError("Not a key-value pair: " + name)
                     if "=" in value_terms[1] and value_terms[0].lower() != "cs":
                         raise ValueError(
-                            f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, "
-                            f"TA..)"
+                            f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, TA..)"
                         )
                     term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
 

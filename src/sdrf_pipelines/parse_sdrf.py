@@ -265,7 +265,6 @@ def validate_sdrf(
     template_content = ""
     if generate_proof:
         try:
-
             if hasattr(registry, "raw_schema_data") and template in registry.raw_schema_data:
                 template_content = yaml.dump(registry.raw_schema_data[template], sort_keys=True)
             else:
