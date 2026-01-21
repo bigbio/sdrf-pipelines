@@ -20,14 +20,16 @@ requirements:
     - setuptools >=64
     - setuptools-scm >=8
   run:
+    - python >=3.10
     - click
     - defusedxml
-    - fastparquet
+    - numpy
     - pandas
+    - pydantic >=2.0.0
     - pyyaml
-    - python >=3.10
-    - pydantic
-    - pytest
+    # Optional ontology dependencies
+    - fastparquet
+    - pooch
     - rdflib
     - requests
 
