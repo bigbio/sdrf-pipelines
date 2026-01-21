@@ -421,6 +421,10 @@ class OlsClient:
         self.ontology_term = self.base + API_TERM
         self.ontology_ancestors = self.base + API_ANCESTORS
 
+        # Initialize cache variables
+        self._cached_df: pd.DataFrame | None = None
+        self._ontology_cache: dict[str, pd.DataFrame] = {}
+
         if use_cache:
             cache_result = get_cache_parquet_files()
             if cache_result is None:
@@ -759,19 +763,29 @@ class OlsClient:
         if not is_cached and not full_search:
             return []
 
-        # Read all parquet files and filter using pandas
-        df = pd.concat([pd.read_parquet(f, engine="fastparquet") for f in self.parquet_files], ignore_index=True)
+        # Build cached DataFrame on first use
+        if self._cached_df is None:
+            self._cached_df = pd.concat(
+                [pd.read_parquet(f, engine="fastparquet") for f in self.parquet_files], ignore_index=True
+            )
+            # Ensure all fields are strings
+            self._cached_df["accession"] = self._cached_df["accession"].astype(str)
+            self._cached_df["label"] = self._cached_df["label"].astype(str)
+            self._cached_df["ontology"] = self._cached_df["ontology"].astype(str)
 
-        # Ensure all fields are strings
-        df["accession"] = df["accession"].astype(str)
-        df["label"] = df["label"].astype(str)
-        df["ontology"] = df["ontology"].astype(str)
+        # Get or create per-ontology filtered cache
+        if ontology is not None:
+            ontology_key = ontology.lower()
+            if ontology_key not in self._ontology_cache:
+                self._ontology_cache[ontology_key] = self._cached_df[
+                    self._cached_df["ontology"].str.lower() == ontology_key
+                ]
+            df = self._ontology_cache[ontology_key]
+        else:
+            df = self._cached_df
 
         # Filter for case-insensitive search
         df = df[df["label"].str.lower() == term.lower()]
-
-        if ontology is not None:
-            df = df[df["ontology"].str.lower() == ontology.lower()]
 
         if df is None or df.empty:
             return []
@@ -787,3 +801,10 @@ class OlsClient:
             )
 
         return terms
+
+    def clear_cache(self) -> None:
+        """
+        Clear the cached DataFrames to free memory or force reload.
+        """
+        self._cached_df = None
+        self._ontology_cache.clear()

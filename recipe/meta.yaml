@@ -21,7 +21,7 @@ requirements:
   run:
     - click
     - defusedxml
-    - duckdb
+    - fastparquet
     - pandas
     - pyyaml
     - python >=3.10

@@ -15,8 +15,7 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: sdrf-pipelines
-          environment-file: environment.yml
+          activate-environment: sdrf-pipelines-build
           auto-activate-base: false
           auto-update-conda: true
           python-version: '3.13'
@@ -24,8 +23,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          python -V
-          conda install conda-build conda-verify anaconda-client
+          conda install -n sdrf-pipelines-build conda-build conda-verify anaconda-client
 
       - name: Verify conda recipe
         run: |
