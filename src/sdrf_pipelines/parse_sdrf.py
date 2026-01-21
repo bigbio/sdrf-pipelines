@@ -483,8 +483,8 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
                 click.secho(f"ERROR: {error.message}", fg="red")
             else:
                 click.secho(f"WARNING: {error.message}", fg="yellow")
-        errors_not_warnings = [error for error in errors if error.error_type != logging.ERROR]
-        if len(errors_not_warnings):
+        actual_errors = [error for error in errors if error.error_type == logging.ERROR]
+        if len(actual_errors):
             sys.exit(1)
     else:
         click.secho("SDRF file is valid!", fg="green")
