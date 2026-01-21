@@ -50,29 +50,9 @@ jobs:
         run: |
           conda-verify .
 
-      - name: Build the sdrf-pipelines package
+      - name: Build and test the sdrf-pipelines package
         run: |
+          # conda build automatically runs the tests defined in meta.yaml test section
           conda build --package-format .tar.bz2 recipe
         env:
           SETUPTOOLS_SCM_PRETEND_VERSION: ${{ env.SETUPTOOLS_SCM_PRETEND_VERSION }}
-
-      - name: Create test environment and install package
-        run: |
-          # Index the build output so conda can resolve dependencies
-          conda index /usr/share/miniconda/envs/sdrf-pipelines-build/conda-bld
-          # Create test environment
-          conda create -n test-env -y python=3.13
-          # Add local build channel and install package with dependencies
-          conda install -n test-env -y -c local --override-channels -c conda-forge -c bioconda -c defaults sdrf-pipelines
-
-      - name: Test install
-        run: |
-          conda run -n test-env parse_sdrf --help
-
-      - name: Test validation of SDRF file
-        run: |
-          conda run -n test-env parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
-
-      - name: Test validation of SDRF file with cache only
-        run: |
-          conda run -n test-env parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
