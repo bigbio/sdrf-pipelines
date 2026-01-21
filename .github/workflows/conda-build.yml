@@ -18,7 +18,7 @@ jobs:
         run: |
           # Get current branch name
           BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
-          
+
           # Try to get version from git tags
           if git describe --tags --exact-match 2>/dev/null; then
             # On a tag - use the tag version
