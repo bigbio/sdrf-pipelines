@@ -271,6 +271,7 @@ if OLS_AVAILABLE:
             # Lazy initialization of OlsClient
             if self.client is None:
                 self.client = OlsClient()
+            assert self.client is not None  # Type narrowing for mypy
             logging.debug(params)
             if params:
                 for key, value in params.items():
