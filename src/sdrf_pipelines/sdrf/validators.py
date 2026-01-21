@@ -259,7 +259,7 @@ if OLS_AVAILABLE:
 
     @register_validator(validator_name="ontology")
     class OntologyValidator(SDRFValidator):
-        client: OlsClient | None = None
+        client: OlsClient = Field(default_factory=OlsClient)
         term_name: str = "NT"
         ontologies: list[str] = Field(default_factory=list)
         error_level: int = logging.INFO
@@ -268,10 +268,6 @@ if OLS_AVAILABLE:
 
         def __init__(self, params: dict[str, Any] | None = None, **data: Any):
             super().__init__(**data)
-            # Lazy initialization of OlsClient
-            if self.client is None:
-                self.client = OlsClient()
-            assert self.client is not None  # Type narrowing for mypy
             logging.debug(params)
             if params:
                 for key, value in params.items():
