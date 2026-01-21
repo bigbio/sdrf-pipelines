@@ -295,12 +295,20 @@ if OLS_AVAILABLE:
             Returns:
                 List of LogicError for values that don't match the ontology terms
             """
+            logger = logging.getLogger(__name__)
 
             def _validate_cell(cell_value, labels):
                 try:
                     return self.validate_ontology_terms(cell_value, labels)
-                except Exception:
+                except (ValueError, KeyError, AttributeError) as e:
+                    # Expected validation exceptions - return False
                     return False
+                except Exception as e:
+                    # Unexpected exception - log and re-raise
+                    logger.error(
+                        f"Unexpected error validating cell value '{cell_value}': {type(e).__name__}: {e}"
+                    )
+                    raise
 
             errors = []
             terms = []
@@ -328,7 +336,7 @@ if OLS_AVAILABLE:
                 if self.term_name not in term:
                     ontology_terms = None
                 else:
-                    if self.ontologies is not None:
+                    if self.ontologies:
                         ontology_terms = []
                         for ontology_name in self.ontologies:
                             ontology_terms.extend(

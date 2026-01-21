@@ -97,13 +97,6 @@ max-complexity = 10
 quote-style = "double"
 indent-style = "space"
 
-[tool.black]
-line-length = 120
-target_version = ["py310","py311","py312","py313"]
-
-[tool.isort]
-profile = "black"
-
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 packages = ["sdrf_pipelines"]
