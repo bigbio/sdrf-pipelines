@@ -11,6 +11,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for setuptools-scm
+
+      - name: Set version for setuptools-scm
+        run: |
+          # Get current branch name
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          
+          # Try to get version from git tags
+          if git describe --tags --exact-match 2>/dev/null; then
+            # On a tag - use the tag version
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            # Not on a tag - create dev version with branch name
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            # Replace slashes with underscores for branch name (setuptools-scm format)
+            BRANCH_SAFE=$(echo "$BRANCH_NAME" | sed 's/\//_/g')
+            VERSION="0.0.0+${BRANCH_SAFE}.${COMMIT_SHORT}"
+          fi
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building version: $VERSION (branch: $BRANCH_NAME)"
 
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
@@ -32,6 +53,8 @@ jobs:
       - name: Build the sdrf-pipelines package
         run: |
           conda build --package-format .tar.bz2 recipe
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ env.SETUPTOOLS_SCM_PRETEND_VERSION }}
 
       - name: Install the package
         run: |
