@@ -82,7 +82,7 @@ jobs:
         with:
           enable-cache: true
       - name: Sync workspace with dev dependencies
-        run: uv sync --group dev
+        run: uv sync
       - name: Test type annotations with mypy
         run: uv run mypy src/sdrf_pipelines
 
@@ -99,6 +99,6 @@ jobs:
         with:
           enable-cache: true
       - name: Sync workspace with dev dependencies
-        run: uv sync --extra dev --extra ontology
+        run: uv sync --extra ontology
       - name: Test OpenMS converter
         run: uv run pytest

@@ -25,7 +25,7 @@ jobs:
       with:
         enable-cache: true
     - name: Sync workspace with dev dependencies
-      run: uv sync --group dev --extra ontology
+      run: uv sync --extra ontology
     - name: Lint with flake8
       run: |
         uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
