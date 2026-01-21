@@ -276,7 +276,7 @@ def validate_sdrf(
         except Exception as e:
             logging.warning("Could not load template content for proof generation: %s", e)
 
-    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
     error_list = []
     for error in errors:
@@ -476,7 +476,7 @@ def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool
     validator = SchemaValidator(registry)
     sdrf_df = read_sdrf(sdrf_file)
 
-    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
     if errors:
         for error in errors:
             if error.error_type == logging.ERROR:

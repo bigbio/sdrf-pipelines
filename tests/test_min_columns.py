@@ -15,7 +15,7 @@ def test_min_columns_default_schema():
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
-    errors = validator.validate(sdrf_df, "default")
+    errors = validator.validate(sdrf_df, "default", skip_ontology=False)
     assert len(errors) == 139
 
 
@@ -36,7 +36,7 @@ def test_min_columns_with_reduced_columns():
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
-    errors = validator.validate(sdrf_df, "human")
+    errors = validator.validate(sdrf_df, "human", skip_ontology=False)
     error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
     expected_error_name_counts = Counter(
         {

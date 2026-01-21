@@ -334,10 +334,25 @@ class SchemaValidator:
     def __init__(self, registry: SchemaRegistry):
         self.registry = registry
 
-    def _create_validator_instance(self, validator_config: ValidatorConfig) -> SDRFValidator | None:
-        """Create a validator instance from a configuration."""
+    def _create_validator_instance(
+        self, validator_config: ValidatorConfig, skip_ontology: bool = False
+    ) -> SDRFValidator | None:
+        """Create a validator instance from a configuration.
+
+        Args:
+            validator_config: The validator configuration
+            skip_ontology: If True, skip ontology validators
+
+        Returns:
+            A validator instance or None if skipped/unavailable
+        """
         validator_name = validator_config.validator_name
         validator_params = validator_config.params
+
+        # Skip ontology validators if requested
+        if skip_ontology and validator_name == "ontology":
+            logging.debug("Skipping ontology validator as requested by skip_ontology flag")
+            return None
 
         validator_class = get_validator(validator_name)
         if not validator_class:
@@ -355,12 +370,12 @@ class SchemaValidator:
         return validator_class(params=validator_params)
 
     def _apply_global_validators(
-        self, df: pd.DataFrame | SDRFDataFrame, schema: SchemaDefinition, use_ols_cache_only: bool
+        self, df: pd.DataFrame | SDRFDataFrame, schema: SchemaDefinition, use_ols_cache_only: bool, skip_ontology: bool
     ) -> list[LogicError]:
         errors = []
         for validator_config in schema.validators:
             validator_config.params["use_ols_cache_only"] = use_ols_cache_only
-            validator = self._create_validator_instance(validator_config)
+            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
         return errors
@@ -381,12 +396,12 @@ class SchemaValidator:
         return errors
 
     def _apply_column_validators(
-        self, column_series: pd.Series, column_def: ColumnDefinition, use_ols_cache_only: bool, debug_col
+        self, column_series: pd.Series, column_def: ColumnDefinition, use_ols_cache_only: bool, skip_ontology: bool, debug_col
     ) -> list[LogicError]:
         errors = []
         for validator_config in column_def.validators:
             validator_config.params["use_ols_cache_only"] = use_ols_cache_only
-            validator = self._create_validator_instance(validator_config)
+            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
             debug_col(f"created validator for column {repr('characteristics[age]')} {repr(validator)}")
             if validator:
                 col_errors = validator.validate(column_series, column_name=column_def.name)
@@ -433,29 +448,40 @@ class SchemaValidator:
         return errors
 
     def _process_column_validation(
-        self, df: pd.DataFrame | SDRFDataFrame, column_def: ColumnDefinition, use_ols_cache_only: bool, debug_col
+        self, df: pd.DataFrame | SDRFDataFrame, column_def: ColumnDefinition, use_ols_cache_only: bool, skip_ontology: bool, debug_col
     ) -> list[LogicError]:
         errors = []
         if column_def.name in df.columns:
             logging.debug(f"\nfound column {repr('characteristics[age]')}")
             column_series = df[column_def.name]
 
-            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, debug_col))
+            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology, debug_col))
             errors.extend(self._validate_not_applicable_values(column_series, column_def))
             errors.extend(self._validate_not_available_values(column_series, column_def))
 
         return errors
 
     def validate(
-        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False
+        self, df: pd.DataFrame | SDRFDataFrame, schema_name: str, use_ols_cache_only: bool = False, skip_ontology: bool = False
     ) -> list[LogicError]:
+        """Validate a DataFrame against a schema.
+
+        Args:
+            df: The DataFrame to validate
+            schema_name: Name of the schema to validate against
+            use_ols_cache_only: If True, use only cached OLS data
+            skip_ontology: If True, skip ontology term validation
+
+        Returns:
+            List of validation errors
+        """
         schema = self.registry.get_schema(schema_name)
         if not schema:
             raise ValueError(f"Schema '{schema_name}' not found in registry")
 
         errors: list[LogicError] = []
 
-        errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only))
+        errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only, skip_ontology))
         errors.extend(self._validate_required_columns(df, schema))
 
         logging.debug(f"{schema.columns=}")
@@ -468,7 +494,7 @@ class SchemaValidator:
 
         for column_def in schema.columns:
             logging.debug(f"\nprocessing schema column {column_def}")
-            errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, debug_col))
+            errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology, debug_col))
 
         return errors
 
