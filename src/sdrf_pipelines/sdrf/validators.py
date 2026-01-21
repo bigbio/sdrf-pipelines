@@ -5,6 +5,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from sdrf_pipelines.ols.ols import OLS_AVAILABLE
+
 if OLS_AVAILABLE:
     from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
@@ -256,6 +257,7 @@ class MinimumColumns(SDRFValidator):
 
 # Only register OntologyValidator if OLS dependencies are available
 if OLS_AVAILABLE:
+
     @register_validator(validator_name="ontology")
     class OntologyValidator(SDRFValidator):
         client: OlsClient = OlsClient()
@@ -282,7 +284,9 @@ if OLS_AVAILABLE:
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
 
-        def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        def validate(
+            self, value: pd.Series, column_name: str | None = None
+        ) -> list[LogicError]:  # type: ignore[override]
             """
             Validate if the term is present in the provided ontology. This method looks in the provided
             ontology _ontology_name
@@ -305,7 +309,7 @@ if OLS_AVAILABLE:
             terms = []
             for x in value.unique():
                 # Skip empty values - they are handled by empty_cells validator
-                if not x or str(x).strip() == '':
+                if not x or str(x).strip() == "":
                     continue
                 try:
                     term = self.ontology_term_parser(x)
@@ -358,7 +362,7 @@ if OLS_AVAILABLE:
                 if not val:
                     cell_value = value.iloc[idx]
                     # Skip empty values - they are handled by empty_cells validator
-                    if not cell_value or str(cell_value).strip() == '':
+                    if not cell_value or str(cell_value).strip() == "":
                         continue
                     column_info = f" in column '{column_name}'" if column_name else ""
                     errors.append(
@@ -404,7 +408,8 @@ if OLS_AVAILABLE:
                         raise ValueError("Not a key-value pair: " + name)
                     if "=" in value_terms[1] and value_terms[0].lower() != "cs":
                         raise ValueError(
-                            f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, " f"TA..)"
+                            f"Invalid term: {name} after splitting by '=', please check the prefix (e.g. AC, NT, "
+                            f"TA..)"
                         )
                     term[value_terms[0].strip().upper()] = value_terms[1].strip().lower()
 
@@ -456,7 +461,10 @@ class ColumnOrderValidator(SDRFValidator):
         errors = []
         characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
         if characteristics_after_assay:
-            error_message = f"All characteristics columns must be before 'assay name'. Found after: {', '.join(characteristics_after_assay)}"
+            error_message = (
+                f"All characteristics columns must be before 'assay name'. "
+                f"Found after: {', '.join(characteristics_after_assay)}"
+            )
             errors.append(LogicError(message=error_message, error_type=logging.ERROR))
         return errors
 

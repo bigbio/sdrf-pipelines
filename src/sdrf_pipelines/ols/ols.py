@@ -22,6 +22,7 @@ try:
     import pooch
     import rdflib
     import requests
+
     OLS_AVAILABLE = True
 except ImportError:
     OLS_AVAILABLE = False
@@ -88,31 +89,31 @@ if OLS_AVAILABLE:
     #   - "1.0.0" (release tag) -> v1.0.0
     #   - "1.0.0.dev5+g1a2b3c" (main dev) -> main
     #   - "1.0.0.dev5+feature_branch.g1a2b3c" (PR branch) -> feature/branch
-    
+
     import re
-    
+
     def _parse_version_to_branch(version: str) -> str:
         """Parse version string to determine git ref (tag or branch)"""
         # Extract branch name from local version identifier
         # Format: +<branch>.<node> or +<node>
-        local_match = re.search(r'\+([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9]+)?', version)
+        local_match = re.search(r"\+([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9]+)?", version)
         if local_match:
             branch_part = local_match.group(1)
             # If it looks like a commit hash (starts with 'g'), it's main
-            if branch_part.startswith('g'):
+            if branch_part.startswith("g"):
                 return "main"
             # Otherwise it's a branch name - restore slashes
-            return branch_part.replace('_', '/')
-        
+            return branch_part.replace("_", "/")
+
         # Development version without local part -> main branch
         if "dev" in version or version == "dev":
             return "main"
-        
+
         # Release version -> tag
         return version if version.startswith("v") else f"v{version}"
-    
+
     _version = _parse_version_to_branch(__version__)
-    
+
     ONTOLOGY_POOCH = pooch.create(
         path=pooch.os_cache("sdrf-pipelines/ontologies"),
         base_url=f"https://raw.githubusercontent.com/bigbio/sdrf-pipelines/{_version}/data/ontologies/",
@@ -170,16 +171,16 @@ def download_ontology_cache(
 ) -> list[str]:
     """
     Download ontology parquet files from GitHub using pooch.
-    
+
     Parameters:
         ontologies (list): List of ontology names to download (e.g., ['efo', 'cl']).
                           If None, downloads all available ontologies.
         cache_dir (str): Override default cache directory location
         force (bool): Force re-download even if files exist in cache
-    
+
     Returns:
         list: List of paths to downloaded parquet files
-        
+
     Raises:
         Exception: If download fails
     """
@@ -191,15 +192,13 @@ def download_ontology_cache(
         # Validate that requested ontologies exist in registry
         invalid = [f for f in files_to_download if f not in ONTOLOGY_REGISTRY]
         if invalid:
-            available = [f.replace('.parquet', '') for f in ONTOLOGY_FILES]
-            raise ValueError(
-                f"Unknown ontologies: {invalid}. Available: {', '.join(available)}"
-            )
-    
+            available = [f.replace(".parquet", "") for f in ONTOLOGY_FILES]
+            raise ValueError(f"Unknown ontologies: {invalid}. Available: {', '.join(available)}")
+
     # Create custom pooch instance if cache_dir is specified
     if cache_dir:
         _version = _parse_version_to_branch(__version__)
-        
+
         downloader = pooch.create(
             path=cache_dir,
             base_url=f"https://raw.githubusercontent.com/bigbio/sdrf-pipelines/{_version}/data/ontologies/",
@@ -207,7 +206,7 @@ def download_ontology_cache(
         )
     else:
         downloader = ONTOLOGY_POOCH
-    
+
     # Download files
     downloaded_files = []
     for filename in files_to_download:
@@ -229,7 +228,7 @@ def download_ontology_cache(
                 f"Check your internet connection and verify the file exists at: "
                 f"{downloader.base_url}{filename}"
             ) from e
-    
+
     return downloaded_files
 
 
@@ -243,7 +242,7 @@ def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
                or None if cache cannot be obtained and download fails
     """
     parquet_files = []
-    
+
     # 1. Try pooch cache directory
     if ONTOLOGY_POOCH is not None:
         cache_path = Path(ONTOLOGY_POOCH.path)
@@ -251,7 +250,7 @@ def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
             parquet_files = [str(f) for f in cache_path.glob("*.parquet")]
             if parquet_files:
                 logger.info(f"Using cached ontology files from pooch cache ({len(parquet_files)} files)")
-    
+
     # 2. Try local development directory
     if not parquet_files:
         local_dev_dir = Path(__file__).parent.parent.parent.parent / "data" / "ontologies"
@@ -259,7 +258,7 @@ def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
             parquet_files = [str(f) for f in local_dev_dir.glob("*.parquet")]
             if parquet_files:
                 logger.info(f"Using ontology files from local development directory ({len(parquet_files)} files)")
-    
+
     # 3. Download from GitHub if no local cache exists
     if not parquet_files:
         logger.info("No cached ontology files found. Downloading from GitHub...")
@@ -272,10 +271,10 @@ def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
                 "No ontology cache files found locally and download from GitHub failed. "
                 "Ensure you have internet connectivity."
             ) from e
-    
+
     # Load all parquets and extract unique ontology names
     try:
-        df = pd.concat([pd.read_parquet(f, engine='fastparquet') for f in parquet_files], ignore_index=True)
+        df = pd.concat([pd.read_parquet(f, engine="fastparquet") for f in parquet_files], ignore_index=True)
     except Exception as e:
         logger.error(f"Failed to read parquet files: {e}")
         raise RuntimeError(f"Failed to read cached ontology files: {e}") from e
@@ -490,7 +489,7 @@ class OlsClient:
         logger.info("Terms found in %s: %s", ontology_file, len(df))
 
         # Use pandas with fastparquet to write parquet file
-        df.to_parquet(output_file, engine='fastparquet', compression='gzip', index=False)
+        df.to_parquet(output_file, engine="fastparquet", compression="gzip", index=False)
         logger.info("Index has finished, output file: %s", output_file)
 
     def besthit(self, name, **kwargs) -> dict[str, str] | None:
@@ -761,18 +760,18 @@ class OlsClient:
             return []
 
         # Read all parquet files and filter using pandas
-        df = pd.concat([pd.read_parquet(f, engine='fastparquet') for f in self.parquet_files], ignore_index=True)
-        
+        df = pd.concat([pd.read_parquet(f, engine="fastparquet") for f in self.parquet_files], ignore_index=True)
+
         # Ensure all fields are strings
-        df['accession'] = df['accession'].astype(str)
-        df['label'] = df['label'].astype(str)
-        df['ontology'] = df['ontology'].astype(str)
-        
+        df["accession"] = df["accession"].astype(str)
+        df["label"] = df["label"].astype(str)
+        df["ontology"] = df["ontology"].astype(str)
+
         # Filter for case-insensitive search
-        df = df[df['label'].str.lower() == term.lower()]
-        
+        df = df[df["label"].str.lower() == term.lower()]
+
         if ontology is not None:
-            df = df[df['ontology'].str.lower() == ontology.lower()]
+            df = df[df["ontology"].str.lower() == ontology.lower()]
 
         if df is None or df.empty:
             return []

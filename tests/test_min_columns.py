@@ -53,8 +53,18 @@ def test_min_columns_with_reduced_columns():
             "Required column 'comment[instrument]' is missing": 1,
             "Required column 'comment[proteomics data acquisition method]' is missing": 1,
             "Required column 'characteristics[disease]' is missing": 1,
-            "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon": 1,
-            "Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$": 1,
+            (
+                "Term: homo sapiens23 in column 'characteristics[organism]', "
+                "is not found in the given ontology list ncbitaxon"
+            ): 1,
+            (
+                "Value '1' in column 'characteristics[age]' does not match the required pattern: "
+                "^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|"
+                "(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-"
+                "(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-"
+                "(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-"
+                "(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$"
+            ): 1,
         }
     )
     assert error_name_counts == expected_error_name_counts

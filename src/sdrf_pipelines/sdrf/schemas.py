@@ -347,7 +347,7 @@ class SchemaValidator:
                 logging.warning(
                     "Ontology validator '%s' is not available because OLS dependencies are not installed. "
                     "Install them with: pip install sdrf-pipelines[ontology]",
-                    validator_name
+                    validator_name,
                 )
             else:
                 logging.warning("Validator type '%s' not found in registry", validator_name)
