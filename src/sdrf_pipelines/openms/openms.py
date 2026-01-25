@@ -611,8 +611,7 @@ class OpenMS:
                 combined_factors = None
             else:
                 warning_message = (
-                    "No factors specified. Adding non-redundant characteristics as factor. Will be used "
-                    "as condition. "
+                    "No factors specified. Adding non-redundant characteristics as factor. Will be used as condition. "
                 )
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
         return combined_factors
