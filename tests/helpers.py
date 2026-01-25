@@ -2,9 +2,8 @@ import difflib
 import os
 from typing import List
 
-from click import BaseCommand
-from click.testing import CliRunner
-from click.testing import Result
+from click import Command
+from click.testing import CliRunner, Result
 
 
 def compare_files(file1: os.PathLike, file2: os.PathLike) -> List[str]:
@@ -20,9 +19,9 @@ def compare_files(file1: os.PathLike, file2: os.PathLike) -> List[str]:
     return out
 
 
-def run_and_check_status_code(command: BaseCommand, args: List[str], status_code: int = 0) -> Result:
+def run_and_check_status_code(command: Command, args: List[str], status_code: int = 0) -> Result:
     runner = CliRunner()
-    result = runner.invoke(command, args)
+    result = runner.invoke(command, args, catch_exceptions=False, standalone_mode=False, env={"PYTHONUNBUFFERED": "1"})
 
     if result.exit_code != status_code:
         print("Output: ")

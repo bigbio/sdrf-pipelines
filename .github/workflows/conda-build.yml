@@ -11,12 +11,32 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for setuptools-scm
+
+      - name: Set version for setuptools-scm
+        run: |
+          # Get current branch name
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+
+          # Try to get version from git tags
+          if git describe --tags --exact-match 2>/dev/null; then
+            # On a tag - use the tag version
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            # Not on a tag - create dev version with branch name
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            # Replace slashes with underscores for branch name (setuptools-scm format)
+            BRANCH_SAFE=$(echo "$BRANCH_NAME" | sed 's/\//_/g')
+            VERSION="0.0.0+${BRANCH_SAFE}.${COMMIT_SHORT}"
+          fi
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building version: $VERSION (branch: $BRANCH_NAME)"
 
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: sdrf-pipelines
-          environment-file: environment.yml
+          activate-environment: sdrf-pipelines-build
           auto-activate-base: false
           auto-update-conda: true
           python-version: '3.13'
@@ -24,26 +44,15 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          python -V
-          conda install conda-build conda-verify anaconda-client
+          conda install -n sdrf-pipelines-build conda-build conda-verify anaconda-client
 
-      - name: Build the sdrf-pipelines package
+      - name: Verify conda recipe
         run: |
+          conda-verify .
+
+      - name: Build and test the sdrf-pipelines package
+        run: |
+          # conda build automatically runs the tests defined in meta.yaml test section
           conda build --package-format .tar.bz2 recipe
-
-      - name: Install the package
-        run: |
-          PACKAGE_PATH=$(conda build --package-format .tar.bz2 --output recipe)
-          conda install --offline "$PACKAGE_PATH"
-
-      - name: Test install
-        run: |
-          parse_sdrf --help
-
-      - name: Test validation of SDRF file
-        run: |
-          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv
-
-      - name: Test validation of SDRF file with cache only
-        run: |
-          parse_sdrf validate-sdrf --sdrf_file tests/data/reference/PDC000126/PDC000126.sdrf.tsv --use_ols_cache_only
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ env.SETUPTOOLS_SCM_PRETEND_VERSION }}
