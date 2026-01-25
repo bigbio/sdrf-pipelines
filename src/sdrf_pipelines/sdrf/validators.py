@@ -13,6 +13,20 @@ from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABL
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
+def _is_string_like_dtype(series: pd.Series) -> bool:
+    """Check if a pandas Series has a string-like dtype.
+
+    Handles both legacy object dtype and newer StringDtype (including pyarrow-backed strings).
+    Includes safeguard against future pandas API changes.
+    """
+    if series.dtype == object:
+        return True
+    try:
+        return pd.api.types.is_string_dtype(series)
+    except (AttributeError, TypeError):
+        return False
+
+
 class SDRFValidator(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
@@ -161,10 +175,11 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
     def _validate_dataframe(self, value: pd.DataFrame) -> list[LogicError]:
         errors = []
-        for col in value.select_dtypes("object").columns:
-            for idx, cell_value in enumerate(value[col]):
-                if self._has_trailing_whitespace(cell_value):
-                    errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
+        for col in value.columns:
+            if _is_string_like_dtype(value[col]):
+                for idx, cell_value in enumerate(value[col]):
+                    if self._has_trailing_whitespace(cell_value):
+                        errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
         return errors
 
     def _validate_sdrf_dataframe(self, value: SDRFDataFrame) -> list[LogicError]:
@@ -180,7 +195,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
         # Check cell values
         for col in value.columns:
-            if value[col].dtype == object:
+            if _is_string_like_dtype(value[col]):
                 for idx, cell_value in enumerate(value[col]):
                     if self._has_trailing_whitespace(cell_value):
                         errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
@@ -189,7 +204,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
     def _validate_series(self, value: pd.Series) -> list[LogicError]:
         errors = []
-        if value.dtype == object:
+        if _is_string_like_dtype(value):
             for idx, cell_value in enumerate(value):
                 if self._has_trailing_whitespace(cell_value):
                     errors.append(self._create_trailing_whitespace_error(cell_value, row=idx))
