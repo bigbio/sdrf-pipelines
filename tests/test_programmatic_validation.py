@@ -31,22 +31,24 @@ class TestProgrammaticValidation:
 
     def test_validate_sdrf_from_dataframe(self):
         """Validate SDRF data from a pandas DataFrame."""
-        df = pd.DataFrame({
-            "source name": ["sample_1", "sample_2"],
-            "characteristics[organism]": ["Homo sapiens", "Homo sapiens"],
-            "characteristics[organism part]": ["liver", "kidney"],
-            "characteristics[disease]": ["normal", "normal"],
-            "characteristics[cell type]": ["hepatocyte", "epithelial cell"],
-            "assay name": ["run_1", "run_2"],
-            "technology type": ["mass spectrometry", "mass spectrometry"],
-            "comment[data file]": ["file1.raw", "file2.raw"],
-            "comment[instrument]": ["Q Exactive", "Q Exactive"],
-            "comment[label]": ["label free sample", "label free sample"],
-            "comment[fraction identifier]": ["1", "1"],
-            "characteristics[biological replicate]": ["1", "2"],
-            "comment[technical replicate]": ["1", "1"],
-            "comment[proteomics data acquisition method]": ["DDA", "DDA"],
-        })
+        df = pd.DataFrame(
+            {
+                "source name": ["sample_1", "sample_2"],
+                "characteristics[organism]": ["Homo sapiens", "Homo sapiens"],
+                "characteristics[organism part]": ["liver", "kidney"],
+                "characteristics[disease]": ["normal", "normal"],
+                "characteristics[cell type]": ["hepatocyte", "epithelial cell"],
+                "assay name": ["run_1", "run_2"],
+                "technology type": ["mass spectrometry", "mass spectrometry"],
+                "comment[data file]": ["file1.raw", "file2.raw"],
+                "comment[instrument]": ["Q Exactive", "Q Exactive"],
+                "comment[label]": ["label free sample", "label free sample"],
+                "comment[fraction identifier]": ["1", "1"],
+                "characteristics[biological replicate]": ["1", "2"],
+                "comment[technical replicate]": ["1", "1"],
+                "comment[proteomics data acquisition method]": ["DDA", "DDA"],
+            }
+        )
 
         sdrf = SDRFDataFrame(df)
         errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
@@ -55,14 +57,16 @@ class TestProgrammaticValidation:
 
     def test_validate_with_schema_validator_directly(self):
         """Use SchemaValidator directly for more control."""
-        df = pd.DataFrame({
-            "source name": ["sample_1"],
-            "characteristics[organism]": ["Homo sapiens"],
-            "characteristics[organism part]": ["liver"],
-            "characteristics[disease]": ["normal"],
-            "characteristics[cell type]": ["hepatocyte"],
-            "assay name": ["run_1"],
-        })
+        df = pd.DataFrame(
+            {
+                "source name": ["sample_1"],
+                "characteristics[organism]": ["Homo sapiens"],
+                "characteristics[organism part]": ["liver"],
+                "characteristics[disease]": ["normal"],
+                "characteristics[cell type]": ["hepatocyte"],
+                "assay name": ["run_1"],
+            }
+        )
 
         registry = SchemaRegistry()
         validator = SchemaValidator(registry)
@@ -93,14 +97,16 @@ class TestProgrammaticValidation:
 
     def test_validate_detects_errors(self):
         """Test that validation properly detects common errors."""
-        df = pd.DataFrame({
-            "source name": ["sample_1"],
-            "characteristics[organism]": ["  Homo sapiens  "],  # Whitespace
-            "characteristics[organism part]": ["liver"],
-            "characteristics[disease]": ["normal"],
-            "characteristics[cell type]": ["hepatocyte"],
-            "assay name": ["run_1"],
-        })
+        df = pd.DataFrame(
+            {
+                "source name": ["sample_1"],
+                "characteristics[organism]": ["  Homo sapiens  "],  # Whitespace
+                "characteristics[organism part]": ["liver"],
+                "characteristics[disease]": ["normal"],
+                "characteristics[cell type]": ["hepatocyte"],
+                "assay name": ["run_1"],
+            }
+        )
 
         sdrf = SDRFDataFrame(df)
         errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
@@ -111,14 +117,16 @@ class TestProgrammaticValidation:
 
     def test_validate_with_different_templates(self):
         """Test validation with different schema templates."""
-        df = pd.DataFrame({
-            "source name": ["sample_1"],
-            "characteristics[organism]": ["Homo sapiens"],
-            "characteristics[organism part]": ["liver"],
-            "characteristics[disease]": ["normal"],
-            "characteristics[cell type]": ["hepatocyte"],
-            "assay name": ["run_1"],
-        })
+        df = pd.DataFrame(
+            {
+                "source name": ["sample_1"],
+                "characteristics[organism]": ["Homo sapiens"],
+                "characteristics[organism part]": ["liver"],
+                "characteristics[disease]": ["normal"],
+                "characteristics[cell type]": ["hepatocyte"],
+                "assay name": ["run_1"],
+            }
+        )
 
         sdrf = SDRFDataFrame(df)
 

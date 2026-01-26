@@ -144,7 +144,7 @@ python -c "import sdrf_pipelines; print(sdrf_pipelines.__version__)"
 # -> 0.0.28.dev5+g1a2b3c (main)
 
 git checkout feature/test
-python -c "import sdrf_pipelines; print(sdrf_pipelines.__version__)"  
+python -c "import sdrf_pipelines; print(sdrf_pipelines.__version__)"
 # -> 0.0.28.dev5+feature_test.g1a2b3c (feature/test)
 
 # Test URL parsing
@@ -169,7 +169,7 @@ print(_parse_version_to_branch('0.0.28.dev5+feature_xyz.g1a2b3c'))  # -> feature
 
 Special characters are replaced with underscores for PEP 440 compatibility:
 - `feature/my-branch` → `feature_my_branch`
-- `fix/issue-123` → `fix_issue_123`  
+- `fix/issue-123` → `fix_issue_123`
 - `user/feature/test` → `user_feature_test`
 
 The parser automatically restores slashes when constructing URLs.

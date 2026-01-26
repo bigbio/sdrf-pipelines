@@ -8,6 +8,7 @@ which is needed for downloading ontology cache data from the correct branch.
 """
 
 import re
+
 from setuptools import setup
 
 
