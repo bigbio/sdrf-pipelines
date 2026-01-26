@@ -18,7 +18,7 @@ def test_version():
     output_parts = result.output.strip().split()
     assert len(output_parts) == 2, f"Unexpected output format: {repr(result.output)}"
     assert output_parts[0] == "sdrf_pipelines"
-    
+
     version_str = output_parts[1]
     # Validate using packaging.version which supports PEP 440 including local version identifiers
     try:
