@@ -13,8 +13,58 @@ This is the official SDRF file validation tool and it can convert SDRF files to 
 
 ## Installation
 
+### Basic Installation (Structural Validation + Conversions)
+
+For most users who only need structural validation and pipeline conversions:
+
 ```bash
 pip install sdrf-pipelines
+```
+
+This installs the core dependencies which support:
+- ✅ **Structural validation** (8 out of 9 validators: column checks, formatting, uniqueness, etc.)
+- ✅ **All converters** (OpenMS, MaxQuant, MSstats, NormalyzerDE)
+- ❌ Ontology term validation (requires additional dependencies)
+
+### Full Installation (Including Ontology Validation)
+
+If you need ontology term validation via OLS (Ontology Lookup Service):
+
+```bash
+pip install sdrf-pipelines[ontology]
+```
+
+This adds dependencies for ontology validation: `fastparquet`, `pooch`, `rdflib`, `requests`
+
+**Ontology Caching Mechanism:**
+
+The ontology validation uses a smart caching system powered by [pooch](https://www.fatiando.org/pooch/):
+
+- **Lazy loading**: Ontology files are only downloaded when first needed during validation
+- **Location**: Cache files are stored in the OS-specific cache directory:
+  - Linux/macOS: `~/.cache/sdrf-pipelines/ontologies/`
+  - Windows: `C:\Users\<user>\AppData\Local\sdrf-pipelines\ontologies\`
+- **Integrity**: All files are verified with SHA256 checksums
+- **Offline support**: Once cached, validations work without internet access
+- **Size**: Total cache is approximately 50-100 MB for all ontologies
+
+**Supported ontologies:** EFO, CL, PRIDE, NCBITAXON, MS, BTO, CLO, HANCESTRO, PATO, UO, DOID, GO
+
+**Pre-download cache files (optional):**
+
+```bash
+parse_sdrf download-cache              # Download all ontologies
+parse_sdrf download-cache -o efo,cl    # Download specific ontologies
+parse_sdrf download-cache --show-info  # Show cache information
+parse_sdrf download-cache -f           # Force re-download all files
+```
+
+### All Features
+
+To install everything (currently equivalent to `[ontology]`):
+
+```bash
+pip install sdrf-pipelines[all]
 ```
 
 ## Validate SDRF files
@@ -24,6 +74,22 @@ You can validate an SDRF file by executing the following command:
 ```bash
 parse_sdrf validate-sdrf --sdrf_file {here_the_path_to_sdrf_file}
 ```
+
+### Skip Ontology Validation
+
+If you only have the base installation (without the `[ontology]` extra) or want to skip ontology term validation:
+
+```bash
+parse_sdrf validate-sdrf --sdrf_file {path_to_sdrf} --skip-ontology
+```
+
+This will perform all structural validations but skip the ontology term lookup, which is useful for:
+
+- Quick validation checks
+- Environments without internet access
+- CI/CD pipelines where only structural validation is needed
+
+**Note**: If ontology dependencies are not installed, the tool will automatically skip ontology validation and show a warning.
 
 ### New JSON Schema-Based Validation
 
@@ -304,9 +370,59 @@ Commands:
 
 ```
 
+## Development
 
-# Citations
+We use modern Python tooling for development:
 
-- Dai C, Füllgrabe A, Pfeuffer J, Solovyeva EM, Deng J, Moreno P, Kamatchinathan S, Kundu DJ, George N, Fexova S, Grüning B, Föll MC, Griss J, Vaudel M, Audain E, Locard-Paulet M, Turewicz M, Eisenacher M, Uszkoreit J, Van Den Bossche T, Schwämmle V, Webel H, Schulze S, Bouyssié D, Jayaram S, Duggineni VK, Samaras P, Wilhelm M, Choi M, Wang M, Kohlbacher O, Brazma A, Papatheodorou I, Bandeira N, Deutsch EW, Vizcaíno JA, Bai M, Sachsenberg T, Levitsky LI, Perez-Riverol Y. A proteomics sample metadata representation for multiomics integration and big data analysis. Nat Commun. 2021 Oct 6;12(1):5854. doi: 10.1038/s41467-021-26111-3. PMID: 34615866; PMCID: PMC8494749. [Manuscript](https://www.nature.com/articles/s41467-021-26111-3)
+### Package Manager: uv
 
-- Perez-Riverol, Yasset, and European Bioinformatics Community for Mass Spectrometry. "Toward a Sample Metadata Standard in Public Proteomics Repositories." Journal of Proteome Research 19.10 (2020): 3906-3909. [Manuscript](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.0c00376)
+We use [uv](https://docs.astral.sh/uv/) as our package manager for fast, reliable dependency management.
+
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment and install dependencies
+uv sync
+
+# Install with dev dependencies
+uv sync --group dev
+```
+
+### Code Quality: ruff + pre-commit
+
+We use [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and [pre-commit](https://pre-commit.com/) for automated checks.
+
+```bash
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Run all checks manually
+uv run pre-commit run --all-files
+
+# OR run ruff directly (usually not necessary)
+uv run ruff check .      # Linting
+uv run ruff format .     # Formatting
+```
+
+### Running Tests
+
+```bash
+uv run pytest
+```
+
+### Type Checking (if not already done in pre-commit)
+
+```bash
+uv run mypy src/sdrf_pipelines
+```
+
+For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Citation
+
+If you use this software, please cite:
+
+> Dai C, Füllgrabe A, Pfeuffer J, et al. A proteomics sample metadata representation for multiomics integration and big data analysis. _Nat Commun_ **12**, 5854 (2021). https://doi.org/10.1038/s41467-021-26111-3
+
+For full citation details and BibTeX format, see [CITATION.cff](CITATION.cff).

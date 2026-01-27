@@ -16,7 +16,12 @@ from sdrf_pipelines import __version__
 from sdrf_pipelines.maxquant.maxquant import Maxquant
 from sdrf_pipelines.msstats.msstats import Msstats
 from sdrf_pipelines.normalyzerde.normalyzerde import NormalyzerDE
-from sdrf_pipelines.ols.ols import OlsClient
+from sdrf_pipelines.ols.ols import (
+    OLS_AVAILABLE,
+    ONTOLOGY_FILES,
+    OlsClient,
+    download_ontology_cache,
+)
 from sdrf_pipelines.openms.openms import OpenMS
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import read_sdrf
@@ -183,6 +188,11 @@ def maxquant_from_sdrf(
     "--use_ols_cache_only", help="Use ols cache for validation of the terms and not OLS internet service", is_flag=True
 )
 @click.option(
+    "--skip-ontology",
+    help="Skip ontology term validation (useful when ontology dependencies are not installed)",
+    is_flag=True,
+)
+@click.option(
     "--out",
     "-o",
     help="Output file to write the validation results to (default: stdout)",
@@ -212,6 +222,7 @@ def validate_sdrf(
     sdrf_file: str,
     template: str,
     use_ols_cache_only: bool,
+    skip_ontology: bool,
     out: Optional[str] = None,
     proof_out: Optional[str] = None,
     generate_proof: bool = False,
@@ -226,8 +237,18 @@ def validate_sdrf(
     @param sdrf_file: SDRF file to be validated
     @param template: template to be used for a validation
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
+    @param skip_ontology: flag to skip ontology term validation
     @param out: Output file to write the validation results to (default: stdout)
     """
+    # Warn if ontology validation is requested but dependencies are not available
+    if not skip_ontology and not OLS_AVAILABLE:
+        click.secho(
+            "Warning: Ontology validation is not available because OLS dependencies are not installed. "
+            "Install them with: pip install sdrf-pipelines[ontology]. "
+            "Continuing with structural validation only.",
+            fg="yellow",
+        )
+        skip_ontology = True
 
     if sdrf_file is None:
         msg = "The config file for the pipeline is missing, please provide one "
@@ -244,7 +265,6 @@ def validate_sdrf(
     template_content = ""
     if generate_proof:
         try:
-
             if hasattr(registry, "raw_schema_data") and template in registry.raw_schema_data:
                 template_content = yaml.dump(registry.raw_schema_data[template], sort_keys=True)
             else:
@@ -256,7 +276,7 @@ def validate_sdrf(
         except Exception as e:
             logging.warning("Could not load template content for proof generation: %s", e)
 
-    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
     error_list = []
     for error in errors:
@@ -335,7 +355,7 @@ def split_sdrf(ctx, sdrf_file: str, attribute: str, prefix: str):
             else:
                 prefix = file_name.split(".")[0]
         if isinstance(key, tuple):
-            new_file = prefix + "-" + "-".join(key).replace(" ", "_") + ".sdrf.tsv"
+            new_file = prefix + "-" + "-".join(str(k) for k in key).replace(" ", "_") + ".sdrf.tsv"
         else:
             new_file = prefix + "-" + key.replace(" ", "_") + ".sdrf.tsv"
         dataframe.to_csv(path + new_file, sep="\t", quoting=csv.QUOTE_NONE, index=False)
@@ -430,32 +450,148 @@ cli.add_command(build_index_ontology)
 @click.option(
     "--use_ols_cache_only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
 )
-def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool):
+@click.option(
+    "--skip-ontology",
+    is_flag=True,
+    help="Skip ontology term validation (useful when ontology dependencies are not installed)",
+)
+def validate_sdrf_simple(sdrf_file: str, template: str, use_ols_cache_only: bool, skip_ontology: bool):
     """
     Simple command to validate an SDRF file.
 
     This command provides a simpler interface for validating SDRF files,
     without the additional options for skipping specific validations.
     """
+    # Warn if ontology validation is requested but dependencies are not available
+    if not skip_ontology and not OLS_AVAILABLE:
+        click.secho(
+            "Warning: Ontology validation is not available because OLS dependencies are not installed. "
+            "Install them with: pip install sdrf-pipelines[ontology]. "
+            "Continuing with structural validation only.",
+            fg="yellow",
+        )
+        skip_ontology = True
 
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     sdrf_df = read_sdrf(sdrf_file)
 
-    errors = validator.validate(sdrf_df, template, use_ols_cache_only)
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
     if errors:
         for error in errors:
             if error.error_type == logging.ERROR:
                 click.secho(f"ERROR: {error.message}", fg="red")
             else:
                 click.secho(f"WARNING: {error.message}", fg="yellow")
-        errors_not_warnings = [error for error in errors if error.error_type != logging.ERROR]
-        if len(errors_not_warnings):
+        actual_errors = [error for error in errors if error.error_type == logging.ERROR]
+        if len(actual_errors):
             sys.exit(1)
     else:
         click.secho("SDRF file is valid!", fg="green")
 
 
+@click.command("download-cache", short_help="Download ontology cache files from GitHub")
+@click.option(
+    "--ontology",
+    "-o",
+    help=(
+        "Comma-separated list of specific ontologies to download (e.g., 'efo,cl'). "
+        "If not specified, downloads all ontologies."
+    ),
+    default=None,
+)
+@click.option(
+    "--cache-dir",
+    "-d",
+    help="Override the default cache directory location",
+    default=None,
+)
+@click.option(
+    "--show-info",
+    "-i",
+    is_flag=True,
+    help="Show cache information (location, available ontologies, download URLs) without downloading",
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Force re-download even if files already exist in cache",
+)
+def download_cache(ontology, cache_dir, show_info, force):
+    """
+    Download ontology cache files from GitHub for offline validation.
+
+    By default, ontology cache files are automatically downloaded on first use during validation.
+    Use this command to pre-download all or specific ontology files.
+
+    Examples:
+        parse_sdrf download-cache                    # Download all ontologies
+        parse_sdrf download-cache -o efo,cl          # Download only EFO and CL
+        parse_sdrf download-cache --show-info        # Show cache information
+        parse_sdrf download-cache -f                 # Force re-download all files
+    """
+    if not OLS_AVAILABLE:
+        click.secho(
+            "Error: Ontology dependencies not installed. Install with: pip install sdrf-pipelines[ontology]",
+            fg="red",
+        )
+        sys.exit(1)
+
+    if show_info:
+        # Show cache information
+        from sdrf_pipelines.ols.ols import ONTOLOGY_POOCH, __version__
+
+        click.secho("=== Ontology Cache Information ===", fg="cyan", bold=True)
+        click.echo(f"Cache directory: {ONTOLOGY_POOCH.path}")
+        click.echo(f"Package version: {__version__}")
+        click.echo(f"Base URL: {ONTOLOGY_POOCH.base_url}")
+        click.echo(f"\nAvailable ontologies ({len(ONTOLOGY_FILES)}):")
+
+        for ont_file in ONTOLOGY_FILES:
+            ont_name = ont_file.replace(".parquet", "").upper()
+            url = f"{ONTOLOGY_POOCH.base_url}{ont_file}"
+            # Check if file exists in cache
+            from pathlib import Path
+
+            cache_path = Path(ONTOLOGY_POOCH.path) / ont_file
+            status = "✓ cached" if cache_path.exists() else "✗ not cached"
+            click.echo(f"  - {ont_name:12s} {status:15s} {url}")
+
+        return
+
+    # Parse ontology list if provided
+    ontologies_to_download = None
+    if ontology:
+        ontologies_to_download = [ont.strip().lower() for ont in ontology.split(",")]
+        click.echo(f"Downloading {len(ontologies_to_download)} ontologies: {', '.join(ontologies_to_download)}")
+    else:
+        click.echo(f"Downloading all {len(ONTOLOGY_FILES)} ontologies...")
+
+    # Download files
+    try:
+        downloaded_files = download_ontology_cache(
+            ontologies=ontologies_to_download,
+            cache_dir=cache_dir,
+            force=force,
+        )
+        click.secho(f"\n✓ Successfully downloaded {len(downloaded_files)} ontology files", fg="green", bold=True)
+
+        if cache_dir:
+            click.echo(f"Cache location: {cache_dir}")
+        else:
+            from sdrf_pipelines.ols.ols import ONTOLOGY_POOCH
+
+            click.echo(f"Cache location: {ONTOLOGY_POOCH.path}")
+
+        click.echo("\nYou can now use SDRF validation without internet connectivity.")
+
+    except Exception as e:
+        click.secho(f"\n✗ Download failed: {e}", fg="red", bold=True)
+        sys.exit(1)
+
+
+cli.add_command(download_cache)
 cli.add_command(validate_sdrf_simple)
 
 

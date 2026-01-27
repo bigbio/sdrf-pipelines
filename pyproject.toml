@@ -1,70 +1,105 @@
-[tool.poetry]
+[project]
 name = "sdrf-pipelines"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
-authors = ["BigBio Team <ypriverol@gmail.com>"]
-license = "Apache 2.0"
-repository = "https://github.com/bigbio/sdrf-pipelines"
+authors = [
+    { name = "BigBio Team", email = "ypriverol@gmail.com" }
+]
+license = "Apache-2.0"
+requires-python = ">=3.10"
 keywords = ["sdrf", "python", "multiomics", "proteomics"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-packages = [
-    { include = "sdrf_pipelines" }
+
+# Core dependencies for structural validation and conversions
+dependencies = [
+    "click",
+    "defusedxml",
+    "numpy",
+    "pandas",
+    "pydantic>=2.0.0",
+    "pyyaml",
 ]
-include = [
-    "LICENSE",
-    "sdrf_pipelines/openms/unimod.xml",
-    "sdrf_pipelines/sdrf_merge/param2sdrf.yml",
-    "**/*.xml",
-    "**/*.parquet",
-    "**/*.yml"
+
+[project.optional-dependencies]
+# Ontology validation features (term lookup via OLS)
+ontology = [
+    "fastparquet",
+    "pooch",
+    "rdflib",
+    "requests",
+]
+# All features
+all = [
+    "fastparquet",
+    "pooch",
+    "rdflib",
+    "requests",
 ]
 
-[tool.poetry.dependencies]
-click = "*"
-defusedxml = "*"
-duckdb = "*"
-pandas = "*"
-pyarrow = "*"
-pydantic = "*"
-python = ">=3.10,<4.0"
-pyyaml = "*"
-rdflib = "*"
-requests = "*"
+[project.urls]
+Homepage = "https://github.com/bigbio/sdrf-pipelines"
+Repository = "https://github.com/bigbio/sdrf-pipelines"
 
-[tool.poetry.group.test.dependencies]
-flake8 = "*"
-mypy = "*"
-pre-commit = "*"
-pylint = "*"
-pytest = "*"
-pytest-datadir = "*"
-
-[tool.poetry.scripts]
+[project.scripts]
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["poetry-core>=1.2.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
 
-[tool.black]
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
+
+# Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
+# The callable encodes branch name into version for ontology cache downloads
+
+[dependency-groups]
+dev = [
+    "fastparquet",
+    "flake8",
+    "mypy",
+    "pooch",
+    "pre-commit",
+    "pylint",
+    "pytest",
+    "pytest-datadir",
+    "rdflib",
+    "requests",
+    "ruff",
+]
+
+[tool.ruff]
 line-length = 120
-target_version = ["py310","py311","py312","py313"]
+target-version = "py310"
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 packages = ["sdrf_pipelines"]
 
 [[tool.mypy.overrides]]
-module = "duckdb"
+module = "fastparquet"
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

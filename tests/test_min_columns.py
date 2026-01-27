@@ -15,7 +15,7 @@ def test_min_columns_default_schema():
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
-    errors = validator.validate(sdrf_df, "default")
+    errors = validator.validate(sdrf_df, "default", skip_ontology=False)
     assert len(errors) == 139
 
 
@@ -36,7 +36,7 @@ def test_min_columns_with_reduced_columns():
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
-    errors = validator.validate(sdrf_df, "human")
+    errors = validator.validate(sdrf_df, "human", skip_ontology=False)
     error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
     expected_error_name_counts = Counter(
         {
@@ -53,8 +53,18 @@ def test_min_columns_with_reduced_columns():
             "Required column 'comment[instrument]' is missing": 1,
             "Required column 'comment[proteomics data acquisition method]' is missing": 1,
             "Required column 'characteristics[disease]' is missing": 1,
-            "Term: homo sapiens23 in column 'characteristics[organism]', is not found in the given ontology list ncbitaxon": 1,
-            "Value '1' in column 'characteristics[age]' does not match the required pattern: ^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$": 1,
+            (
+                "Term: homo sapiens23 in column 'characteristics[organism]', "
+                "is not found in the given ontology list ncbitaxon"
+            ): 1,
+            (
+                "Value '1' in column 'characteristics[age]' does not match the required pattern: "
+                "^(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?|(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?|"
+                "(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])|(?:(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?-"
+                "(?:\\d+[yY])(?:\\d+[mM])?(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?-"
+                "(?:\\d+[yY])?(?:\\d+[mM])(?:\\d+[dD])?)|(?:(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD])-"
+                "(?:\\d+[yY])?(?:\\d+[mM])?(?:\\d+[dD]))|(?:not available)|(?:not applicable))$"
+            ): 1,
         }
     )
     assert error_name_counts == expected_error_name_counts

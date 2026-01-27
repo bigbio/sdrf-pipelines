@@ -2,6 +2,9 @@
 /experimental_design.tsv
 /openms.tsv
 
+# Generated version file
+src/sdrf_pipelines/_version.py
+
 ## Typical Python package ignorance
 
 .DS_Store

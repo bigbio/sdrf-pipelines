@@ -118,6 +118,28 @@ class SDRFDataFrame(BaseModel):
         """
         return self.df.shape
 
+    def validate_sdrf(self, template: str | None = None, **kwargs):
+        """
+        Validate the SDRF DataFrame against a schema template.
+
+        Args:
+            template: Name of the schema template to validate against (e.g., 'default', 'human')
+            **kwargs: Additional validation parameters (use_ols_cache_only, skip_ontology, etc.)
+
+        Returns:
+            List of validation errors
+
+        Raises:
+            ImportError: If schemas module cannot be imported
+        """
+        # Lazy import to avoid circular dependency
+        from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
+
+        registry = SchemaRegistry()
+        validator = SchemaValidator(registry)
+        schema_name = template or "default"
+        return validator.validate(self, schema_name, **kwargs)
+
 
 def read_sdrf(sdrf_file: str | Path | io.StringIO) -> SDRFDataFrame:
     """

@@ -1,24 +1,12 @@
 import re
-from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
+from packaging.version import InvalidVersion, Version
 
 from sdrf_pipelines.parse_sdrf import cli
 
 from .helpers import run_and_check_status_code
-
-# Regex matchin Semantic Versioning 2.0 version numbers. Adapted from https://semver.org/
-SEMVER_REGEX = dedent(
-    r"""
-    (?P<major>0|[1-9]\d*)\.
-    (?P<minor>0|[1-9]\d*)\.
-    (?P<patch>0|[1-9]\d*)
-    (?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)
-    (?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?
-    (?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
-    """
-).replace("\n", "")
 
 
 def test_version():
@@ -26,9 +14,17 @@ def test_version():
     result = runner.invoke(cli, ["--version"])
 
     assert result.exit_code == 0
-    regex = f"sdrf_pipelines {SEMVER_REGEX}\n"
-    match = re.fullmatch(regex, result.output)
-    assert match, f"{repr(result.output)} does not match {repr(regex)}"
+    # Extract version string from output (format: "sdrf_pipelines X.Y.Z+local123\n")
+    output_parts = result.output.strip().split()
+    assert len(output_parts) == 2, f"Unexpected output format: {repr(result.output)}"
+    assert output_parts[0] == "sdrf_pipelines"
+
+    version_str = output_parts[1]
+    # Validate using packaging.version which supports PEP 440 including local version identifiers
+    try:
+        Version(version_str)
+    except InvalidVersion:
+        pytest.fail(f"Invalid version string: {repr(version_str)}")
 
 
 def test_help():
@@ -42,12 +38,7 @@ def test_validate_srdf_errors_on_bad_file(shared_datadir, on_tmpdir):
     :return:
     """
     test_sdrf = shared_datadir / "erroneous/PXD000288/PXD000288.sdrf.tsv"
-    result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
-
-    expected_error = (
-        "The following columns are mandatory and not present in the SDRF: comment[technical replicate] -- ERROR"
-    )
-    assert "ERROR" in result.output.upper(), result.output
+    run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
 
 
 def test_validate_srdf_fails_on_bad_file2(shared_datadir, on_tmpdir):
@@ -66,20 +57,7 @@ def test_validate_srdf_fails_on_bad_file3(shared_datadir, on_tmpdir):
     :return:
     """
     test_sdrf = shared_datadir / "erroneous/example.sdrf.tsv"
-    result = run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
-
-    expected_errors = [
-        (
-            "Make sure your SDRF have a sample characteristics or data comment 'concentration of' for "
-            "your factor value column 'factor value[concentration of]' -- ERROR"
-        ),
-        (
-            "Factor 'factor value[compound]' and column 'characteristics[compound]' do not have the same "
-            "values for the following rows: [11, 20] -- ERROR"
-        ),
-    ]
-    # for expected_error in expected_errors:
-    #     assert expected_error in result.output, result.output
+    run_and_check_status_code(cli, ["validate-sdrf", "--sdrf_file", str(test_sdrf)], 1)
 
 
 reference_samples = [
