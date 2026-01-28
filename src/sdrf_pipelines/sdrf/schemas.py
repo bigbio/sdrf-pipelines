@@ -52,13 +52,27 @@ class MergeStrategy(str, Enum):
 
 
 class SchemaRegistry:
-    def __init__(self, schema_dir: str | None = None):
+    def __init__(self, schema_dir: str | None = None, use_versioned: bool = False, template_versions: dict[str, str] | None = None):
+        """Initialize the schema registry.
+
+        Args:
+            schema_dir: Path to schema directory. If None, uses default location.
+            use_versioned: If True, load from versioned sdrf-templates structure.
+            template_versions: Dict mapping template names to specific versions.
+                             If None, uses latest versions from templates.yaml manifest.
+        """
         self.schemas: dict[str, SchemaDefinition] = {}
         self.raw_schema_data: dict[str, dict[str, Any]] = {}  # Store raw schema data for inheritance resolution
+        self.use_versioned = use_versioned
+        self.template_versions = template_versions or {}
+        self.manifest: dict[str, Any] = {}
+
         if schema_dir is None:
-            # Use the default schema directory
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            schema_dir = os.path.join(current_dir, "schemas")
+            if use_versioned:
+                schema_dir = os.path.join(current_dir, "sdrf-templates")
+            else:
+                schema_dir = os.path.join(current_dir, "schemas")
         self.schema_dir = schema_dir
 
         # Load schemas if directory is provided
@@ -73,19 +87,75 @@ class SchemaRegistry:
             else:  # YAML file
                 return yaml.safe_load(f)
 
-    def load_schemas(self):
-        """Load all schemas from the schema directory."""
-        if not os.path.exists(self.schema_dir):
-            raise FileNotFoundError(f"Schema directory not found: {self.schema_dir}")
+    def _load_manifest(self) -> dict[str, Any]:
+        """Load the templates.yaml manifest file."""
+        manifest_path = os.path.join(self.schema_dir, "templates.yaml")
+        if os.path.exists(manifest_path):
+            return self._load_schema_file(manifest_path)
+        return {}
 
-        # First pass: Load all raw schema data
+    def _get_template_version(self, template_name: str) -> str | None:
+        """Get the version to use for a template."""
+        # First check if a specific version was requested
+        if template_name in self.template_versions:
+            return self.template_versions[template_name]
+
+        # Then check the manifest for latest version
+        if self.manifest and "templates" in self.manifest:
+            template_info = self.manifest["templates"].get(template_name, {})
+            return template_info.get("latest")
+
+        return None
+
+    def _load_versioned_schemas(self):
+        """Load schemas from versioned directory structure (sdrf-templates format)."""
+        self.manifest = self._load_manifest()
+
+        # Iterate through template directories
+        for template_name in os.listdir(self.schema_dir):
+            template_dir = os.path.join(self.schema_dir, template_name)
+            if not os.path.isdir(template_dir) or template_name.startswith(".") or template_name == "scripts":
+                continue
+
+            # Get the version to load
+            version = self._get_template_version(template_name)
+            if version is None:
+                # If no version specified and no manifest, try to find any version
+                version_dirs = [d for d in os.listdir(template_dir)
+                               if os.path.isdir(os.path.join(template_dir, d))]
+                if version_dirs:
+                    version = sorted(version_dirs)[-1]  # Use latest by sorting
+                else:
+                    continue
+
+            # Load the schema from the versioned directory
+            version_dir = os.path.join(template_dir, version)
+            schema_file = os.path.join(version_dir, f"{template_name}.yaml")
+
+            if os.path.exists(schema_file):
+                self.raw_schema_data[template_name] = self._load_schema_file(schema_file)
+                logging.info("Loaded template '%s' version '%s'", template_name, version)
+
+    def _load_flat_schemas(self):
+        """Load schemas from flat directory structure (original format)."""
         for filename in os.listdir(self.schema_dir):
             if filename.endswith((".json", ".yaml", ".yml")):
                 schema_name = os.path.splitext(filename)[0]
                 schema_path = os.path.join(self.schema_dir, filename)
                 self.raw_schema_data[schema_name] = self._load_schema_file(schema_path)
 
-        # Second pass: Process schemas with extension/inheritance
+    def load_schemas(self):
+        """Load all schemas from the schema directory."""
+        if not os.path.exists(self.schema_dir):
+            raise FileNotFoundError(f"Schema directory not found: {self.schema_dir}")
+
+        # Load raw schema data based on directory structure
+        if self.use_versioned:
+            self._load_versioned_schemas()
+        else:
+            self._load_flat_schemas()
+
+        # Process schemas with extension/inheritance
         for schema_name, raw_data in self.raw_schema_data.items():
             processed_schema = self._process_schema_inheritance(schema_name, raw_data)
             schema = SchemaDefinition(**processed_schema)
@@ -552,7 +622,13 @@ class SchemaValidator:
         }
 
 
-def load_and_validate_sdrf(sdrf_path: str, schema_dir: str | None = None, schema_name: str | None = None):
+def load_and_validate_sdrf(
+    sdrf_path: str,
+    schema_dir: str | None = None,
+    schema_name: str | None = None,
+    use_versioned: bool = False,
+    template_versions: dict[str, str] | None = None,
+):
     """
     Load an SDRF file and validate it against a schema.
 
@@ -560,6 +636,8 @@ def load_and_validate_sdrf(sdrf_path: str, schema_dir: str | None = None, schema
         sdrf_path: Path to the SDRF file
         schema_dir: Path to directory containing schema files
         schema_name: Name of the schema to use for validation, if None will use best matching schema
+        use_versioned: If True, load templates from versioned sdrf-templates structure
+        template_versions: Dict mapping template names to specific versions to use
 
     Returns:
         Tuple of (DataFrame, validation results)
@@ -567,7 +645,7 @@ def load_and_validate_sdrf(sdrf_path: str, schema_dir: str | None = None, schema
     df = pd.read_csv(sdrf_path, sep="\t")
 
     # Initialize registry and load schemas
-    registry = SchemaRegistry(schema_dir)
+    registry = SchemaRegistry(schema_dir, use_versioned=use_versioned, template_versions=template_versions)
     validator = SchemaValidator(registry)
 
     if schema_name:
