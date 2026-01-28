@@ -9,33 +9,138 @@ from pydantic import BaseModel, Field
 class SDRFMetadata:
     """
     Class to hold metadata about the SDRF DataFrame.
+
+    Supports both:
+    - Header-based metadata (legacy format with #key=value lines)
+    - Column-based metadata (v1.1.0+ format with comment[sdrf *] columns)
     """
 
-    def __init__(self, str_content: Optional[str] = None, property_indicator: str = "#"):
+    def __init__(
+        self,
+        str_content: Optional[str] = None,
+        df: Optional[pd.DataFrame] = None,
+        property_indicator: str = "#",
+    ):
         self.str_content = str_content
         self.property_indicator = property_indicator
         self.properties: list[dict[str, str]] = []
-        if str_content:
-            self.parse(str_content)
 
-    def parse(self, str_content: str):
+        # Column-based metadata
+        self.version: Optional[str] = None
+        self.templates: list[str] = []
+        self.annotation_tool: Optional[str] = None
+        self.validation_hash: Optional[str] = None
+
+        # Parse header-based metadata (legacy)
+        if str_content:
+            self._parse_headers(str_content)
+
+        # Parse column-based metadata (v1.1.0+)
+        if df is not None:
+            self._parse_columns(df)
+
+    def _parse_headers(self, str_content: str):
+        """Parse metadata from header comment lines (legacy format)."""
         lines = str_content.split("\n")
         for line in lines:
             if line.startswith(self.property_indicator):
-                line = line[len(self.property_indicator) :].strip()
+                line = line[len(self.property_indicator):].strip()
                 data = {}
-                for kv in line.split(";"):
-                    key, value = kv.split("=", 1)
-                    data[key] = value
-                self.properties.append(data)
+                # Handle template format: template=name,version=vX.Y.Z
+                if "=" in line:
+                    for kv in line.split(";"):
+                        if "=" in kv:
+                            key, value = kv.split("=", 1)
+                            data[key.strip()] = value.strip()
+                    self.properties.append(data)
+
+                    # Also populate structured fields for backward compatibility
+                    if "version" in data and "template" not in data:
+                        self.version = data["version"]
+                    if "template" in data:
+                        template_str = data["template"]
+                        if "version" in data:
+                            template_str = f"{template_str},version={data['version']}"
+                        self.templates.append(template_str)
+                    if "source" in data:
+                        self.annotation_tool = data["source"]
+
+    def _parse_columns(self, df: pd.DataFrame):
+        """Parse metadata from column values (v1.1.0+ format)."""
+        if df.empty:
+            return
+
+        # Get first row values for metadata columns
+        first_row = df.iloc[0] if len(df) > 0 else None
+        if first_row is None:
+            return
+
+        # Parse comment[sdrf version]
+        version_cols = [c for c in df.columns if "comment[sdrf version]" in c.lower()]
+        if version_cols and pd.notna(first_row.get(version_cols[0])):
+            self.version = str(first_row[version_cols[0]])
+
+        # Parse comment[sdrf template] - can have multiple columns
+        template_cols = [c for c in df.columns if "comment[sdrf template]" in c.lower()]
+        for col in template_cols:
+            if pd.notna(first_row.get(col)):
+                template_val = str(first_row[col])
+                if template_val and template_val not in self.templates:
+                    self.templates.append(template_val)
+
+        # Parse comment[sdrf annotation tool]
+        tool_cols = [c for c in df.columns if "comment[sdrf annotation tool]" in c.lower()]
+        if tool_cols and pd.notna(first_row.get(tool_cols[0])):
+            self.annotation_tool = str(first_row[tool_cols[0]])
+
+        # Parse comment[sdrf validation hash]
+        hash_cols = [c for c in df.columns if "comment[sdrf validation hash]" in c.lower()]
+        if hash_cols and pd.notna(first_row.get(hash_cols[0])):
+            self.validation_hash = str(first_row[hash_cols[0]])
 
     def get_templates(self) -> list[dict]:
+        """Get templates as list of dicts (legacy format compatibility)."""
+        # First check column-based templates
+        if self.templates:
+            result = []
+            for t in self.templates:
+                data = {"template": t}
+                # Parse template format: name,version=vX.Y.Z
+                if ",version=" in t:
+                    parts = t.split(",version=")
+                    data["template"] = parts[0]
+                    data["version"] = parts[1] if len(parts) > 1 else None
+                result.append(data)
+            return result
+        # Fall back to header-based
         return [p for p in self.properties if "template" in p]
 
+    def get_version(self) -> Optional[str]:
+        """Get SDRF specification version."""
+        if self.version:
+            return self.version
+        # Fall back to header-based
+        for p in self.properties:
+            if "version" in p and "template" not in p:
+                return p["version"]
+        return None
+
+    def get_annotation_tool(self) -> Optional[str]:
+        """Get annotation tool/source."""
+        if self.annotation_tool:
+            return self.annotation_tool
+        # Fall back to header-based
+        for p in self.properties:
+            if "source" in p:
+                return p["source"]
+        return None
+
     def get_fileformat(self):
-        return [p for p in self.properties if "fileformat" in p]
+        """Get file format (legacy method)."""
+        return [p for p in self.properties if "fileformat" in p or "file_format" in p]
 
     def get_guidelines(self):
+        """Get guidelines (legacy method)."""
         return [p for p in self.properties if "guideline" in p]
 
 
@@ -181,6 +286,7 @@ def read_sdrf(sdrf_file: str | Path | io.StringIO) -> SDRFDataFrame:
         df, metadata = _read_sdrf_file(sdrf_file)
     if not df.empty:
         sdrf_df = SDRFDataFrame(df)
-        sdrf_df.metadata = SDRFMetadata(metadata)
+        # Parse metadata from both headers (legacy) and columns (v1.1.0+)
+        sdrf_df.metadata = SDRFMetadata(str_content=metadata, df=df)
         return sdrf_df
     raise ValueError("No valid data found in the file")
