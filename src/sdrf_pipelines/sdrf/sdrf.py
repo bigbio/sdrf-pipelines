@@ -107,15 +107,15 @@ class SDRFMetadata:
                 data = {"template": t}
                 # Parse new format: NT=name;version=vX.Y.Z
                 if t.startswith("NT=") and ";version=" in t:
-                    # New format: NT=template_name;version=vX.Y.Z
+                    # Key=value format: NT=template_name;version=vX.Y.Z
                     parts = t[3:].split(";version=")  # Remove "NT=" prefix
                     data["template"] = parts[0]
                     data["version"] = parts[1] if len(parts) > 1 else None
-                elif ",version=" in t:
-                    # Old format: name,version=vX.Y.Z (for backward compatibility)
-                    parts = t.split(",version=")
+                elif " v" in t:
+                    # Simple format: name vX.Y.Z
+                    parts = t.rsplit(" v", 1)
                     data["template"] = parts[0]
-                    data["version"] = parts[1] if len(parts) > 1 else None
+                    data["version"] = "v" + parts[1] if len(parts) > 1 else None
                 result.append(data)
             return result
         # Fall back to header-based
