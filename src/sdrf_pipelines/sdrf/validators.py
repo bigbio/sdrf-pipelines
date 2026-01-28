@@ -420,7 +420,13 @@ if OLS_AVAILABLE:
 
 @register_validator(validator_name="pattern")
 class PatternValidator(SDRFValidator):
-    """Validator that checks if values match a regular expression pattern."""
+    """Validator that checks if values match a regular expression pattern.
+
+    Params:
+        pattern: The regex pattern to match
+        case_sensitive: Whether the match is case-sensitive (default: False)
+        allow_empty: Whether to skip empty values (default: True)
+    """
 
     def validate(self, series: pd.Series, column_name: str) -> list[LogicError]:  # type: ignore[override]
         """
@@ -436,9 +442,17 @@ class PatternValidator(SDRFValidator):
 
         pattern = self.params["pattern"]
         case = self.params.get("case_sensitive", False)
+        allow_empty = self.params.get("allow_empty", True)
 
         series = series.astype(str)
-        not_matched = series[~series.str.match(pat=pattern, case=case)].reset_index(drop=True)
+
+        # Filter out empty values if allow_empty is True
+        if allow_empty:
+            non_empty_series = series[series.str.strip() != ""]
+        else:
+            non_empty_series = series
+
+        not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)].reset_index(drop=True)
         errors = []
 
         for idx, value in enumerate(not_matched.values, start=1):
@@ -595,7 +609,8 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
                     error_type=logging.ERROR,
                 )
             ]
-        inner_df = df.df
+        # Handle both SDRFDataFrame and plain DataFrame
+        inner_df = df.df if hasattr(df, "df") else df
         duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
         errors = []
 
@@ -648,22 +663,38 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
 
 @register_validator(validator_name="empty_cells")
 class EmptyCellValidator(SDRFValidator):
-    """Validator that checks for empty cells in the SDRF file."""
+    """Validator that checks for empty cells in required columns of the SDRF file.
+
+    Params:
+        required_columns: List of column names that are required and should not have empty values.
+                         If not provided, the validator will be skipped (no columns checked).
+    """
 
     def validate(  # type: ignore[override]
         self, df: pd.DataFrame | SDRFDataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
-        Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
+        Check for empty cells in required columns only.
 
         Parameters:
             df: The pandas DataFrame to validate
             column_name: Not used for this validator as it operates on the entire DataFrame
 
         Returns:
-            List of LogicError for empty cells
+            List of LogicError for empty cells in required columns
         """
         errors = []
+
+        # Get required columns from params - only check these columns
+        required_columns = self.params.get("required_columns", [])
+        if not required_columns:
+            # No required columns specified, skip validation
+            return errors
+
+        # Only check columns that exist in the DataFrame and are required
+        columns_to_check = [col for col in required_columns if col in df.columns]
+        if not columns_to_check:
+            return errors
 
         def validate_string(cell_value):
             if pd.isna(cell_value):
@@ -672,7 +703,9 @@ class EmptyCellValidator(SDRFValidator):
                 cell_value = str(cell_value)
             return cell_value != "nan" and len(cell_value.strip()) > 0
 
-        validation_results = df.map(validate_string)
+        # Only validate the required columns
+        df_subset = df[columns_to_check]
+        validation_results = df_subset.map(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [

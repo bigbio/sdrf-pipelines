@@ -267,16 +267,18 @@ def read_sdrf(sdrf_file: str | Path | io.StringIO) -> SDRFDataFrame:
 
     def _read_sdrf_file(file) -> tuple[pd.DataFrame, str]:
         metadata = ""
+        data_lines = []
         for line in file:
             if line.strip():
                 if line.startswith("#"):
                     metadata += f"{line}\n"
-                    continue
                 else:
-                    break
-        if hasattr(file, "seek"):
-            file.seek(0)
-        return pd.read_csv(file, sep="\t", dtype=str, comment="#").fillna(""), metadata
+                    data_lines.append(line)
+        # Create StringIO from non-comment lines and read with pandas
+        # Don't use comment="#" as SDRF values can contain # (e.g., siKMT9#1)
+        if data_lines:
+            return pd.read_csv(io.StringIO("".join(data_lines)), sep="\t", dtype=str).fillna(""), metadata
+        return pd.DataFrame(), metadata
 
     if isinstance(sdrf_file, Path):
         with open(sdrf_file, "rt") as file:

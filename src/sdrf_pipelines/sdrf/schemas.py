@@ -443,8 +443,14 @@ class SchemaValidator:
         self, df: pd.DataFrame | SDRFDataFrame, schema: SchemaDefinition, use_ols_cache_only: bool, skip_ontology: bool
     ) -> list[LogicError]:
         errors = []
+        # Get required columns for empty_cells validator
+        required_columns = [col.name for col in schema.columns if col.requirement == RequirementLevel.REQUIRED]
+
         for validator_config in schema.validators:
             validator_config.params["use_ols_cache_only"] = use_ols_cache_only
+            # Pass required columns to empty_cells validator
+            if validator_config.validator_name == "empty_cells":
+                validator_config.params["required_columns"] = required_columns
             validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
