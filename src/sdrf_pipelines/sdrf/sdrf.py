@@ -105,8 +105,14 @@ class SDRFMetadata:
             result = []
             for t in self.templates:
                 data = {"template": t}
-                # Parse template format: name,version=vX.Y.Z
-                if ",version=" in t:
+                # Parse new format: NT=name;version=vX.Y.Z
+                if t.startswith("NT=") and ";version=" in t:
+                    # New format: NT=template_name;version=vX.Y.Z
+                    parts = t[3:].split(";version=")  # Remove "NT=" prefix
+                    data["template"] = parts[0]
+                    data["version"] = parts[1] if len(parts) > 1 else None
+                elif ",version=" in t:
+                    # Old format: name,version=vX.Y.Z (for backward compatibility)
                     parts = t.split(",version=")
                     data["template"] = parts[0]
                     data["version"] = parts[1] if len(parts) > 1 else None
