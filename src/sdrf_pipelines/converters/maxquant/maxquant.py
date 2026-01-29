@@ -27,42 +27,46 @@ class Maxquant:
         if label_list is None:
             return lt
 
-        if len(label_list) == 11:
-            for i in label_list:
-                if i == label_list[-1]:
-                    lt = lt + "TMT11plex-Lys" + i.replace("TMT", "")
-                else:
-                    lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
-        elif len(label_list) > 8:
-            for i in label_list:
-                if i == label_list[-1]:
-                    if "N" in i or "C" in i:
-                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "")
-                    else:
-                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
-                else:
-                    if "N" in i or "C" in i:
-                        lt = lt + "TMT10plex-Lys" + i.replace("TMT", "") + ","
-                    else:
-                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
+        num_labels = len(label_list)
+        return self._build_tmt_label_string(label_list, num_labels)
 
-        elif len(label_list) > 6:
-            for i in label_list:
-                if i == label_list[-1]:
-                    if "N" in i or "C" in i:
-                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "")
-                    else:
-                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "")
-                else:
-                    if "N" in i or "C" in i:
-                        lt = lt + "TMT8plex-Lys" + i.replace("TMT", "") + ","
-                    else:
-                        lt = lt + "TMT6plex-Lys" + i.replace("TMT", "") + ","
-        elif len(label_list) > 2:
-            lt = ",".join(["TMT6plex-Lys" + i.replace("TMT", "").rstrip() for i in label_list])
-        else:
-            lt = ",".join(["TMT2plex-Lys" + i.replace("TMT", "") for i in label_list])
-        return lt
+    def _build_tmt_label_string(self, label_list: list[str], num_labels: int) -> str:
+        """Build TMT label string based on number of labels."""
+        # Simple cases with uniform plex type
+        if num_labels <= 2:
+            return ",".join(self._format_tmt_label(i, "TMT2plex") for i in label_list)
+        if num_labels <= 6:
+            return ",".join(self._format_tmt_label(i, "TMT6plex") for i in label_list)
+
+        # Complex cases requiring per-label plex determination
+        return self._build_complex_tmt_string(label_list, num_labels)
+
+    def _build_complex_tmt_string(self, label_list: list[str], num_labels: int) -> str:
+        """Build TMT string for cases requiring per-label plex type determination."""
+        parts = []
+        for idx, label in enumerate(label_list):
+            plex_type = self._determine_plex_type(label, num_labels, is_last=(idx == len(label_list) - 1))
+            parts.append(self._format_tmt_label(label, plex_type))
+        return ",".join(parts)
+
+    def _determine_plex_type(self, label: str, num_labels: int, is_last: bool) -> str:
+        """Determine the TMT plex type for a given label."""
+        has_nc_suffix = "N" in label or "C" in label
+
+        if num_labels == 11 and is_last:
+            return "TMT11plex"
+        if num_labels == 11:
+            return "TMT10plex"
+        if num_labels > 8:
+            return "TMT10plex" if has_nc_suffix else "TMT6plex"
+        if num_labels > 6:
+            return "TMT8plex" if has_nc_suffix else "TMT6plex"
+
+        return "TMT6plex"
+
+    def _format_tmt_label(self, label: str, plex_type: str) -> str:
+        """Format a single TMT label with its plex type."""
+        return f"{plex_type}-Lys{label.replace('TMT', '').rstrip()}"
 
     def extract_tmt_info(self, label: set[str] | None = None, mods: list[str] | None = None) -> str:
         lt = ""
