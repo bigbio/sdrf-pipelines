@@ -5,14 +5,13 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from sdrf_pipelines.ols.ols import OLS_AVAILABLE
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
 
 TESTS_DIR = Path(__file__).parent
 
 
-@pytest.mark.skipif(not OLS_AVAILABLE, reason="OLS dependencies not installed")
+@pytest.mark.ontology
 def test_min_columns_default_schema():
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
@@ -69,7 +68,7 @@ def test_min_columns_with_reduced_columns():
     assert error_name_counts == expected_error_name_counts
 
 
-@pytest.mark.skipif(not OLS_AVAILABLE, reason="OLS dependencies not installed")
+@pytest.mark.ontology
 def test_min_columns_with_reduced_columns_with_ontology():
     """Test validation with ontology checking (requires OLS dependencies)."""
     test_df = pd.DataFrame(

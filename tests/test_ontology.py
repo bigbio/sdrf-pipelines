@@ -1,4 +1,8 @@
+import pytest
+
 from sdrf_pipelines.ols.ols import OlsClient
+
+pytestmark = pytest.mark.ontology
 
 
 def test_ontology():
