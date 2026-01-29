@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -52,12 +53,32 @@ class MergeStrategy(str, Enum):
 
 
 class SchemaRegistry:
-    def __init__(self, schema_dir: str | None = None, use_versioned: bool = False, template_versions: dict[str, str] | None = None):
+    """Registry for SDRF schema definitions.
+
+    Loads schemas from the sdrf-templates submodule by default. The templates
+    follow a versioned directory structure: {template_name}/{version}/{template_name}.yaml
+
+    For backwards compatibility, legacy schema names are mapped to new template names:
+        - "minimum" → "base"
+        - "default" → "ms-proteomics"
+        - "cell_lines" → "cell-lines"
+        - "nonvertebrates" → "invertebrates"
+    """
+
+    # Mapping of legacy schema names to new versioned template names
+    LEGACY_NAME_MAPPING = {
+        "minimum": "base",
+        "default": "ms-proteomics",
+        "cell_lines": "cell-lines",
+        "nonvertebrates": "invertebrates",
+    }
+
+    def __init__(self, schema_dir: str | None = None, use_versioned: bool = True, template_versions: dict[str, str] | None = None):
         """Initialize the schema registry.
 
         Args:
-            schema_dir: Path to schema directory. If None, uses default location.
-            use_versioned: If True, load from versioned sdrf-templates structure.
+            schema_dir: Path to schema directory. If None, uses default location (sdrf-templates submodule).
+            use_versioned: If True (default), load from versioned sdrf-templates structure.
             template_versions: Dict mapping template names to specific versions.
                              If None, uses latest versions from templates.yaml manifest.
         """
@@ -69,10 +90,12 @@ class SchemaRegistry:
 
         if schema_dir is None:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            if use_versioned:
-                schema_dir = os.path.join(current_dir, "sdrf-templates")
-            else:
-                schema_dir = os.path.join(current_dir, "schemas")
+            schema_dir = os.path.join(current_dir, "sdrf-templates")
+            if not use_versioned:
+                logging.warning(
+                    "use_versioned=False is deprecated. "
+                    "Templates are now loaded from sdrf-templates submodule by default."
+                )
         self.schema_dir = schema_dir
 
         # Load schemas if directory is provided
@@ -189,10 +212,25 @@ class SchemaRegistry:
                 result[key] = child_schema[key]
 
     def _merge_schema_validators(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
-        if "validators" in child_schema:
-            for child_schema_validator in child_schema["validators"]:
-                if child_schema_validator not in result["validators"]:
-                    result["validators"].append(child_schema_validator)
+        """Merge validators from child schema, replacing validators with the same name."""
+        if "validators" not in child_schema:
+            return
+
+        # Build a map of existing validators by name
+        existing_validators = {}
+        for i, v in enumerate(result.get("validators", [])):
+            existing_validators[v["validator_name"]] = i
+
+        for child_validator in child_schema["validators"]:
+            validator_name = child_validator["validator_name"]
+            if validator_name in existing_validators:
+                # Replace existing validator with child's version
+                idx = existing_validators[validator_name]
+                result["validators"][idx] = child_validator
+            else:
+                # Add new validator
+                result["validators"].append(child_validator)
+                existing_validators[validator_name] = len(result["validators"]) - 1
 
     def _ensure_column_defaults(self, columns: list[dict[str, Any]]) -> None:
         for col in columns:
@@ -246,7 +284,8 @@ class SchemaRegistry:
                 result["columns"].append(child_col)
 
     def _merge_schemas(self, parent_schema: dict[str, Any], child_schema: dict[str, Any]) -> dict[str, Any]:
-        result = parent_schema.copy()
+        # Use deepcopy to avoid mutating the parent schema (important for inheritance chains)
+        result = copy.deepcopy(parent_schema)
 
         self._merge_basic_properties(result, child_schema)
         self._merge_schema_validators(result, child_schema)
@@ -269,8 +308,25 @@ class SchemaRegistry:
         logging.info("Added schema '%s' to registry", schema_name)
 
     def get_schema(self, schema_name: str) -> SchemaDefinition | None:
-        """Get a schema by name."""
-        return self.schemas.get(schema_name)
+        """Get a schema by name.
+
+        Supports legacy schema names for backwards compatibility:
+            - "minimum" → "base"
+            - "default" → "ms-proteomics"
+            - "cell_lines" → "cell-lines"
+            - "nonvertebrates" → "invertebrates"
+        """
+        # Try direct lookup first
+        if schema_name in self.schemas:
+            return self.schemas.get(schema_name)
+
+        # Try legacy name mapping
+        mapped_name = self.LEGACY_NAME_MAPPING.get(schema_name)
+        if mapped_name and mapped_name in self.schemas:
+            logging.info("Mapped legacy schema name '%s' to '%s'", schema_name, mapped_name)
+            return self.schemas.get(mapped_name)
+
+        return None
 
     def get_schema_names(self) -> list[str]:
         """Get all schema names in the registry."""
