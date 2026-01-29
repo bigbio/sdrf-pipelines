@@ -185,7 +185,7 @@ class BaseConverter(ABC):
             output_path: Path for the output file
             **kwargs: Additional converter-specific arguments
         """
-        pass
+        ...
 
 
 class ConditionBuilder:

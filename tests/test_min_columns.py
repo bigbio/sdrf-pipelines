@@ -12,28 +12,34 @@ TESTS_DIR = Path(__file__).parent
 
 
 @pytest.mark.ontology
-def test_min_columns_default_schema():
+def test_min_columns_ms_proteomics_schema():
+    """Test validation with ontology checking on a file with valid ontology terms.
+
+    The error.sdrf.tsv file has valid ontology terms, so ontology validation
+    doesn't add errors. The 6 errors are structural (column order, missing columns).
+    """
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
-    errors = validator.validate(sdrf_df, "default", skip_ontology=False)
-    assert len(errors) == 139
+    errors = validator.validate(sdrf_df, "ms-proteomics", skip_ontology=False)
+    # Same as skip_ontology=True because the file has valid ontology terms
+    assert len(errors) == 6
 
 
-def test_min_columns_default_schema_skip_ontology():
+def test_min_columns_ms_proteomics_schema_skip_ontology():
     """Test validation without ontology validation (works without OLS dependencies)."""
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
-    errors = validator.validate(sdrf_df, "default", skip_ontology=True)
+    errors = validator.validate(sdrf_df, "ms-proteomics", skip_ontology=True)
     # Without ontology validation, we expect fewer errors
     assert len(errors) == 6
 
 
 def test_min_columns_with_reduced_columns():
-    """Test that validation fails when there are fewer than the default schema with 12 columns."""
+    """Test that validation fails when there are fewer than the required schema columns."""
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],

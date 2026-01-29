@@ -12,7 +12,6 @@ from collections import Counter
 
 import pandas as pd
 
-# Re-export for backwards compatibility
 from sdrf_pipelines.converters.openms.constants import (
     ENZYME_MAPPINGS,
     ITRAQ_4PLEX,
@@ -21,13 +20,11 @@ from sdrf_pipelines.converters.openms.constants import (
     SILAC_2PLEX,
     SILAC_3PLEX,
     TMT_DEFAULT_MODS,
-    TMT_PLEXES,  # noqa: F401
 )
 from sdrf_pipelines.converters.openms.experimental_design import ExperimentalDesignWriter
 from sdrf_pipelines.converters.openms.modifications import ModificationConverter
 from sdrf_pipelines.converters.openms.utils import (
     FileToColumnEntries,
-    get_openms_file_name,  # noqa: F401
     infer_tmtplex,
     parse_tolerance,
 )

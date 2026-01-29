@@ -1,11 +1,7 @@
 import pytest
 
-from sdrf_pipelines.converters.openms.openms import (
-    TMT_PLEXES,
-    get_openms_file_name,
-    infer_tmtplex,
-    parse_tolerance,
-)
+from sdrf_pipelines.converters.openms.constants import TMT_PLEXES
+from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_tmtplex, parse_tolerance
 
 test_functions = [
     ("file.raw", "file.mzML", "raw:mzML"),

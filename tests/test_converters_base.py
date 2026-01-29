@@ -47,7 +47,7 @@ class ConcreteConverter(BaseConverter):
 
     def convert(self, sdrf_file: str, output_path: str, **kwargs) -> None:
         """Dummy convert method for testing."""
-        pass
+        ...
 
 
 class TestBaseConverter:

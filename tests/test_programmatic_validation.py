@@ -25,7 +25,7 @@ class TestProgrammaticValidation:
 
         # Using SDRFDataFrame.validate_sdrf() - simplest approach
         sdrf = read_sdrf(test_file)
-        errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
+        errors = sdrf.validate_sdrf(template="ms-proteomics", skip_ontology=True)
 
         assert isinstance(errors, list)
 
@@ -51,7 +51,7 @@ class TestProgrammaticValidation:
         )
 
         sdrf = SDRFDataFrame(df)
-        errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
+        errors = sdrf.validate_sdrf(template="ms-proteomics", skip_ontology=True)
 
         assert isinstance(errors, list)
 
@@ -72,7 +72,7 @@ class TestProgrammaticValidation:
         validator = SchemaValidator(registry)
 
         sdrf = SDRFDataFrame(df)
-        errors = validator.validate(sdrf, schema_name="default", skip_ontology=True)
+        errors = validator.validate(sdrf, schema_name="ms-proteomics", skip_ontology=True)
 
         assert len(errors) > 0
         error_messages = [e.message for e in errors]
@@ -91,7 +91,7 @@ class TestProgrammaticValidation:
         )
 
         sdrf = read_sdrf(StringIO(sdrf_content))
-        errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
+        errors = sdrf.validate_sdrf(template="ms-proteomics", skip_ontology=True)
 
         assert isinstance(errors, list)
 
@@ -109,7 +109,7 @@ class TestProgrammaticValidation:
         )
 
         sdrf = SDRFDataFrame(df)
-        errors = sdrf.validate_sdrf(template="default", skip_ontology=True)
+        errors = sdrf.validate_sdrf(template="ms-proteomics", skip_ontology=True)
 
         assert len(errors) > 0
         error_errors = [e for e in errors if e.error_type == logging.ERROR]
@@ -130,6 +130,6 @@ class TestProgrammaticValidation:
 
         sdrf = SDRFDataFrame(df)
 
-        for template in ["default", "human", "minimum"]:
+        for template in ["ms-proteomics", "human", "base"]:
             errors = sdrf.validate_sdrf(template=template, skip_ontology=True)
             assert isinstance(errors, list)
