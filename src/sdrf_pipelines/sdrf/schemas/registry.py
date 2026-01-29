@@ -13,7 +13,6 @@ from sdrf_pipelines.sdrf.schemas.models import (
     ColumnDefinition,
     MergeStrategy,
     SchemaDefinition,
-    ValidatorConfig,
 )
 from sdrf_pipelines.sdrf.schemas.utils import merge_column_defs
 

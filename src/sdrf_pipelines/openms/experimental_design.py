@@ -11,7 +11,7 @@ from sdrf_pipelines.openms.constants import (
     SILAC_3PLEX,
     TMT_PLEXES,
 )
-from sdrf_pipelines.openms.utils import FileToColumnEntries, get_openms_file_name, infer_tmtplex
+from sdrf_pipelines.openms.utils import get_openms_file_name, infer_tmtplex
 from sdrf_pipelines.utils.utils import tsv_line
 
 
@@ -234,24 +234,44 @@ class ExperimentalDesignWriter:
         if "tmt" in cdf or "itraq" in cdf:
             if legacy:
                 header = [
-                    "Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
-                    "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture",
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "Sample",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                    "MSstats_Mixture",
                 ]
             else:
                 header = [
-                    "Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
-                    "MSstats_Condition", "MSstats_BioReplicate", "MSstats_Mixture",
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
+                    "MSstats_Mixture",
                 ]
         else:
             if legacy:
                 header = [
-                    "Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample",
-                    "MSstats_Condition", "MSstats_BioReplicate",
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "Sample",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
                 ]
             else:
                 header = [
-                    "Fraction_Group", "Fraction", "Spectra_Filepath", "Label",
-                    "MSstats_Condition", "MSstats_BioReplicate",
+                    "Fraction_Group",
+                    "Fraction",
+                    "Spectra_Filepath",
+                    "Label",
+                    "MSstats_Condition",
+                    "MSstats_BioReplicate",
                 ]
 
         experimental_design = tsv_line(*header)
@@ -334,19 +354,35 @@ class ExperimentalDesignWriter:
 
                 if legacy:
                     experimental_design += tsv_line(
-                        str(Fraction_group[raw]), file2fraction[raw], out, label,
-                        str(sample), condition, MSstatsBioReplicate, str(mix_id),
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        str(sample),
+                        condition,
+                        MSstatsBioReplicate,
+                        str(mix_id),
                     )
                 else:
                     experimental_design += tsv_line(
-                        str(Fraction_group[raw]), file2fraction[raw], out, label,
-                        condition, MSstatsBioReplicate, str(mix_id),
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        condition,
+                        MSstatsBioReplicate,
+                        str(mix_id),
                     )
             else:
                 if legacy:
                     experimental_design += tsv_line(
-                        str(Fraction_group[raw]), file2fraction[raw], out, label,
-                        str(sample), condition, MSstatsBioReplicate,
+                        str(Fraction_group[raw]),
+                        file2fraction[raw],
+                        out,
+                        label,
+                        str(sample),
+                        condition,
+                        MSstatsBioReplicate,
                     )
                 else:
                     experimental_design += tsv_line(

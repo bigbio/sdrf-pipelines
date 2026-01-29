@@ -1,7 +1,6 @@
 """Tests for the converters base module."""
 
 import pandas as pd
-import pytest
 
 from sdrf_pipelines.converters.base import (
     SAMPLE_IDENTIFIER_PATTERN,
@@ -204,9 +203,7 @@ class TestConditionBuilder:
     def test_add_from_row(self):
         """Test adding condition from row."""
         builder = ConditionBuilder(["factor value[treatment]", "factor value[time]"])
-        row = pd.Series(
-            {"factor value[treatment]": "drug", "factor value[time]": "24h"}
-        )
+        row = pd.Series({"factor value[treatment]": "drug", "factor value[time]": "24h"})
         condition = builder.add_from_row(row)
         assert condition == "drug_24h"
         assert builder.conditions == ["drug_24h"]

@@ -6,10 +6,10 @@ from sdrf_pipelines.sdrf.schemas.models import (
     ColumnDefinition,
     MergeStrategy,
     RequirementLevel,
+    SchemaDefinition,
     ValidatorConfig,
 )
 from sdrf_pipelines.sdrf.schemas.utils import merge_column_defs, schema_to_tsv
-from sdrf_pipelines.sdrf.schemas.models import SchemaDefinition
 
 
 class TestMergeColumnDefs:
@@ -33,17 +33,13 @@ class TestMergeColumnDefs:
             name="test",
             description="Test column",
             requirement=RequirementLevel.REQUIRED,
-            validators=[
-                ValidatorConfig(validator_name="ontology", params={"ontologies": ["efo"]})
-            ],
+            validators=[ValidatorConfig(validator_name="ontology", params={"ontologies": ["efo"]})],
         )
         col2 = ColumnDefinition(
             name="test",
             description="Another description",
             requirement=RequirementLevel.OPTIONAL,
-            validators=[
-                ValidatorConfig(validator_name="pattern", params={"pattern": ".*"})
-            ],
+            validators=[ValidatorConfig(validator_name="pattern", params={"pattern": ".*"})],
         )
         result = merge_column_defs([col1, col2], strategy=MergeStrategy.COMBINE)
 

@@ -12,6 +12,7 @@ from collections import Counter
 
 import pandas as pd
 
+# Re-export for backwards compatibility
 from sdrf_pipelines.openms.constants import (
     ENZYME_MAPPINGS,
     ITRAQ_4PLEX,
@@ -20,17 +21,17 @@ from sdrf_pipelines.openms.constants import (
     SILAC_2PLEX,
     SILAC_3PLEX,
     TMT_DEFAULT_MODS,
+    TMT_PLEXES,  # noqa: F401
 )
 from sdrf_pipelines.openms.experimental_design import ExperimentalDesignWriter
 from sdrf_pipelines.openms.modifications import ModificationConverter
-from sdrf_pipelines.openms.utils import FileToColumnEntries, infer_tmtplex, parse_tolerance
+from sdrf_pipelines.openms.utils import (
+    FileToColumnEntries,
+    get_openms_file_name,  # noqa: F401
+    infer_tmtplex,
+    parse_tolerance,
+)
 from sdrf_pipelines.utils.utils import tsv_line
-
-# Re-export for backwards compatibility
-from sdrf_pipelines.openms.constants import TMT_PLEXES  # noqa: F401
-from sdrf_pipelines.openms.utils import get_openms_file_name  # noqa: F401
-from sdrf_pipelines.openms.utils import infer_tmtplex as infer_tmtplex  # noqa: F401
-from sdrf_pipelines.openms.utils import parse_tolerance as parse_tolerance  # noqa: F401
 
 
 class OpenMS:
@@ -173,13 +174,11 @@ class OpenMS:
         # Write output files
         if not split_by_columns:
             self._write_output_files(
-                sdrf, f2c, source_name_list, source_name2n_reps,
-                one_table, legacy, extension_convert
+                sdrf, f2c, source_name_list, source_name2n_reps, one_table, legacy, extension_convert
             )
         else:
             self._write_split_output_files(
-                sdrf, f2c, conditions, source_name_list, source_name2n_reps,
-                one_table, legacy, extension_convert
+                sdrf, f2c, conditions, source_name_list, source_name2n_reps, one_table, legacy, extension_convert
             )
 
         # Collect warnings from design writer
@@ -229,8 +228,9 @@ class OpenMS:
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             f2c.file2diss[raw] = "HCD"
 
-    def _process_technical_replicate(self, row, f2c: FileToColumnEntries, raw: str,
-                                     source_name: str, source_name2n_reps: dict):
+    def _process_technical_replicate(
+        self, row, f2c: FileToColumnEntries, raw: str, source_name: str, source_name2n_reps: dict
+    ):
         """Process technical replicate information."""
         if "comment[technical replicate]" in row:
             technical_replicate = str(row["comment[technical replicate]"])
@@ -325,26 +325,41 @@ class OpenMS:
                     redundant.add(c)
         return [x for x in characteristics_cols if x not in redundant]
 
-    def _write_output_files(self, sdrf, f2c, source_name_list, source_name2n_reps,
-                           one_table, legacy, extension_convert):
+    def _write_output_files(
+        self, sdrf, f2c, source_name_list, source_name2n_reps, one_table, legacy, extension_convert
+    ):
         """Write search settings and experimental design files."""
         self._save_search_settings_to_file("openms.tsv", sdrf, f2c)
 
         if one_table:
             self._design_writer.write_one_table_format(
-                "experimental_design.tsv", legacy, sdrf, f2c.file2technical_rep,
-                source_name_list, source_name2n_reps, f2c.file2combined_factors,
-                f2c.file2label, extension_convert, f2c.file2fraction,
+                "experimental_design.tsv",
+                legacy,
+                sdrf,
+                f2c.file2technical_rep,
+                source_name_list,
+                source_name2n_reps,
+                f2c.file2combined_factors,
+                f2c.file2label,
+                extension_convert,
+                f2c.file2fraction,
             )
         else:
             self._design_writer.write_two_table_format(
-                "experimental_design.tsv", sdrf, f2c.file2technical_rep,
-                source_name_list, source_name2n_reps, f2c.file2label,
-                extension_convert, f2c.file2fraction, f2c.file2combined_factors,
+                "experimental_design.tsv",
+                sdrf,
+                f2c.file2technical_rep,
+                source_name_list,
+                source_name2n_reps,
+                f2c.file2label,
+                extension_convert,
+                f2c.file2fraction,
+                f2c.file2combined_factors,
             )
 
-    def _write_split_output_files(self, sdrf, f2c, conditions, source_name_list,
-                                  source_name2n_reps, one_table, legacy, extension_convert):
+    def _write_split_output_files(
+        self, sdrf, f2c, conditions, source_name_list, source_name2n_reps, one_table, legacy, extension_convert
+    ):
         """Write output files split by condition."""
         for index, c in enumerate(conditions):
             split_sdrf = sdrf.loc[sdrf["_conditions_from_factors"] == c]
@@ -354,24 +369,45 @@ class OpenMS:
             output_filename = "experimental_design.tsv." + str(index)
             if one_table:
                 self._design_writer.write_one_table_format(
-                    output_filename, legacy, split_sdrf, f2c.file2technical_rep,
-                    source_name_list, source_name2n_reps, f2c.file2combined_factors,
-                    f2c.file2label, extension_convert, f2c.file2fraction,
+                    output_filename,
+                    legacy,
+                    split_sdrf,
+                    f2c.file2technical_rep,
+                    source_name_list,
+                    source_name2n_reps,
+                    f2c.file2combined_factors,
+                    f2c.file2label,
+                    extension_convert,
+                    f2c.file2fraction,
                 )
             else:
                 self._design_writer.write_two_table_format(
-                    output_filename, split_sdrf, f2c.file2technical_rep,
-                    source_name_list, source_name2n_reps, f2c.file2label,
-                    extension_convert, f2c.file2fraction, f2c.file2combined_factors,
+                    output_filename,
+                    split_sdrf,
+                    f2c.file2technical_rep,
+                    source_name_list,
+                    source_name2n_reps,
+                    f2c.file2label,
+                    extension_convert,
+                    f2c.file2fraction,
+                    f2c.file2combined_factors,
                 )
 
     def _save_search_settings_to_file(self, output_filename, sdrf, f2c: FileToColumnEntries):
         """Save search settings to TSV file."""
         header = [
-            "URI", "Filename", "FixedModifications", "VariableModifications",
-            "Proteomics Data Acquisition Method", "Label", "PrecursorMassTolerance",
-            "PrecursorMassToleranceUnit", "FragmentMassTolerance",
-            "FragmentMassToleranceUnit", "DissociationMethod", "Enzyme",
+            "URI",
+            "Filename",
+            "FixedModifications",
+            "VariableModifications",
+            "Proteomics Data Acquisition Method",
+            "Label",
+            "PrecursorMassTolerance",
+            "PrecursorMassToleranceUnit",
+            "FragmentMassTolerance",
+            "FragmentMassToleranceUnit",
+            "DissociationMethod",
+            "Enzyme",
         ]
         search_settings = tsv_line(*header)
         raws = []
@@ -417,10 +453,18 @@ class OpenMS:
                 )
 
             search_settings += tsv_line(
-                URI, raw, f2c.file2mods[raw][0], f2c.file2mods[raw][1],
-                acquisition_method, label, f2c.file2pctol[raw], f2c.file2pctolunit[raw],
-                f2c.file2fragtol[raw], f2c.file2fragtolunit[raw],
-                f2c.file2diss[raw], f2c.file2enzyme[raw],
+                URI,
+                raw,
+                f2c.file2mods[raw][0],
+                f2c.file2mods[raw][1],
+                acquisition_method,
+                label,
+                f2c.file2pctol[raw],
+                f2c.file2pctolunit[raw],
+                f2c.file2fragtol[raw],
+                f2c.file2fragtolunit[raw],
+                f2c.file2diss[raw],
+                f2c.file2enzyme[raw],
             )
 
         with open(output_filename, "w+", encoding="utf-8") as f:
@@ -442,8 +486,7 @@ class OpenMS:
         """Add default TMT modifications if not present."""
         if "tmt" not in f2c.file2mods[raw][0].lower() and "tmt" not in f2c.file2mods[raw][1].lower():
             warning_message = (
-                "The sdrf with TMT label doesn't contain TMT modification. "
-                "Adding default variable modifications."
+                "The sdrf with TMT label doesn't contain TMT modification. Adding default variable modifications."
             )
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             tmt_var_mod = TMT_DEFAULT_MODS[label]
@@ -457,8 +500,7 @@ class OpenMS:
         """Add default iTRAQ modifications if not present."""
         if "itraq" not in f2c.file2mods[raw][0].lower() and "itraq" not in f2c.file2mods[raw][1].lower():
             warning_message = (
-                "The sdrf with ITRAQ label doesn't contain label modification. "
-                "Adding default variable modifications."
+                "The sdrf with ITRAQ label doesn't contain label modification. Adding default variable modifications."
             )
             self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
             itraq_var_mod = ITRAQ_DEFAULT_MODS[label]

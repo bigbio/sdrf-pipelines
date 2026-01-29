@@ -182,9 +182,7 @@ class SchemaValidator:
         if column_def.name in df.columns:
             column_series = df[column_def.name]
 
-            errors.extend(
-                self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology)
-            )
+            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology))
             errors.extend(self._validate_not_applicable_values(column_series, column_def))
             errors.extend(self._validate_not_available_values(column_series, column_def))
 
@@ -218,15 +216,11 @@ class SchemaValidator:
         errors.extend(self._validate_required_columns(df, schema))
 
         for column_def in schema.columns:
-            errors.extend(
-                self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology)
-            )
+            errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology))
 
         return errors
 
-    def validate_with_multiple_schemas(
-        self, df: pd.DataFrame, schema_names: list[str]
-    ) -> dict[str, list[LogicError]]:
+    def validate_with_multiple_schemas(self, df: pd.DataFrame, schema_names: list[str]) -> dict[str, list[LogicError]]:
         """Validate a DataFrame against multiple schemas.
 
         Args:

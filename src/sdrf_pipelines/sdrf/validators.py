@@ -176,7 +176,7 @@ class UniqueValuesValidator(SDRFValidator):
                     row=-1,
                     column=column_name,
                     error_type=logging.ERROR,
-                    suggestion="Values in this column must be unique. Check for copy-paste errors or assign unique identifiers.",
+                    suggestion="Values must be unique. Check for copy-paste errors.",
                 )
             )
 
@@ -364,7 +364,9 @@ if OLS_AVAILABLE:
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
 
-        def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        def validate(  # type: ignore[override]
+            self, value: pd.Series, column_name: str | None = None
+        ) -> list[LogicError]:
             """
             Validate if the term is present in the provided ontology. This method looks in the provided
             ontology _ontology_name

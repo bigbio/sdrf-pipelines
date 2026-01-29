@@ -2,10 +2,8 @@
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any
 
 import pandas as pd
-
 
 # Common regex pattern for sample identifiers
 SAMPLE_IDENTIFIER_PATTERN = re.compile(r"sample (\d+)$", re.IGNORECASE)
