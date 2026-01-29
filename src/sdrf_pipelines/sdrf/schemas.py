@@ -73,7 +73,9 @@ class SchemaRegistry:
         "nonvertebrates": "invertebrates",
     }
 
-    def __init__(self, schema_dir: str | None = None, use_versioned: bool = True, template_versions: dict[str, str] | None = None):
+    def __init__(
+        self, schema_dir: str | None = None, use_versioned: bool = True, template_versions: dict[str, str] | None = None
+    ):
         """Initialize the schema registry.
 
         Args:
@@ -144,8 +146,7 @@ class SchemaRegistry:
             version = self._get_template_version(template_name)
             if version is None:
                 # If no version specified and no manifest, try to find any version
-                version_dirs = [d for d in os.listdir(template_dir)
-                               if os.path.isdir(os.path.join(template_dir, d))]
+                version_dirs = [d for d in os.listdir(template_dir) if os.path.isdir(os.path.join(template_dir, d))]
                 if version_dirs:
                     version = sorted(version_dirs)[-1]  # Use latest by sorting
                 else:

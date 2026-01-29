@@ -44,7 +44,7 @@ class SDRFMetadata:
         lines = str_content.split("\n")
         for line in lines:
             if line.startswith(self.property_indicator):
-                line = line[len(self.property_indicator):].strip()
+                line = line[len(self.property_indicator) :].strip()
                 data = {}
                 # Handle template format: template=name,version=vX.Y.Z
                 if "=" in line:
