@@ -20,7 +20,7 @@ class Maxquant:
         self.modfile = Path(__file__).parent / "modifications.xml"
         self.datparamfile = Path(__file__).parent / "param2sdrf.yml"
 
-    def guess_tmt(self, lt, label_list=None):
+    def guess_tmt(self, lt: str, label_list: list[str] | None = None) -> str:
         warning_message = "guessing TMT from number of different labels"
         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
@@ -61,7 +61,7 @@ class Maxquant:
             lt = ",".join(["TMT2plex-Lys" + i.replace("TMT", "") for i in label_list])
         return lt
 
-    def extract_tmt_info(self, label=None, mods=None):
+    def extract_tmt_info(self, label: set[str] | None = None, mods: list[str] | None = None) -> str:
         lt = ""
         label_list = sorted(label)
         if "TMTpro" in "".join(mods):

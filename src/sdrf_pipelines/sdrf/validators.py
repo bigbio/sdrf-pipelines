@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from sdrf_pipelines.config import config
 from sdrf_pipelines.ols.ols import OLS_AVAILABLE
 
 if OLS_AVAILABLE:
@@ -11,6 +12,26 @@ if OLS_AVAILABLE:
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.utils.exceptions import LogicError
+
+
+def _is_string_like_dtype(series: pd.Series) -> bool:
+    """Check if a pandas Series has a string-like dtype.
+
+    Handles both legacy object dtype and newer StringDtype (including pyarrow-backed strings).
+    This provides compatibility with Python 3.12+ where pandas may use StringDtype by default.
+
+    Args:
+        series: The pandas Series to check
+
+    Returns:
+        True if the series contains string-like data, False otherwise
+    """
+    if series.dtype == object:
+        return True
+    try:
+        return pd.api.types.is_string_dtype(series)
+    except (AttributeError, TypeError):
+        return False
 
 
 class SDRFValidator(BaseModel):
@@ -75,6 +96,59 @@ def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     return _VALIDATOR_REGISTRY.get(validator_name)
 
 
+@register_validator(validator_name="values")
+class ValuesValidator(SDRFValidator):
+    """Validate that column values are from an allowed list."""
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if values in the series are from the allowed list.
+
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+
+        Returns:
+            List of LogicError for invalid values
+        """
+        allowed_values = self.params.get("values", [])
+        error_level = self.params.get("error_level", "warning")
+        description = self.params.get("description", "")
+
+        if not allowed_values:
+            return []
+
+        # Normalize values for comparison (case-insensitive)
+        allowed_lower = {str(v).lower() for v in allowed_values}
+        errors = []
+
+        for idx, value in series.items():
+            str_value = str(value).strip()
+            # Skip empty/NA values
+            if str_value.lower() in ("", "nan", "not applicable", "not available"):
+                continue
+            if str_value.lower() not in allowed_lower:
+                level = logging.WARNING if error_level == "warning" else logging.ERROR
+                # Format allowed values for readability
+                if len(allowed_values) <= 5:
+                    allowed_str = ", ".join(f"'{v}'" for v in allowed_values)
+                else:
+                    allowed_str = ", ".join(f"'{v}'" for v in allowed_values[:5]) + f"... ({len(allowed_values)} total)"
+                desc_info = f" {description}" if description else ""
+                errors.append(
+                    LogicError(
+                        message=f"Invalid value '{value}' - must be one of the allowed values.{desc_info}",
+                        value=str(value),
+                        row=idx if isinstance(idx, int) else -1,
+                        column=column_name,
+                        error_type=level,
+                        suggestion=f"Use one of: {allowed_str}",
+                    )
+                )
+
+        return errors
+
+
 @register_validator(validator_name="unique_values_validator")
 class UniqueValuesValidator(SDRFValidator):
     def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
@@ -93,14 +167,16 @@ class UniqueValuesValidator(SDRFValidator):
 
         for value in duplicates:
             duplicate_indices = series[series == value].index.tolist()
-            row_info = ", ".join(str(idx) for idx in duplicate_indices)
-            column_info = f" in column '{column_name}'" if column_name else ""
+            # Convert to 1-based row numbers for user display
+            row_info = ", ".join(str(idx + 1) for idx in duplicate_indices)
             errors.append(
                 LogicError(
-                    message=f"Value '{value}'{column_info} is duplicated at rows: {row_info}",
+                    message=f"Duplicate value '{value}' found at rows: {row_info}",
+                    value=str(value),
                     row=-1,
                     column=column_name,
                     error_type=logging.ERROR,
+                    suggestion="Values in this column must be unique. Check for copy-paste errors or assign unique identifiers.",
                 )
             )
 
@@ -152,6 +228,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
             row=row if row is not None else -1,
             column=column,
             error_type=logging.ERROR,
+            suggestion="Remove trailing spaces/tabs from the value. Check your spreadsheet for extra whitespace.",
         )
 
     def _validate_string(self, value: str) -> list[LogicError]:
@@ -180,7 +257,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
         # Check cell values
         for col in value.columns:
-            if value[col].dtype == object:
+            if _is_string_like_dtype(value[col]):
                 for idx, cell_value in enumerate(value[col]):
                     if self._has_trailing_whitespace(cell_value):
                         errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
@@ -189,7 +266,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
     def _validate_series(self, value: pd.Series) -> list[LogicError]:
         errors = []
-        if value.dtype == object:
+        if _is_string_like_dtype(value):
             for idx, cell_value in enumerate(value):
                 if self._has_trailing_whitespace(cell_value):
                     errors.append(self._create_trailing_whitespace_error(cell_value, row=idx))
@@ -230,7 +307,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
 @register_validator(validator_name="min_columns")
 class MinimumColumns(SDRFValidator):
-    minimum_columns: int = 12
+    minimum_columns: int = config.validation.minimum_columns
 
     def __init__(self, params: dict[str, Any] | None = None, **data: Any):
         super().__init__(**data)
@@ -247,8 +324,12 @@ class MinimumColumns(SDRFValidator):
         if len(value.columns) < self.minimum_columns:
             errors.append(
                 LogicError(
-                    message=f"The number of columns is lower than the mandatory number {self.minimum_columns}",
+                    message=f"SDRF has {len(value.columns)} columns but requires at least {self.minimum_columns}",
                     error_type=logging.ERROR,
+                    suggestion=(
+                        "Ensure your SDRF includes all required columns. "
+                        "Run 'parse_sdrf validate -s <file>' to see which columns are missing."
+                    ),
                 )
             )
         return errors
@@ -455,14 +536,29 @@ class PatternValidator(SDRFValidator):
         not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)].reset_index(drop=True)
         errors = []
 
+        # Generate a human-readable description of common patterns
+        pattern_hints = {
+            r"^\d+[yYmMdD]": "Age format like '25y', '6m', '30d' or combinations like '25y6m'",
+            r"not available|not applicable": "Use 'not available' or 'not applicable' for missing values",
+            r"NT=.+;AC=": "Ontology term format: NT=term_name;AC=ONTOLOGY:accession",
+        }
+        suggestion = None
+        for hint_pattern, hint_text in pattern_hints.items():
+            if hint_pattern in pattern:
+                suggestion = hint_text
+                break
+        if suggestion is None:
+            suggestion = f"Value must match the pattern: {pattern}"
+
         for idx, value in enumerate(not_matched.values, start=1):
-            column_info = f" in column '{column_name}'"
             errors.append(
                 LogicError(
-                    message=f"Value '{value}'{column_info} does not match the required pattern: {pattern}",
+                    message=f"Invalid format for value '{value}'",
+                    value=str(value),
                     row=idx,
                     column=column_name,
                     error_type=logging.ERROR,
+                    suggestion=suggestion,
                 )
             )
 

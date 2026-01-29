@@ -1,6 +1,7 @@
 import io
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -141,11 +142,11 @@ class SDRFMetadata:
                 return p["source"]
         return None
 
-    def get_fileformat(self):
+    def get_fileformat(self) -> list[dict[str, str]]:
         """Get file format (legacy method)."""
         return [p for p in self.properties if "fileformat" in p or "file_format" in p]
 
-    def get_guidelines(self):
+    def get_guidelines(self) -> list[dict[str, str]]:
         """Get guidelines (legacy method)."""
         return [p for p in self.properties if "guideline" in p]
 
@@ -173,19 +174,19 @@ class SDRFDataFrame(BaseModel):
             self.sdrf_columns = df.sdrf_columns
             self.metadata = df.metadata
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str | list[str]) -> pd.Series | pd.DataFrame:
         """Enable subscriptable behavior by delegating to the df attribute."""
         if self.df is None:
             raise ValueError("DataFrame is not initialized")
         return self.df[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Make the object iterable as if iterating over the dataframe."""
         if self.df is not None:
             return iter(self.df)
         return iter([])  # Return empty iterator if df is None
 
-    def map(self, func, *args, **kwargs):
+    def map(self, func: Any, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Delegate map operation to the underlying DataFrame."""
         if self.df is not None:
             return self.df.map(func, *args, **kwargs)
@@ -210,7 +211,7 @@ class SDRFDataFrame(BaseModel):
         return self.sdrf_columns
 
     @property
-    def columns(self):
+    def columns(self) -> list[str]:
         """
         Get the column names of the SDRF DataFrame.
 
@@ -220,7 +221,7 @@ class SDRFDataFrame(BaseModel):
         return self.df.columns.tolist()
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int, int]:
         """
         Get the shape of the SDRF DataFrame.
 
@@ -229,7 +230,7 @@ class SDRFDataFrame(BaseModel):
         """
         return self.df.shape
 
-    def validate_sdrf(self, template: str | None = None, **kwargs):
+    def validate_sdrf(self, template: str | None = None, **kwargs: Any) -> list[str]:
         """
         Validate the SDRF DataFrame against a schema template.
 

@@ -43,29 +43,62 @@ __all__ = ["LogicError"]
 
 class LogicError(ValidationWarning):
     def __init__(
-        self, message: str, value: str | None = None, row: int = -1, column: str | None = None, error_type=None
+        self,
+        message: str,
+        value: str | None = None,
+        row: int = -1,
+        column: str | None = None,
+        error_type=None,
+        suggestion: str | None = None,
     ):
         """
-        Initialize an instance of AppException with a specified value.
+        Initialize an instance of LogicError with detailed error information.
 
         Parameters:
             message: Message describing the logic error.
             value: The value associated with the exception.
+            row: The row index where the error occurred (0-based, -1 if not applicable).
+            column: The column name where the error occurred.
+            error_type: Logging level (e.g., logging.ERROR, logging.WARNING).
+            suggestion: Optional suggestion for how to fix the error.
         """
         super().__init__(message, value, row, column)
         self._error_type = error_type
+        self.suggestion = suggestion
 
     @property
     def error_type(self):
         return self._error_type
 
     def __str__(self) -> str:
-        if self.row is not None and self.column is not None and self.value is not None:
-            return (
-                f'{{row: {self.row}, column: "{self.column}"}}: '
-                f'"{self.value}" {self.message} -- {logging.getLevelName(self._error_type)}'
-            )
-        return f"{self.message} -- {logging.getLevelName(self._error_type)}"
+        level_name = logging.getLevelName(self._error_type) if self._error_type else "INFO"
+        parts = []
+
+        # Location info
+        if self.row is not None and self.row >= 0 and self.column is not None:
+            parts.append(f"[Row {self.row + 1}, Column '{self.column}']")
+        elif self.column is not None:
+            parts.append(f"[Column '{self.column}']")
+        elif self.row is not None and self.row >= 0:
+            parts.append(f"[Row {self.row + 1}]")
+
+        # Value if present
+        if self.value is not None:
+            parts.append(f'Value: "{self.value}"')
+
+        # Main message
+        parts.append(self.message)
+
+        # Level
+        parts.append(f"[{level_name}]")
+
+        result = " ".join(parts)
+
+        # Add suggestion on new line if present
+        if self.suggestion:
+            result += f"\n  → Suggestion: {self.suggestion}"
+
+        return result
 
 
 class AppConfigException(AppException):

@@ -13,12 +13,12 @@ class Msstats:
     # Consider unlabeled analysis for now
     def convert_msstats_annotation(
         self,
-        sdrf_file,
-        split_by_columns,
-        annotation_path,
-        openswathtomsstats,
-        maxqtomsstats,
-    ):
+        sdrf_file: str,
+        split_by_columns: str | None,
+        annotation_path: str,
+        openswathtomsstats: bool,
+        maxqtomsstats: bool,
+    ) -> None:
         sdrf = pd.read_csv(sdrf_file, sep="\t")
         sdrf = sdrf.astype(str)
         sdrf.columns = sdrf.columns.str.lower()  # convert column names to lower-case
@@ -101,7 +101,7 @@ class Msstats:
             data["Experiment"] = Experiments
         pd.DataFrame(data).to_csv(annotation_path, index=False)
 
-    def combine_factors_to_conditions(self, factor_cols, row):
+    def combine_factors_to_conditions(self, factor_cols: list[str], row: pd.Series) -> str:
         all_factors = list(row[factor_cols])
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
