@@ -4,7 +4,8 @@ include README.md
 # Include the license file
 include LICENSE
 
-# Include the data files
-recursive-include sdrf_pipelines *.xml *.yml *.parquet
-recursive-include sdrf_pipelines *.parquet
-include sdrf_pipelines/ols/*.parquet
+# Include all YAML template files from sdrf-templates submodule
+recursive-include src/sdrf_pipelines/sdrf/sdrf-templates *.yaml *.yml
+
+# Include other data files
+recursive-include src/sdrf_pipelines *.xml *.tsv *.yaml *.yml *.parquet
