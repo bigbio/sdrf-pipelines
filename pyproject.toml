@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "BigBio Team", email = "ypriverol@gmail.com" }
 ]
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.10"
 keywords = ["sdrf", "python", "multiomics", "proteomics"]
 classifiers = [
@@ -14,7 +14,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -53,7 +52,7 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8"]
+requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -62,10 +61,8 @@ where = ["src"]
 [tool.setuptools.package-data]
 "*" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
 
-[tool.setuptools-scm]
-# Custom version scheme that encodes branch name
-version_file = "src/sdrf_pipelines/_version.py"
-# Use a simpler approach - write version then parse it
+# Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
+# The callable encodes branch name into version for ontology cache downloads
 
 [dependency-groups]
 dev = [
