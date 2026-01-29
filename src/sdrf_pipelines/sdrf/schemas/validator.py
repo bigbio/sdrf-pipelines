@@ -178,9 +178,11 @@ class SchemaValidator:
         skip_ontology: bool,
     ) -> list[LogicError]:
         """Process validation for a single column."""
-        errors = []
+        errors: list[LogicError] = []
         if column_def.name in df.columns:
-            column_series = df[column_def.name]
+            column_data = df[column_def.name]
+            # Ensure we have a Series, not a DataFrame (can happen with duplicate column names)
+            column_series: pd.Series = column_data if isinstance(column_data, pd.Series) else column_data.iloc[:, 0]
 
             errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology))
             errors.extend(self._validate_not_applicable_values(column_series, column_def))

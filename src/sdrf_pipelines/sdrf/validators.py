@@ -257,8 +257,9 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
         # Check cell values
         for col in value.columns:
-            if _is_string_like_dtype(value[col]):
-                for idx, cell_value in enumerate(value[col]):
+            col_series = value[col]
+            if isinstance(col_series, pd.Series) and _is_string_like_dtype(col_series):
+                for idx, cell_value in enumerate(col_series):
                     if self._has_trailing_whitespace(cell_value):
                         errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
 
@@ -663,7 +664,7 @@ class ColumnOrderValidator(SDRFValidator):
         if "assay name" not in list(df):
             return error_columns_order
 
-        cnames = list(df)
+        cnames: list[str] = [str(c) for c in df.columns]
         assay_index = cnames.index("assay name")
 
         error_columns_order.extend(self._check_characteristics_before_assay(cnames, assay_index))
@@ -708,9 +709,9 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
                 )
             ]
         # Handle both SDRFDataFrame and plain DataFrame
-        inner_df = df.df if hasattr(df, "df") else df
+        inner_df: pd.DataFrame = df.df if isinstance(df, SDRFDataFrame) else df
         duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
-        errors = []
+        errors: list[LogicError] = []
 
         if not duplicates.empty:
             grouped = duplicates.groupby(columns).apply(lambda x: x.index.tolist())
@@ -781,7 +782,7 @@ class EmptyCellValidator(SDRFValidator):
         Returns:
             List of LogicError for empty cells in required columns
         """
-        errors = []
+        errors: list[LogicError] = []
 
         # Get required columns from params - only check these columns
         required_columns = self.params.get("required_columns", [])

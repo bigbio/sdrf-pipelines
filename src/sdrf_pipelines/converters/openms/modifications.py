@@ -2,7 +2,7 @@
 
 import re
 
-from sdrf_pipelines.openms.unimod import UnimodDatabase
+from sdrf_pipelines.converters.openms.unimod import UnimodDatabase
 
 
 class ModificationConverter:

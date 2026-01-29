@@ -1,6 +1,6 @@
 import pytest
 
-from sdrf_pipelines.openms.openms import (
+from sdrf_pipelines.converters.openms.openms import (
     TMT_PLEXES,
     get_openms_file_name,
     infer_tmtplex,

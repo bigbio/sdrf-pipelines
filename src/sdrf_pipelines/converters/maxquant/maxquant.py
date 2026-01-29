@@ -24,6 +24,9 @@ class Maxquant:
         warning_message = "guessing TMT from number of different labels"
         self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
 
+        if label_list is None:
+            return lt
+
         if len(label_list) == 11:
             for i in label_list:
                 if i == label_list[-1]:
@@ -63,6 +66,9 @@ class Maxquant:
 
     def extract_tmt_info(self, label: set[str] | None = None, mods: list[str] | None = None) -> str:
         lt = ""
+        if label is None or mods is None:
+            return lt
+
         label_list = sorted(label)
         if "TMTpro" in "".join(mods):
             for i in label_list:
@@ -71,11 +77,12 @@ class Maxquant:
                 else:
                     lt += "TMTpro16plex" + "-Lys" + i.replace("TMT", "")
         else:
-            label_head = [re.search(r"TMT(\d+)plex-", i).group(1) for i in mods if "TMT" in i]
+            label_head_matches = [re.search(r"TMT(\d+)plex-", i) for i in mods if "TMT" in i]
+            label_head = [m.group(1) for m in label_head_matches if m is not None]
 
             if len(label_head) > 0 and int(label_head[0]) >= len(label_list):
-                label_head = "TMT" + label_head[0] + "plex"
-                lt = ",".join([label_head + "-Lys" + i.replace("TMT", "") for i in label_list])
+                label_head_str = "TMT" + label_head[0] + "plex"
+                lt = ",".join([label_head_str + "-Lys" + i.replace("TMT", "") for i in label_list])
             else:
                 lt = self.guess_tmt(lt, label_list)
         return lt

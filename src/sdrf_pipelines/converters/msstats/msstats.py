@@ -30,43 +30,43 @@ class Msstats:
         data["IsotopeLabelType"] = ["L"] * len(runs)
 
         # convert list passed on command line '[assay name,comment[fraction identifier]]' to python list
+        split_columns: list[str] = []
         if split_by_columns:
-            split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
-            split_by_columns = split_by_columns.split(",")
-            for i, value in enumerate(split_by_columns):
-                split_by_columns[i] = value.lower()
-            print("User selected factor columns: " + str(split_by_columns))
+            trimmed = split_by_columns[1:-1]  # trim '[' and ']'
+            split_columns = [v.lower() for v in trimmed.split(",")]
+            print("User selected factor columns: " + str(split_columns))
 
-        if not split_by_columns:
+        if not split_columns:
             # get factor columns (except constant ones)
-            factor_cols = [c for ind, c in enumerate(sdrf) if c.startswith("factor value[")]
+            factor_cols: list[str] = [str(c) for c in sdrf.columns if str(c).startswith("factor value[")]
         else:
-            factor_cols = split_by_columns
+            factor_cols = split_columns
         for _, row in sdrf.iterrows():
-            if not split_by_columns:
+            if not split_columns:
                 combined_factors = self.combine_factors_to_conditions(factor_cols, row)
             else:
                 # take only only entries of splitting columns to generate the conditions
-                combined_factors = "_".join(list(row[split_by_columns]))
+                combined_factors = "_".join([str(v) for v in row[split_columns]])
             condition.append(combined_factors)
         data["Condition"] = condition
 
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
         # get BioReplicate
-        BioReplicate = []
-        sample_id_map = {}
+        BioReplicate: list[str | int] = []
+        sample_id_map: dict[str, int] = {}
         sample_id = 1
-        value = []
+        value: list[str] = []
 
         for _, row in sdrf.iterrows():
             source_name = row["source name"]
 
-            if re.search(sample_identifier_re, source_name) is not None:
-                sample = re.search(sample_identifier_re, source_name).group(1)
+            match = re.search(sample_identifier_re, source_name)
+            if match is not None:
+                sample: str | int = match.group(1)
 
                 # MSstats BioReplicate column needs to be different for samples from different conditions.
                 # so we can't just use the technical replicate identifier in sdrf but use the sample identifer
-                MSstatsBioReplicate = sample
+                MSstatsBioReplicate = str(sample)
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
             else:
@@ -102,7 +102,7 @@ class Msstats:
         pd.DataFrame(data).to_csv(annotation_path, index=False)
 
     def combine_factors_to_conditions(self, factor_cols: list[str], row: pd.Series) -> str:
-        all_factors = list(row[factor_cols])
+        all_factors = [str(v) for v in row[factor_cols]]
         combined_factors = "_".join(all_factors)
         if combined_factors == "":
             warning_message = "No factors specified. Adding Source Name as factor. Will be used as condition. "

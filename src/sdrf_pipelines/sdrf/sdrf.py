@@ -1,10 +1,13 @@
 import io
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import pandas as pd
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from sdrf_pipelines.utils.exceptions import LogicError
 
 
 class SDRFMetadata:
@@ -105,7 +108,7 @@ class SDRFMetadata:
         if self.templates:
             result = []
             for t in self.templates:
-                data = {"template": t}
+                data: dict[str, str | None] = {"template": t}
                 # Parse new format: NT=name;version=vX.Y.Z
                 if t.startswith("NT=") and ";version=" in t:
                     # Key=value format: NT=template_name;version=vX.Y.Z
@@ -180,10 +183,10 @@ class SDRFDataFrame(BaseModel):
             raise ValueError("DataFrame is not initialized")
         return self.df[key]
 
-    def __iter__(self) -> Iterator[str]:
-        """Make the object iterable as if iterating over the dataframe."""
+    def __iter__(self) -> Iterator[str]:  # type: ignore[override]
+        """Make the object iterable as if iterating over the dataframe columns."""
         if self.df is not None:
-            return iter(self.df)
+            return iter(str(c) for c in self.df.columns)
         return iter([])  # Return empty iterator if df is None
 
     def map(self, func: Any, *args: Any, **kwargs: Any) -> pd.DataFrame:
@@ -230,7 +233,7 @@ class SDRFDataFrame(BaseModel):
         """
         return self.df.shape
 
-    def validate_sdrf(self, template: str | None = None, **kwargs: Any) -> list[str]:
+    def validate_sdrf(self, template: str | None = None, **kwargs: Any) -> "list[LogicError]":
         """
         Validate the SDRF DataFrame against a schema template.
 
@@ -239,7 +242,7 @@ class SDRFDataFrame(BaseModel):
             **kwargs: Additional validation parameters (use_ols_cache_only, skip_ontology, etc.)
 
         Returns:
-            List of validation errors
+            List of LogicError objects representing validation errors
 
         Raises:
             ImportError: If schemas module cannot be imported

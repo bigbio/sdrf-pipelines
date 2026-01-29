@@ -1,6 +1,6 @@
 """OpenMS SDRF conversion module."""
 
-from sdrf_pipelines.openms.constants import (
+from sdrf_pipelines.converters.openms.constants import (
     ENZYME_MAPPINGS,
     ITRAQ_4PLEX,
     ITRAQ_8PLEX,
@@ -10,10 +10,10 @@ from sdrf_pipelines.openms.constants import (
     TMT_DEFAULT_MODS,
     TMT_PLEXES,
 )
-from sdrf_pipelines.openms.experimental_design import ExperimentalDesignWriter
-from sdrf_pipelines.openms.modifications import ModificationConverter
-from sdrf_pipelines.openms.openms import OpenMS
-from sdrf_pipelines.openms.utils import (
+from sdrf_pipelines.converters.openms.experimental_design import ExperimentalDesignWriter
+from sdrf_pipelines.converters.openms.modifications import ModificationConverter
+from sdrf_pipelines.converters.openms.openms import OpenMS
+from sdrf_pipelines.converters.openms.utils import (
     FileToColumnEntries,
     get_openms_file_name,
     infer_tmtplex,

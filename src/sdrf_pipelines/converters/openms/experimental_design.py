@@ -4,14 +4,14 @@ import re
 
 import pandas as pd
 
-from sdrf_pipelines.openms.constants import (
+from sdrf_pipelines.converters.openms.constants import (
     ITRAQ_4PLEX,
     ITRAQ_8PLEX,
     SILAC_2PLEX,
     SILAC_3PLEX,
     TMT_PLEXES,
 )
-from sdrf_pipelines.openms.utils import get_openms_file_name, infer_tmtplex
+from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_tmtplex
 from sdrf_pipelines.utils.utils import tsv_line
 
 
@@ -100,8 +100,8 @@ class ExperimentalDesignWriter:
 
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
-        Fraction_group = {}
-        sample_id_map = {}
+        Fraction_group: dict[str, int] = {}
+        sample_id_map: dict[str, int] = {}
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
@@ -129,8 +129,9 @@ class ExperimentalDesignWriter:
                 raw_frac[fraction_group].append(raw)
                 Fraction_group[raw] = Fraction_group[raw_frac[fraction_group][0]]
 
-            if re.search(sample_identifier_re, source_name) is not None:
-                sample = re.search(sample_identifier_re, source_name).group(1)
+            sample_match = re.search(sample_identifier_re, source_name)
+            if sample_match is not None:
+                sample: str | int = sample_match.group(1)
             else:
                 warning_message = "No sample identifier"
                 self.warnings[warning_message] = self.warnings.get(warning_message, 0) + 1
@@ -169,8 +170,9 @@ class ExperimentalDesignWriter:
             raw = row["comment[data file]"]
             source_name = row["source name"]
 
-            if re.search(sample_identifier_re, source_name) is not None:
-                sample = re.search(sample_identifier_re, source_name).group(1)
+            sample_match = re.search(sample_identifier_re, source_name)
+            if sample_match is not None:
+                sample = sample_match.group(1)
                 MSstatsBioReplicate = sample
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
@@ -277,12 +279,12 @@ class ExperimentalDesignWriter:
         experimental_design = tsv_line(*header)
         label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
         sample_identifier_re = re.compile(r"sample (\d+)$", re.IGNORECASE)
-        Fraction_group = {}
+        Fraction_group: dict[str, int] = {}
         mixture_identifier = 1
-        mixture_raw_tag = {}
-        mixture_sample_tag = {}
-        BioReplicate = []
-        sample_id_map = {}
+        mixture_raw_tag: dict[str, int] = {}
+        mixture_sample_tag: dict[str | int, int] = {}
+        BioReplicate: list[str | int] = []
+        sample_id_map: dict[str, int] = {}
         sample_id = 1
         pre_frac_group = 1
         raw_frac = {}
@@ -310,9 +312,10 @@ class ExperimentalDesignWriter:
                 raw_frac[fraction_group].append(raw)
                 Fraction_group[raw] = Fraction_group[raw_frac[fraction_group][0]]
 
-            if re.search(sample_identifier_re, source_name) is not None:
-                sample = re.search(sample_identifier_re, source_name).group(1)
-                MSstatsBioReplicate = sample
+            sample_match = re.search(sample_identifier_re, source_name)
+            if sample_match is not None:
+                sample: str | int = sample_match.group(1)
+                MSstatsBioReplicate = str(sample)
                 if sample not in BioReplicate:
                     BioReplicate.append(sample)
             else:
