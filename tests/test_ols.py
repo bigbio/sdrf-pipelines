@@ -10,6 +10,7 @@ from sdrf_pipelines.ols.ols import (
 )
 
 
+@pytest.mark.ontology
 class TestOlsClientReal:
     @pytest.fixture(scope="class")
     def ols_client(self):

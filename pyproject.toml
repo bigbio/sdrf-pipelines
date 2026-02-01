@@ -94,6 +94,12 @@ max-complexity = 10
 quote-style = "double"
 indent-style = "space"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "ontology: tests that require ontology dependencies (pooch, rdflib, requests)",
+]
+
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 packages = ["sdrf_pipelines"]

@@ -36,7 +36,11 @@ requirements:
 test:
   imports:
     - sdrf_pipelines
-    - sdrf_pipelines.openms
+    - sdrf_pipelines.converters
+    - sdrf_pipelines.converters.openms
+    - sdrf_pipelines.converters.maxquant
+    - sdrf_pipelines.converters.msstats
+    - sdrf_pipelines.converters.normalyzerde
     - sdrf_pipelines.sdrf
     - sdrf_pipelines.utils
     - sdrf_pipelines.ols

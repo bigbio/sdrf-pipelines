@@ -1,4 +1,4 @@
-from sdrf_pipelines.openms.unimod import UnimodDatabase
+from sdrf_pipelines.converters.openms.unimod import UnimodDatabase
 
 
 def test_search_mods_by_accession():
