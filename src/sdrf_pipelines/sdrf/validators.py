@@ -346,6 +346,8 @@ if OLS_AVAILABLE:
         ontologies: list[str] = Field(default_factory=list)
         error_level: int = logging.INFO
         use_ols_cache_only: bool = False
+        description: str = ""
+        examples: list[str] = Field(default_factory=list)
         model_config = {"arbitrary_types_allowed": True}
 
         def __init__(self, params: dict[str, Any] | None = None, **data: Any):
@@ -364,6 +366,10 @@ if OLS_AVAILABLE:
                             self.error_level = logging.INFO
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
+                    elif key == "description":
+                        self.description = value
+                    elif key == "examples":
+                        self.examples = value if isinstance(value, list) else [value]
 
         def validate(  # type: ignore[override]
             self, value: pd.Series, column_name: str | None = None
@@ -452,6 +458,19 @@ if OLS_AVAILABLE:
                     if not cell_value or str(cell_value).strip() == "":
                         continue
                     column_info = f" in column '{column_name}'" if column_name else ""
+                    # Build suggestion with description and examples
+                    suggestion_parts = []
+                    if self.description:
+                        suggestion_parts.append(self.description)
+                    else:
+                        suggestion_parts.append(f"Value should be a valid term from: {', '.join(self.ontologies)}")
+                    if self.examples:
+                        example_str = ", ".join(f"'{ex}'" for ex in self.examples[:3])
+                        if len(self.examples) > 3:
+                            example_str += f" (and {len(self.examples) - 3} more)"
+                        suggestion_parts.append(f"Examples: {example_str}")
+                    suggestion = ". ".join(suggestion_parts)
+
                     errors.append(
                         LogicError(
                             message=(
@@ -461,6 +480,7 @@ if OLS_AVAILABLE:
                             row=idx,
                             column=column_name,
                             error_type=self.error_level,
+                            suggestion=suggestion,
                         )
                     )
             return errors
@@ -539,19 +559,37 @@ class PatternValidator(SDRFValidator):
         not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)].reset_index(drop=True)
         errors = []
 
-        # Generate a human-readable description of common patterns
-        pattern_hints = {
-            r"^\d+[yYmMdD]": "Age format like '25y', '6m', '30d' or combinations like '25y6m'",
-            r"not available|not applicable": "Use 'not available' or 'not applicable' for missing values",
-            r"NT=.+;AC=": "Ontology term format: NT=term_name;AC=ONTOLOGY:accession",
-        }
-        suggestion = None
-        for hint_pattern, hint_text in pattern_hints.items():
-            if hint_pattern in pattern:
-                suggestion = hint_text
-                break
-        if suggestion is None:
-            suggestion = f"Value must match the pattern: {pattern}"
+        # Build suggestion from YAML params (description and examples)
+        description = self.params.get("description")
+        examples = self.params.get("examples", [])
+
+        # Build suggestion message
+        suggestion_parts = []
+
+        if description:
+            suggestion_parts.append(description)
+        else:
+            # Fall back to pattern hints for common patterns
+            pattern_hints = {
+                r"^\d+[yYmMdD]": "Age format like '25y', '6m', '30d' or combinations like '25y6m'",
+                r"not available|not applicable": "Use 'not available' or 'not applicable' for missing values",
+                r"NT=.+;AC=": "Ontology term format: NT=term_name;AC=ONTOLOGY:accession",
+            }
+            for hint_pattern, hint_text in pattern_hints.items():
+                if hint_pattern in pattern:
+                    suggestion_parts.append(hint_text)
+                    break
+            if not suggestion_parts:
+                suggestion_parts.append(f"Value must match the pattern: {pattern}")
+
+        # Add examples if available
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])  # Show up to 3 examples
+            if len(examples) > 3:
+                example_str += f" (and {len(examples) - 3} more)"
+            suggestion_parts.append(f"Examples: {example_str}")
+
+        suggestion = ". ".join(suggestion_parts)
 
         for idx, value in enumerate(not_matched.values, start=1):
             errors.append(

@@ -123,7 +123,8 @@ class SDRFMetadata:
 
         Supported formats:
         - Simple format: name vX.Y.Z (e.g., 'human v1.1.0')
-        - Key=value format: NT=name;VV=vX.Y.Z (e.g., 'NT=human;VV=v1.1.0')
+        - Key=value format with VV: NT=name;VV=vX.Y.Z (e.g., 'NT=human;VV=v1.1.0')
+        - Key=value format with version: NT=name;version=vX.Y.Z (e.g., 'NT=human;version=v1.1.0')
 
         Returns dict with 'name' and 'version' keys, or None if not parseable.
         """
@@ -131,6 +132,11 @@ class SDRFMetadata:
             # Key=value format: NT=name;VV=vX.Y.Z
             content = value[3:]  # Remove "NT=" prefix
             parts = content.split(";VV=")
+            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
+        elif value.startswith("NT=") and ";version=" in value:
+            # Key=value format: NT=name;version=vX.Y.Z (legacy format from annotated datasets)
+            content = value[3:]  # Remove "NT=" prefix
+            parts = content.split(";version=")
             return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
         elif " v" in value:
             # Simple format: name vX.Y.Z
