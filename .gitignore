@@ -131,3 +131,5 @@ pip-wheel-metadata
 #Ignore cursor AI rules
 .cursor/
 .codacy/
+.claude/
+.ruff_cache/

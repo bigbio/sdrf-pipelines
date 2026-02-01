@@ -109,21 +109,40 @@ class SDRFMetadata:
             result = []
             for t in self.templates:
                 data: dict[str, str | None] = {"template": t}
-                # Parse new format: NT=name;version=vX.Y.Z
-                if t.startswith("NT=") and ";version=" in t:
-                    # Key=value format: NT=template_name;version=vX.Y.Z
-                    parts = t[3:].split(";version=")  # Remove "NT=" prefix
-                    data["template"] = parts[0]
-                    data["version"] = parts[1] if len(parts) > 1 else None
-                elif " v" in t:
-                    # Simple format: name vX.Y.Z
-                    parts = t.rsplit(" v", 1)
-                    data["template"] = parts[0]
-                    data["version"] = "v" + parts[1] if len(parts) > 1 else None
+                parsed = self._parse_name_version_format(t)
+                if parsed:
+                    data["template"] = parsed["name"]
+                    data["version"] = parsed["version"]
                 result.append(data)
             return result
         # Fall back to header-based
         return [p for p in self.properties if "template" in p]
+
+    def _parse_name_version_format(self, value: str) -> Optional[dict[str, str | None]]:
+        """Parse name/version from supported formats.
+
+        Supported formats:
+        - Simple format: name vX.Y.Z (e.g., 'human v1.1.0')
+        - Key=value format with VV: NT=name;VV=vX.Y.Z (e.g., 'NT=human;VV=v1.1.0')
+        - Key=value format with version: NT=name;version=vX.Y.Z (e.g., 'NT=human;version=v1.1.0')
+
+        Returns dict with 'name' and 'version' keys, or None if not parseable.
+        """
+        if value.startswith("NT=") and ";VV=" in value:
+            # Key=value format: NT=name;VV=vX.Y.Z
+            content = value[3:]  # Remove "NT=" prefix
+            parts = content.split(";VV=")
+            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
+        elif value.startswith("NT=") and ";version=" in value:
+            # Key=value format: NT=name;version=vX.Y.Z (legacy format from annotated datasets)
+            content = value[3:]  # Remove "NT=" prefix
+            parts = content.split(";version=")
+            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
+        elif " v" in value:
+            # Simple format: name vX.Y.Z
+            parts = value.rsplit(" v", 1)
+            return {"name": parts[0], "version": "v" + parts[1] if len(parts) > 1 else None}
+        return None
 
     def get_version(self) -> Optional[str]:
         """Get SDRF specification version."""
