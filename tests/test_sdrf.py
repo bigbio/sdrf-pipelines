@@ -179,7 +179,7 @@ class TestSDRFMetadataFormats:
             {
                 "source name": ["sample 1"],
                 "comment[sdrf template]": ["human v1.1.0"],
-                "comment[sdrf template].1": ["ms-proteomics v1.1.0"],
+                "comment[sdrf template]": ["ms-proteomics v1.1.0"],
             }
         )
 
