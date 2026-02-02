@@ -592,7 +592,7 @@ class PatternValidator(SDRFValidator):
 
         for idx, value in not_matched.items():
             # Convert to 1-based row number for user display
-            row_num = idx + 1 if isinstance(idx, int) else idx
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
             errors.append(
                 LogicError.from_code(
                     ErrorCode.PATTERN_MISMATCH,
