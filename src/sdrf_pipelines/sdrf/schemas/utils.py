@@ -9,6 +9,13 @@ from sdrf_pipelines.sdrf.schemas.models import (
     SchemaDefinition,
 )
 
+# Requirement level ordering for "stricter" comparison
+_REQUIREMENT_ORDER = {
+    RequirementLevel.OPTIONAL: 0,
+    RequirementLevel.RECOMMENDED: 1,
+    RequirementLevel.REQUIRED: 2,
+}
+
 
 def _merge_fields_first_strategy(merged: ColumnDefinition, col_def: ColumnDefinition) -> None:
     """Merge fields using FIRST strategy - use first non-null value."""
@@ -27,16 +34,17 @@ def _merge_fields_last_strategy(merged: ColumnDefinition, col_def: ColumnDefinit
 def _merge_fields_combine_strategy(merged: ColumnDefinition, col_def: ColumnDefinition) -> None:
     """Merge fields using COMBINE strategy - combine descriptions and use stricter requirement level."""
     # Merge description field
-    if getattr(col_def, "description") and getattr(col_def, "description") not in (None, ""):
-        if getattr(merged, "description"):
-            combined = f"{getattr(merged, 'description')}; {getattr(col_def, 'description')}"
-            setattr(merged, "description", combined)
+    if col_def.description and col_def.description not in (None, ""):
+        if merged.description:
+            combined = f"{merged.description}; {col_def.description}"
+            merged.description = combined
         else:
-            setattr(merged, "description", getattr(col_def, "description"))
+            merged.description = col_def.description
 
-    # Merge requirement field
-    if getattr(col_def, "requirement") and getattr(col_def, "requirement") != RequirementLevel.OPTIONAL:
-        setattr(merged, "requirement", getattr(col_def, "requirement"))
+    # Merge requirement field - use stricter level
+    if col_def.requirement:
+        if _REQUIREMENT_ORDER.get(col_def.requirement, 0) > _REQUIREMENT_ORDER.get(merged.requirement, 0):
+            merged.requirement = col_def.requirement
 
     # Merge allow_not_applicable and allow_not_available fields
     for field in ["allow_not_applicable", "allow_not_available"]:

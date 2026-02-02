@@ -63,7 +63,9 @@ def get_openms_file_name(raw: str, extension_convert: str | None = None) -> str:
     raw_bkp = raw
     for current_extension, target_extension in extension_convert_dict.items():
         if raw.lower().endswith(current_extension.lower()):
-            raw = raw.removesuffix(current_extension)
+            # Handle case-insensitive suffix removal
+            suffix_len = len(current_extension)
+            raw = raw[:-suffix_len] if raw[-suffix_len:].lower() == current_extension.lower() else raw
             raw += target_extension
             if not any(raw.endswith(x) for x in supported_extensions):
                 raise RuntimeError(
