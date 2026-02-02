@@ -75,10 +75,12 @@ class SchemaValidator:
         required_columns = [col.name for col in schema.columns if col.requirement == RequirementLevel.REQUIRED]
 
         for validator_config in schema.validators:
-            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
+            # Copy params to avoid mutating the original configuration
+            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
             if validator_config.validator_name == "empty_cells":
-                validator_config.params["required_columns"] = required_columns
-            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
+                params["required_columns"] = required_columns
+            temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
+            validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
         return errors
@@ -111,8 +113,10 @@ class SchemaValidator:
         """Apply validators to a specific column."""
         errors = []
         for validator_config in column_def.validators:
-            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
-            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
+            # Copy params to avoid mutating the original configuration
+            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
+            temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
+            validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
             if validator:
                 col_errors = validator.validate(column_series, column_name=column_def.name)
                 errors.extend(col_errors)

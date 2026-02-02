@@ -66,5 +66,6 @@ config = Config()
 
 
 # For backwards compatibility, export individual values
+# NOTE: These are snapshots at import time. For dynamic access, use config.validation.* directly.
 MINIMUM_COLUMNS = config.validation.minimum_columns
 DEFAULT_TEMPLATES = config.validation.default_templates

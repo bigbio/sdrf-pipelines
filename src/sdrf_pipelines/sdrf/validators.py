@@ -556,7 +556,7 @@ class PatternValidator(SDRFValidator):
         else:
             non_empty_series = series
 
-        not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)].reset_index(drop=True)
+        not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)]
         errors = []
 
         # Build suggestion from YAML params (description and examples)
@@ -591,12 +591,14 @@ class PatternValidator(SDRFValidator):
 
         suggestion = ". ".join(suggestion_parts)
 
-        for idx, value in enumerate(not_matched.values, start=1):
+        for idx, value in not_matched.items():
+            # Convert to 1-based row number for user display
+            row_num = idx + 1 if isinstance(idx, int) else idx
             errors.append(
                 LogicError(
                     message=f"Invalid format for value '{value}'",
                     value=str(value),
-                    row=idx,
+                    row=row_num,
                     column=column_name,
                     error_type=logging.ERROR,
                     suggestion=suggestion,
