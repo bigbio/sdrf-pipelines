@@ -113,12 +113,8 @@ class TestLogicErrorWithCode:
 
     def test_severity_property(self):
         """Test severity property returns correct string."""
-        error_err = LogicError.from_code(
-            ErrorCode.EMPTY_CELL, error_type=logging.ERROR
-        )
-        error_warn = LogicError.from_code(
-            ErrorCode.TRAILING_WHITESPACE, error_type=logging.WARNING
-        )
+        error_err = LogicError.from_code(ErrorCode.EMPTY_CELL, error_type=logging.ERROR)
+        error_warn = LogicError.from_code(ErrorCode.TRAILING_WHITESPACE, error_type=logging.WARNING)
         error_info = LogicError.from_code(ErrorCode.UNKNOWN)
 
         assert error_err.severity == "error"
@@ -195,9 +191,7 @@ class TestValidationManifest:
     def test_filter_by_multiple_codes(self, sample_errors):
         """Test filtering by multiple codes."""
         manifest = ValidationManifest.from_errors(sample_errors)
-        errors = manifest.filter_by_code(
-            ErrorCode.TRAILING_WHITESPACE, ErrorCode.EMPTY_CELL
-        )
+        errors = manifest.filter_by_code(ErrorCode.TRAILING_WHITESPACE, ErrorCode.EMPTY_CELL)
         assert len(errors) == 3
 
     def test_filter_by_row(self, sample_errors):

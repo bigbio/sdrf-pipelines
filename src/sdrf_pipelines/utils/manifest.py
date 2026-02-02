@@ -309,9 +309,4 @@ class ValidationManifest:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return (
-            f"ValidationManifest("
-            f"total={len(self.errors)}, "
-            f"errors={self.error_count}, "
-            f"warnings={self.warning_count})"
-        )
+        return f"ValidationManifest(total={len(self.errors)}, errors={self.error_count}, warnings={self.warning_count})"

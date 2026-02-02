@@ -167,9 +167,7 @@ class LogicError(ValidationWarning):
         if self.context:
             # Include context but filter out None values and duplicates
             filtered_context = {
-                k: v
-                for k, v in self.context.items()
-                if v is not None and k not in ("column", "value", "row")
+                k: v for k, v in self.context.items() if v is not None and k not in ("column", "value", "row")
             }
             if filtered_context:
                 result["context"] = filtered_context
