@@ -153,8 +153,31 @@ class TestMergeColumnDefs:
             validators=[validator],
         )
         result = merge_column_defs([col1, col2], strategy=MergeStrategy.COMBINE)
-        # Should deduplicate validators with the same name
+        # Should deduplicate identical validators
         assert len(result.validators) == 1
+
+    def test_merge_keeps_validators_with_different_params(self):
+        """Test that validators with same name but different params are kept."""
+        validator1 = ValidatorConfig(validator_name="ontology", params={"ontologies": ["efo"]})
+        validator2 = ValidatorConfig(validator_name="ontology", params={"ontologies": ["cl"]})
+        col1 = ColumnDefinition(
+            name="test",
+            description="Test",
+            requirement=RequirementLevel.OPTIONAL,
+            validators=[validator1],
+        )
+        col2 = ColumnDefinition(
+            name="test",
+            description="Test",
+            requirement=RequirementLevel.OPTIONAL,
+            validators=[validator2],
+        )
+        result = merge_column_defs([col1, col2], strategy=MergeStrategy.COMBINE)
+        # Should keep both validators since they have different params
+        assert len(result.validators) == 2
+        ontologies = [v.params.get("ontologies") for v in result.validators]
+        assert ["efo"] in ontologies
+        assert ["cl"] in ontologies
 
 
 class TestSchemaToTsv:
