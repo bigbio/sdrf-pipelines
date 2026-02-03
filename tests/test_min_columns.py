@@ -1,5 +1,4 @@
 import logging
-from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -7,6 +6,8 @@ import pytest
 
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, read_sdrf
+from sdrf_pipelines.utils.error_codes import ErrorCode
+from sdrf_pipelines.utils.manifest import ValidationManifest
 
 TESTS_DIR = Path(__file__).parent
 
@@ -39,7 +40,11 @@ def test_min_columns_ms_proteomics_schema_skip_ontology():
 
 
 def test_min_columns_with_reduced_columns():
-    """Test that validation fails when there are fewer than the required schema columns."""
+    """Test that validation fails when there are fewer than the required schema columns.
+
+    Uses ValidationManifest for robust error checking by error code rather than
+    brittle message string matching.
+    """
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
@@ -55,28 +60,41 @@ def test_min_columns_with_reduced_columns():
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
     errors = validator.validate(sdrf_df, "human", skip_ontology=True)
-    error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
 
-    # Expected errors based on human template schema requirements (without ontology)
-    expected_error_name_counts = Counter(
-        {
-            "Trailing whitespace detected in column name": 1,
-            "Trailing whitespace detected": 1,
-            "Required column 'characteristics[biological replicate]' is missing from the SDRF file": 1,
-            "Required column 'technology type' is missing from the SDRF file": 1,
-            "Required column 'comment[data file]' is missing from the SDRF file": 1,
-            "Required column 'comment[instrument]' is missing from the SDRF file": 1,
-            "Required column 'characteristics[disease]' is missing from the SDRF file": 1,
-            # Age pattern validation - use the new improved error message format
-            "Invalid format for value '1'": 1,
-        }
-    )
-    assert error_name_counts == expected_error_name_counts
+    # Use ValidationManifest for cleaner, more maintainable error checking
+    manifest = ValidationManifest.from_errors(errors)
+
+    # Check error counts by code (more robust than checking exact messages)
+    assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME) == 1
+    assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE) == 1
+    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 5
+    assert manifest.count_by_code(ErrorCode.PATTERN_MISMATCH) == 1
+
+    # Check that specific columns are flagged as missing
+    missing_col_errors = manifest.filter_by_code(ErrorCode.MISSING_REQUIRED_COLUMN)
+    missing_columns = {e.column for e in missing_col_errors}
+    assert "characteristics[biological replicate]" in missing_columns
+    assert "technology type" in missing_columns
+    assert "comment[data file]" in missing_columns
+    assert "comment[instrument]" in missing_columns
+    assert "characteristics[disease]" in missing_columns
+
+    # Check that age pattern validation failed
+    pattern_errors = manifest.filter_by_column("characteristics[age]")
+    assert len(pattern_errors) == 1
+    assert pattern_errors[0].error_code == ErrorCode.PATTERN_MISMATCH
+
+    # Total errors (only count ERROR level, not warnings)
+    error_only = [e for e in errors if e.error_type == logging.ERROR]
+    assert len(error_only) == 8
 
 
 @pytest.mark.ontology
 def test_min_columns_with_reduced_columns_with_ontology():
-    """Test validation with ontology checking (requires OLS dependencies)."""
+    """Test validation with ontology checking (requires OLS dependencies).
+
+    Uses ValidationManifest for robust error checking by error code.
+    """
     test_df = pd.DataFrame(
         {
             "source name": ["sample 1"],
@@ -92,24 +110,27 @@ def test_min_columns_with_reduced_columns_with_ontology():
     validator = SchemaValidator(registry)
     sdrf_df = SDRFDataFrame(test_df)
     errors = validator.validate(sdrf_df, "human", skip_ontology=False)
-    error_name_counts = Counter((error.message for error in errors if error.error_type == logging.ERROR))
 
-    # Expected errors including ontology validation
-    expected_error_name_counts = Counter(
-        {
-            "Trailing whitespace detected in column name": 1,
-            "Trailing whitespace detected": 1,
-            "Required column 'characteristics[biological replicate]' is missing from the SDRF file": 1,
-            "Required column 'technology type' is missing from the SDRF file": 1,
-            "Required column 'comment[data file]' is missing from the SDRF file": 1,
-            "Required column 'comment[instrument]' is missing from the SDRF file": 1,
-            "Required column 'characteristics[disease]' is missing from the SDRF file": 1,
-            (
-                "Term: homo sapiens23 in column 'characteristics[organism]', "
-                "is not found in the given ontology list ncbitaxon"
-            ): 1,
-            # Age pattern validation - use the new improved error message format
-            "Invalid format for value '1'": 1,
-        }
-    )
-    assert error_name_counts == expected_error_name_counts
+    # Use ValidationManifest for robust assertions
+    manifest = ValidationManifest.from_errors(errors)
+
+    # Structure errors
+    assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME) == 1
+    assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE) == 1
+    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 5
+
+    # Pattern errors
+    assert manifest.count_by_code(ErrorCode.PATTERN_MISMATCH) == 1
+
+    # Ontology errors - this is the additional check when skip_ontology=False
+    # Two ontology errors: invalid organism and organism part with leading whitespace
+    assert manifest.count_by_code(ErrorCode.ONTOLOGY_TERM_NOT_FOUND) == 2
+    ontology_errors = manifest.filter_by_code(ErrorCode.ONTOLOGY_TERM_NOT_FOUND)
+    ontology_columns = {e.column for e in ontology_errors}
+    assert "characteristics[organism]" in ontology_columns
+    assert "characteristics[organism part]" in ontology_columns
+
+    # Total errors (9 errors + 1 warning for organism part)
+    error_only = [e for e in errors if e.error_type == logging.ERROR]
+    assert len(error_only) == 9
+    assert manifest.warning_count == 1

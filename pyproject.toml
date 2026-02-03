@@ -55,11 +55,15 @@ parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
+"sdrf_pipelines.sdrf" = ["sdrf-templates/**/*.yaml", "sdrf-templates/**/*.yml"]
 
 # Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
 # The callable encodes branch name into version for ontology cache downloads

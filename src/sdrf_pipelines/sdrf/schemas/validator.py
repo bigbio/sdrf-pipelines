@@ -16,6 +16,7 @@ from sdrf_pipelines.sdrf.schemas.registry import SchemaRegistry
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NOT_APPLICABLE, NOT_AVAILABLE
 from sdrf_pipelines.sdrf.validators import SDRFValidator, get_validator
+from sdrf_pipelines.utils.error_codes import ErrorCode
 from sdrf_pipelines.utils.exceptions import LogicError
 
 
@@ -75,10 +76,12 @@ class SchemaValidator:
         required_columns = [col.name for col in schema.columns if col.requirement == RequirementLevel.REQUIRED]
 
         for validator_config in schema.validators:
-            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
+            # Copy params to avoid mutating the original configuration
+            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
             if validator_config.validator_name == "empty_cells":
-                validator_config.params["required_columns"] = required_columns
-            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
+                params["required_columns"] = required_columns
+            temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
+            validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
             if validator:
                 errors.extend(validator.validate(df, column_name=None))
         return errors
@@ -92,8 +95,8 @@ class SchemaValidator:
         for col_name in required_columns:
             if col_name not in df.columns:
                 errors.append(
-                    LogicError(
-                        message=f"Required column '{col_name}' is missing from the SDRF file",
+                    LogicError.from_code(
+                        ErrorCode.MISSING_REQUIRED_COLUMN,
                         column=col_name,
                         error_type=logging.ERROR,
                         suggestion=f"Add the column '{col_name}' to your SDRF file with appropriate values.",
@@ -111,8 +114,10 @@ class SchemaValidator:
         """Apply validators to a specific column."""
         errors = []
         for validator_config in column_def.validators:
-            validator_config.params["use_ols_cache_only"] = use_ols_cache_only
-            validator = self._create_validator_instance(validator_config, skip_ontology=skip_ontology)
+            # Copy params to avoid mutating the original configuration
+            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
+            temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
+            validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
             if validator:
                 col_errors = validator.validate(column_series, column_name=column_def.name)
                 errors.extend(col_errors)
@@ -127,13 +132,9 @@ class SchemaValidator:
             str_series = column_series.fillna("").astype(str)
             not_applicable_values = str_series[str_series.str.lower().str.contains(NOT_APPLICABLE)]
             if not not_applicable_values.empty:
-                row_indices = not_applicable_values.index.tolist()
                 errors.append(
-                    LogicError(
-                        message=(
-                            f"Column '{column_def.name}' contains 'not applicable' values at "
-                            f"{len(row_indices)} row(s), but this column requires actual values"
-                        ),
+                    LogicError.from_code(
+                        ErrorCode.NOT_APPLICABLE_NOT_ALLOWED,
                         column=column_def.name,
                         error_type=logging.ERROR,
                         suggestion=(
@@ -153,13 +154,9 @@ class SchemaValidator:
             str_series = column_series.fillna("").astype(str)
             not_available_values = str_series[str_series.str.lower().str.contains(NOT_AVAILABLE)]
             if not not_available_values.empty:
-                row_indices = not_available_values.index.tolist()
                 errors.append(
-                    LogicError(
-                        message=(
-                            f"Column '{column_def.name}' contains 'not available' values at "
-                            f"{len(row_indices)} row(s), but this column requires actual values"
-                        ),
+                    LogicError.from_code(
+                        ErrorCode.NOT_AVAILABLE_NOT_ALLOWED,
                         column=column_def.name,
                         error_type=logging.ERROR,
                         suggestion=(
@@ -239,7 +236,13 @@ class SchemaValidator:
                 results[schema_name] = errors
             except Exception as e:
                 logging.error("Error validating against schema '%s': %s", schema_name, e)
-                results[schema_name] = [LogicError(message=f"Validation error: {e}", error_type=logging.ERROR)]
+                results[schema_name] = [
+                    LogicError.from_code(
+                        ErrorCode.VALIDATION_ERROR,
+                        message=str(e),
+                        error_type=logging.ERROR,
+                    )
+                ]
 
         return results
 

@@ -70,7 +70,7 @@ class OpenMS:
             split_by_columns: Columns to split output by (comma-separated in brackets)
             extension_convert: File extension conversion pattern
         """
-        print("PROCESSING: " + sdrf_file + '"')
+        print("PROCESSING: " + sdrf_file)
 
         if split_by_columns:
             split_by_columns = split_by_columns[1:-1]  # trim '[' and ']'
@@ -154,7 +154,6 @@ class OpenMS:
             else:
                 combined_factors = "|".join(list(row[split_by_columns_list]))
 
-            sdrf["_conditions_from_factors"] = pd.Series([None] * sdrf.shape[0], dtype="object")
             f2c.file2combined_factors[raw + row["comment[label]"]] = combined_factors
             list_of_combined_factors.append(combined_factors)
 
@@ -201,7 +200,7 @@ class OpenMS:
             f_tol_str = row["comment[fragment mass tolerance]"].strip()
             tol, unit = parse_tolerance(f_tol_str)
             if tol is None or unit is None:
-                raise ValueError(f"Cannot read precursor mass tolerance: {f_tol_str}")
+                raise ValueError(f"Cannot read fragment mass tolerance: {f_tol_str}")
             f2c.file2fragtol[raw] = tol
             f2c.file2fragtolunit[raw] = unit
         else:

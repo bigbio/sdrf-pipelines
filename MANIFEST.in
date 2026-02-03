@@ -8,4 +8,4 @@ include LICENSE
 recursive-include src/sdrf_pipelines/sdrf/sdrf-templates *.yaml *.yml
 
 # Include other data files
-recursive-include src/sdrf_pipelines *.xml *.tsv *.yaml *.yml *.parquet
+recursive-include src/sdrf_pipelines *.xml *.tsv *.yaml *.yml
