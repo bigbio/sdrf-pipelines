@@ -1,14 +1,9 @@
-# CLI Reference
+# CLI Commands Reference
 
-This documentation is auto-generated from `parse_sdrf --help`.
+> **Note**: This documentation is auto-generated from `parse_sdrf --help`.
+> Do not edit manually - changes will be overwritten.
 
-## Installation
-
-```bash
-pip install sdrf-pipelines
-```
-
-## Main Command
+## Overview
 
 ```
 Usage: parse_sdrf [OPTIONS] COMMAND [ARGS]...
@@ -33,9 +28,7 @@ Commands:
   validate-sdrf-simple  Simple command to validate the sdrf file.
 ```
 
-## Commands
-
-### Validate SDRF
+## Validate SDRF
 
 Command to validate the SDRF file. The validation is based on the template
 provided by the user. User can select the template to be used for
@@ -49,13 +42,9 @@ for validation of the terms and not OLS internet service @param
 skip_ontology: flag to skip ontology term validation @param out: Output file
 to write the validation results to (default: stdout)
 
-## Usage
-
 ```bash
 parse_sdrf validate-sdrf [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -69,16 +58,11 @@ parse_sdrf validate-sdrf [OPTIONS]
 | `--proof_salt TEXT` | Optional user-provided salt for proof generation |
 | `-h, --help` | Show this message and exit. |
 
-
-### Convert to OpenMS
-
-## Usage
+## Convert to OpenMS
 
 ```bash
 parse_sdrf convert-openms [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -90,16 +74,11 @@ parse_sdrf convert-openms [OPTIONS]
 | `-e, --extension_convert TEXT` | convert extensions of files from one type to other 'raw:mzML,mzml:MZML,d:d'. The original extensions are case insensitive |
 | `-h, --help` | Show this message and exit. |
 
-
-### Convert to MaxQuant
-
-## Usage
+## Convert to MaxQuant
 
 ```bash
 parse_sdrf convert-maxquant [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -116,16 +95,11 @@ parse_sdrf convert-maxquant [OPTIONS]
 | `-o2, --output2 TEXT` | maxquant experimental design .txt file |
 | `-h, --help` | Show this message and exit. |
 
-
-### Convert to MSstats
-
-## Usage
+## Convert to MSstats
 
 ```bash
 parse_sdrf convert-msstats [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -136,16 +110,11 @@ parse_sdrf convert-msstats [OPTIONS]
 | `-mq, --maxqtomsstats BOOLEAN` | from maxquant output to msstats |
 | `-h, --help` | Show this message and exit. |
 
-
-### Convert to NormalyzerDE
-
-## Usage
+## Convert to NormalyzerDE
 
 ```bash
 parse_sdrf convert-normalyzerde [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -156,16 +125,11 @@ parse_sdrf convert-normalyzerde [OPTIONS]
 | `-mq, --maxquant_exp_design_file TEXT` | Path to maxquant experimental design file for mapping MQ sample names |
 | `-h, --help` | Show this message and exit. |
 
-
-### Split SDRF
-
-## Usage
+## Split SDRF
 
 ```bash
 parse_sdrf split-sdrf [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -174,8 +138,7 @@ parse_sdrf split-sdrf [OPTIONS]
 | `-p, --prefix TEXT` | file prefix to be added to the sdrf file name |
 | `-h, --help` | Show this message and exit. |
 
-
-### Download Ontology Cache
+## Download Ontology Cache
 
 Download ontology cache files from GitHub for offline validation.
 By default, ontology cache files are automatically downloaded on first use
@@ -187,13 +150,9 @@ EFO and CL     parse_sdrf download-cache --show-info        # Show cache
 information     parse_sdrf download-cache -f                 # Force re-
 download all files
 
-## Usage
-
 ```bash
 parse_sdrf download-cache [OPTIONS]
 ```
-
-## Options
 
 | Option | Description |
 |--------|-------------|
@@ -202,5 +161,3 @@ parse_sdrf download-cache [OPTIONS]
 | `-i, --show-info` | Show cache information (location, available ontologies, download URLs) without downloading |
 | `-f, --force` | Force re-download even if files already exist in cache |
 | `-h, --help` | Show this message and exit. |
-
-

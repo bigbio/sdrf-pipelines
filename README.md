@@ -30,13 +30,10 @@ The basic installation validates column structure, formatting, and uniqueness. A
 
 ## Usage
 
-For detailed command documentation, see the [CLI Reference](docs/cli/reference.md) or use the built-in help:
+For detailed command documentation, see **[COMMANDS.md](COMMANDS.md)** or use the built-in help:
 
 ```bash
-# List all available commands
 parse_sdrf --help
-
-# Get help for a specific command
 parse_sdrf validate-sdrf --help
 ```
 
