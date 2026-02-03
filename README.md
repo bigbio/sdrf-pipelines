@@ -30,7 +30,7 @@ The basic installation validates column structure, formatting, and uniqueness. A
 
 ## Usage
 
-For detailed command documentation, use the built-in help:
+For detailed command documentation, see the [CLI Reference](docs/cli/reference.md) or use the built-in help:
 
 ```bash
 # List all available commands
@@ -38,9 +38,6 @@ parse_sdrf --help
 
 # Get help for a specific command
 parse_sdrf validate-sdrf --help
-parse_sdrf convert-openms --help
-parse_sdrf convert-maxquant --help
-parse_sdrf convert-msstats --help
 ```
 
 ### Validation Examples

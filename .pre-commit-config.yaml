@@ -16,3 +16,11 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: ['pandas-stubs', 'pydantic', 'types-requests', 'types-PyYAML', 'types-defusedxml']
+  - repo: local
+    hooks:
+      - id: generate-cli-docs
+        name: Generate CLI Documentation
+        entry: python scripts/generate_cli_docs.py
+        language: system
+        pass_filenames: false
+        files: ^src/sdrf_pipelines/parse_sdrf\.py$
