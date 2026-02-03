@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/sdrf-pipelines.svg)](https://badge.fury.io/py/sdrf-pipelines)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sdrf-pipelines)
-![Python application](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20application/badge.svg)
+[![CI](https://github.com/bigbio/sdrf-pipelines/actions/workflows/ci.yml/badge.svg)](https://github.com/bigbio/sdrf-pipelines/actions/workflows/ci.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/ebf85b7ad8304422ab495c3f720bf3ae)](https://www.codacy.com/gh/bigbio/sdrf-pipelines/dashboard)
 
 The official **SDRF-Proteomics validator and converter**. Validate your sample metadata files and convert them to workflow configurations for OpenMS, MaxQuant, MSstats, and more.
