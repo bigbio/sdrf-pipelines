@@ -130,7 +130,7 @@ class SchemaValidator:
         errors = []
         if not column_def.allow_not_applicable:
             str_series = column_series.fillna("").astype(str)
-            not_applicable_values = str_series[str_series.str.lower().str.contains(NOT_APPLICABLE)]
+            not_applicable_values = str_series[str_series.str.strip().str.lower() == NOT_APPLICABLE]
             if not not_applicable_values.empty:
                 errors.append(
                     LogicError.from_code(
@@ -152,7 +152,7 @@ class SchemaValidator:
         errors = []
         if not column_def.allow_not_available:
             str_series = column_series.fillna("").astype(str)
-            not_available_values = str_series[str_series.str.lower().str.contains(NOT_AVAILABLE)]
+            not_available_values = str_series[str_series.str.strip().str.lower() == NOT_AVAILABLE]
             if not not_available_values.empty:
                 errors.append(
                     LogicError.from_code(
