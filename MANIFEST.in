@@ -1,11 +1,3 @@
-# Include the README
+# Source distribution files (not package data - that's in pyproject.toml)
 include README.md
-
-# Include the license file
 include LICENSE
-
-# Include all YAML template files from sdrf-templates submodule
-recursive-include src/sdrf_pipelines/sdrf/sdrf-templates *.yaml *.yml
-
-# Include other data files
-recursive-include src/sdrf_pipelines *.xml *.tsv *.yaml *.yml

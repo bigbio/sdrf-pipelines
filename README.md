@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/sdrf-pipelines.svg)](https://badge.fury.io/py/sdrf-pipelines)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sdrf-pipelines)
-![Python application](https://github.com/bigbio/sdrf-pipelines/workflows/Python%20application/badge.svg)
+[![CI](https://github.com/bigbio/sdrf-pipelines/actions/workflows/ci.yml/badge.svg)](https://github.com/bigbio/sdrf-pipelines/actions/workflows/ci.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/ebf85b7ad8304422ab495c3f720bf3ae)](https://www.codacy.com/gh/bigbio/sdrf-pipelines/dashboard)
 
 The official **SDRF-Proteomics validator and converter**. Validate your sample metadata files and convert them to workflow configurations for OpenMS, MaxQuant, MSstats, and more.
@@ -28,197 +28,45 @@ That's it! Your SDRF file will be validated against the default mass spectrometr
 
 The basic installation validates column structure, formatting, and uniqueness. Add `[ontology]` to also validate that terms exist in their respective ontologies.
 
-## Validation
+## Usage
 
-### Basic Validation
+For detailed command documentation, use the built-in help:
 
 ```bash
-parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv
+# List all available commands
+parse_sdrf --help
+
+# Get help for a specific command
+parse_sdrf validate-sdrf --help
+parse_sdrf convert-openms --help
+parse_sdrf convert-maxquant --help
+parse_sdrf convert-msstats --help
 ```
 
-### Using Templates
-
-Templates define validation rules for specific experiment types. Use `--template` to apply additional rules:
+### Validation Examples
 
 ```bash
-# Human samples - adds ancestry, disease validation
+# Basic validation
+parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv
+
+# Validate with a specific template
 parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --template human
 
-# Cell line experiments
-parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --template cell-lines
-
-# Multiple templates (comma-separated)
-parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --template human,cell-lines
-```
-
-**Available templates:**
-
-| Template | Description |
-|----------|-------------|
-| `ms-proteomics` | Mass spectrometry proteomics (default) |
-| `affinity-proteomics` | Olink, SomaScan experiments |
-| `human` | Human samples (adds ancestry, disease) |
-| `vertebrates` | Vertebrate samples |
-| `invertebrates` | Invertebrate samples |
-| `plants` | Plant samples |
-| `cell-lines` | Cell line experiments |
-
-### Skip Ontology Validation
-
-For quick structural checks without ontology lookups:
-
-```bash
+# Skip ontology validation for quick structural checks
 parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --skip-ontology
 ```
 
-### Validation Output
-
-The validator reports errors and warnings:
-
-```
-ERROR: Column 'characteristics[organism]' value 'human' not found in NCBI Taxonomy
-WARNING: Column 'characteristics[cell type]' - consider using ontology term
-```
-
-- **Errors** must be fixed for a valid SDRF
-- **Warnings** are recommendations that won't fail validation
-
-### Ontology Cache
-
-When using ontology validation, terms are cached locally for faster subsequent runs:
+### Converter Examples
 
 ```bash
-# Pre-download all ontology caches (optional)
-parse_sdrf download-cache
-
-# Download specific ontologies
-parse_sdrf download-cache -o efo,cl,ms
-
-# Show cache information
-parse_sdrf download-cache --show-info
-```
-
-Cache location: `~/.cache/sdrf-pipelines/ontologies/` (Linux/macOS) or `%LOCALAPPDATA%\sdrf-pipelines\ontologies\` (Windows)
-
-## Converters
-
-Convert SDRF files to configuration files for proteomics workflows.
-
-<details>
-<summary><strong>OpenMS Converter</strong></summary>
-
-Convert SDRF to OpenMS experimental design files:
-
-```bash
+# Convert to OpenMS format
 parse_sdrf convert-openms -s sdrf.tsv
-```
 
-**Output files:**
+# Convert to MaxQuant format
+parse_sdrf convert-maxquant -s sdrf.tsv -f database.fasta -r /path/to/raw/files
 
-1. **Experimental settings** (`openms.tsv`) - one row per raw file with search parameters:
-
-| Filename | FixedModifications | VariableModifications | Label | PrecursorMassTolerance | Enzyme |
-|----------|-------------------|----------------------|-------|----------------------|--------|
-| sample1.raw | Carbamidomethyl (C) | Oxidation (M) | label free sample | 10 ppm | Trypsin |
-
-2. **Experimental design** (`experimental_design.tsv`) - sample-to-file mapping:
-
-| Fraction_Group | Fraction | Spectra_Filepath | Label | MSstats_Condition | MSstats_BioReplicate |
-|---------------|----------|------------------|-------|-------------------|---------------------|
-| 1 | 1 | sample1.raw | 1 | control | 1 |
-| 2 | 1 | sample2.raw | 1 | treatment | 2 |
-
-</details>
-
-<details>
-<summary><strong>MaxQuant Converter</strong></summary>
-
-Convert SDRF to MaxQuant parameter and experimental design files:
-
-```bash
-parse_sdrf convert-maxquant -s sdrf.tsv -f database.fasta -r /path/to/raw/files -o1 mqpar.xml -o2 experimentalDesign.txt
-```
-
-**Parameters:**
-
-| Flag | Description |
-|------|-------------|
-| `-s` | SDRF file path |
-| `-f` | FASTA database file |
-| `-r` | Raw files directory |
-| `-o1` | Output mqpar.xml path |
-| `-o2` | Output experimental design path |
-| `-m` | Enable match between runs (True/False) |
-| `-n` | Number of threads |
-| `-t` | Temp folder (SSD recommended) |
-
-**Output files:**
-
-1. **mqpar.xml** - MaxQuant parameters (enzyme, modifications, instrument, etc.)
-2. **experimentalDesign.txt** - Sample mapping:
-
-| Name | Fraction | Experiment | PTM |
-|------|----------|------------|-----|
-| sample1.raw | 1 | control_1 | |
-| sample2.raw | 1 | treatment_1 | |
-
-</details>
-
-<details>
-<summary><strong>MSstats Converter</strong></summary>
-
-Convert SDRF to MSstats annotation file:
-
-```bash
+# Convert to MSstats annotation
 parse_sdrf convert-msstats -s sdrf.tsv -o annotation.csv
-```
-
-**Parameters:**
-
-| Flag | Description |
-|------|-------------|
-| `-s` | SDRF file path |
-| `-o` | Output annotation file path |
-| `-c` | Condition columns (e.g., factor columns) |
-| `-swath` | OpenSWATH to MSstats format |
-| `-mq` | MaxQuant to MSstats format |
-
-</details>
-
-<details>
-<summary><strong>NormalyzerDE Converter</strong></summary>
-
-Convert SDRF to NormalyzerDE design file:
-
-```bash
-parse_sdrf convert-normalyzerde -s sdrf.tsv -o design.tsv
-```
-
-**Parameters:**
-
-| Flag | Description |
-|------|-------------|
-| `-s` | SDRF file path |
-| `-o` | Output design file path |
-| `-c` | Group columns |
-| `-oc` | Output comparisons file (optional) |
-| `-mq` | MaxQuant experimental design for sample name mapping |
-
-</details>
-
-## CLI Reference
-
-```
-$ parse_sdrf --help
-
-Commands:
-  validate-sdrf         Validate an SDRF file
-  convert-openms        Convert SDRF to OpenMS format
-  convert-maxquant      Convert SDRF to MaxQuant format
-  convert-msstats       Convert SDRF to MSstats annotation
-  convert-normalyzerde  Convert SDRF to NormalyzerDE design
-  split-sdrf            Split SDRF by a column value
-  download-cache        Download ontology cache files
 ```
 
 ## Development
@@ -250,22 +98,12 @@ uv run pre-commit install
 
 # Run all checks manually
 uv run pre-commit run --all-files
-
-# OR run ruff directly (usually not necessary)
-uv run ruff check .      # Linting
-uv run ruff format .     # Formatting
 ```
 
 ### Running Tests
 
 ```bash
 uv run pytest
-```
-
-### Type Checking (if not already done in pre-commit)
-
-```bash
-uv run mypy src/sdrf_pipelines
 ```
 
 For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
