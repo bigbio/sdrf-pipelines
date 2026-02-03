@@ -1,15 +1,37 @@
-# Agent instructions for sdrf-pipelines
+# Agent Instructions for sdrf-pipelines
 
-## Package manager
+## Package Manager
 
-USE UV.
+Use `uv` (not pip):
+```bash
+uv sync --group dev
+uv run pytest
+uv run pre-commit run --all-files
+```
 
-## Related repositories
+## Related Repositories
 
-- **Templates**: For SDRF template definitions (columns, YAML schemas), see the [sdrf-templates](https://github.com/bigbio/sdrf-templates) repository.
-- **Guidelines**: For the SDRF-Proteomics specification and annotation guidelines, see the [proteomics-metadata-standard](https://github.com/bigbio/proteomics-metadata-standard) repository (e.g. `sdrf-proteomics/`, docs, and annotated examples).
+- **[sdrf-templates](https://github.com/bigbio/sdrf-templates)**: YAML schema definitions (submodule at `src/sdrf_pipelines/sdrf/sdrf-templates`). Template changes go there, not here.
+- **[proteomics-metadata-standard](https://github.com/bigbio/proteomics-metadata-standard)**: SDRF-Proteomics specification and guidelines.
 
-## This repository
+## Style
 
-- CLI: `parse_sdrf` — see [COMMANDS.md](COMMANDS.md).
-- Dev workflow: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Type hints required, checked by `mypy`
+- Format with `ruff format`, lint with `ruff check`
+- Run `pre-commit run --all-files` before committing
+
+## Testing
+
+- Use `ErrorCode` enums and `ValidationManifest` in tests, not string matching on error messages
+- Skip slow ontology tests by default; use `--run-ontology` to include them
+
+## Auto-generated Files
+
+- `COMMANDS.md`: Auto-generated from CLI help. Don't edit manually.
+
+## CLI
+
+```bash
+parse_sdrf --help
+parse_sdrf validate-sdrf -s file.sdrf.tsv
+```
