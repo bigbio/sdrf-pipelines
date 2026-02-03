@@ -1,0 +1,4 @@
+[submodule "src/sdrf_pipelines/sdrf/sdrf-templates"]
+	path = src/sdrf_pipelines/sdrf/sdrf-templates
+	url = https://github.com/bigbio/sdrf-templates
+	branch = main

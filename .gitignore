@@ -126,3 +126,10 @@ pip-wheel-metadata
 .*.sw?
 
 .qodo
+
+
+#Ignore cursor AI rules
+.cursor/
+.codacy/
+.claude/
+.ruff_cache/

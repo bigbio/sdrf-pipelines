@@ -4,13 +4,35 @@ from typing import Any
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from sdrf_pipelines.config import config
 from sdrf_pipelines.ols.ols import OLS_AVAILABLE
 
 if OLS_AVAILABLE:
     from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
 from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABLE
+from sdrf_pipelines.utils.error_codes import ErrorCode
 from sdrf_pipelines.utils.exceptions import LogicError
+
+
+def _is_string_like_dtype(series: pd.Series) -> bool:
+    """Check if a pandas Series has a string-like dtype.
+
+    Handles both legacy object dtype and newer StringDtype (including pyarrow-backed strings).
+    This provides compatibility with Python 3.12+ where pandas may use StringDtype by default.
+
+    Args:
+        series: The pandas Series to check
+
+    Returns:
+        True if the series contains string-like data, False otherwise
+    """
+    if series.dtype == object:
+        return True
+    try:
+        return pd.api.types.is_string_dtype(series)
+    except (AttributeError, TypeError):
+        return False
 
 
 class SDRFValidator(BaseModel):
@@ -75,6 +97,60 @@ def get_validator(validator_name: str) -> type[SDRFValidator] | None:
     return _VALIDATOR_REGISTRY.get(validator_name)
 
 
+@register_validator(validator_name="values")
+class ValuesValidator(SDRFValidator):
+    """Validate that column values are from an allowed list."""
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        """
+        Validate if values in the series are from the allowed list.
+
+        Parameters:
+            series: The pandas Series to validate
+            column_name: The name of the column being validated
+
+        Returns:
+            List of LogicError for invalid values
+        """
+        allowed_values = self.params.get("values", [])
+        error_level = self.params.get("error_level", "warning")
+        description = self.params.get("description", "")
+
+        if not allowed_values:
+            return []
+
+        # Normalize values for comparison (case-insensitive)
+        allowed_lower = {str(v).lower() for v in allowed_values}
+        errors = []
+
+        for idx, value in series.items():
+            str_value = str(value).strip()
+            # Skip empty/NA values
+            if str_value.lower() in ("", "nan", "not applicable", "not available"):
+                continue
+            if str_value.lower() not in allowed_lower:
+                level = logging.WARNING if error_level == "warning" else logging.ERROR
+                # Format allowed values for readability
+                if len(allowed_values) <= 5:
+                    allowed_str = ", ".join(f"'{v}'" for v in allowed_values)
+                else:
+                    allowed_str = ", ".join(f"'{v}'" for v in allowed_values[:5]) + f"... ({len(allowed_values)} total)"
+                desc_info = f" {description}" if description else ""
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.INVALID_VALUE,
+                        value=str(value),
+                        row=idx if isinstance(idx, int) else -1,
+                        column=column_name,
+                        error_type=level,
+                        suggestion=f"Use one of: {allowed_str}",
+                        description=desc_info,
+                    )
+                )
+
+        return errors
+
+
 @register_validator(validator_name="unique_values_validator")
 class UniqueValuesValidator(SDRFValidator):
     def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
@@ -93,14 +169,16 @@ class UniqueValuesValidator(SDRFValidator):
 
         for value in duplicates:
             duplicate_indices = series[series == value].index.tolist()
-            row_info = ", ".join(str(idx) for idx in duplicate_indices)
-            column_info = f" in column '{column_name}'" if column_name else ""
+            # Convert to 1-based row numbers for user display
+            row_info = ", ".join(str(idx + 1) for idx in duplicate_indices)
             errors.append(
-                LogicError(
-                    message=f"Value '{value}'{column_info} is duplicated at rows: {row_info}",
-                    row=-1,
+                LogicError.from_code(
+                    ErrorCode.DUPLICATE_VALUE,
+                    value=str(value),
+                    rows=row_info,
                     column=column_name,
                     error_type=logging.ERROR,
+                    suggestion="Values must be unique. Check for copy-paste errors.",
                 )
             )
 
@@ -121,12 +199,11 @@ class SingleCardinalityValidator(SDRFValidator):
         errors = []
 
         if len(unique_values) > 1:
-            column_info = f" in column '{column_name}'" if column_name else ""
             errors.append(
-                LogicError(
-                    message=f"Column{column_info} has multiple unique values: {', '.join(map(str, unique_values))}",
-                    row=-1,
+                LogicError.from_code(
+                    ErrorCode.SINGLE_CARDINALITY_VIOLATED,
                     column=column_name,
+                    values=", ".join(map(str, unique_values)),
                     error_type=logging.ERROR,
                 )
             )
@@ -144,14 +221,16 @@ class TrailingWhitespaceValidator(SDRFValidator):
         value: str,
         row: int | None = None,
         column: str | None = None,
-        message: str = "Trailing whitespace detected",
+        is_column_name: bool = False,
     ) -> LogicError:
-        return LogicError(
-            message=message,
+        error_code = ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME if is_column_name else ErrorCode.TRAILING_WHITESPACE
+        return LogicError.from_code(
+            error_code,
             value=value,
             row=row if row is not None else -1,
             column=column,
             error_type=logging.ERROR,
+            suggestion="Remove trailing spaces/tabs from the value. Check your spreadsheet for extra whitespace.",
         )
 
     def _validate_string(self, value: str) -> list[LogicError]:
@@ -174,14 +253,13 @@ class TrailingWhitespaceValidator(SDRFValidator):
         original_columns = value.get_original_columns()
         for col in original_columns:
             if col.rstrip() != col:
-                errors.append(
-                    self._create_trailing_whitespace_error(col, message="Trailing whitespace detected in column name")
-                )
+                errors.append(self._create_trailing_whitespace_error(col, is_column_name=True))
 
         # Check cell values
         for col in value.columns:
-            if value[col].dtype == object:
-                for idx, cell_value in enumerate(value[col]):
+            col_series = value[col]
+            if isinstance(col_series, pd.Series) and _is_string_like_dtype(col_series):
+                for idx, cell_value in enumerate(col_series):
                     if self._has_trailing_whitespace(cell_value):
                         errors.append(self._create_trailing_whitespace_error(cell_value, row=idx, column=col))
 
@@ -189,7 +267,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
     def _validate_series(self, value: pd.Series) -> list[LogicError]:
         errors = []
-        if value.dtype == object:
+        if _is_string_like_dtype(value):
             for idx, cell_value in enumerate(value):
                 if self._has_trailing_whitespace(cell_value):
                     errors.append(self._create_trailing_whitespace_error(cell_value, row=idx))
@@ -230,7 +308,7 @@ class TrailingWhitespaceValidator(SDRFValidator):
 
 @register_validator(validator_name="min_columns")
 class MinimumColumns(SDRFValidator):
-    minimum_columns: int = 12
+    minimum_columns: int = config.validation.minimum_columns
 
     def __init__(self, params: dict[str, Any] | None = None, **data: Any):
         super().__init__(**data)
@@ -246,9 +324,15 @@ class MinimumColumns(SDRFValidator):
         errors = []
         if len(value.columns) < self.minimum_columns:
             errors.append(
-                LogicError(
-                    message=f"The number of columns is lower than the mandatory number {self.minimum_columns}",
+                LogicError.from_code(
+                    ErrorCode.INSUFFICIENT_COLUMNS,
+                    actual=len(value.columns),
+                    required=self.minimum_columns,
                     error_type=logging.ERROR,
+                    suggestion=(
+                        "Ensure your SDRF includes all required columns. "
+                        "Run 'parse_sdrf validate -s <file>' to see which columns are missing."
+                    ),
                 )
             )
         return errors
@@ -264,6 +348,8 @@ if OLS_AVAILABLE:
         ontologies: list[str] = Field(default_factory=list)
         error_level: int = logging.INFO
         use_ols_cache_only: bool = False
+        description: str = ""
+        examples: list[str] = Field(default_factory=list)
         model_config = {"arbitrary_types_allowed": True}
 
         def __init__(self, params: dict[str, Any] | None = None, **data: Any):
@@ -282,8 +368,14 @@ if OLS_AVAILABLE:
                             self.error_level = logging.INFO
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
+                    elif key == "description":
+                        self.description = value
+                    elif key == "examples":
+                        self.examples = value if isinstance(value, list) else [value]
 
-        def validate(self, value: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        def validate(  # type: ignore[override]
+            self, value: pd.Series, column_name: str | None = None
+        ) -> list[LogicError]:
             """
             Validate if the term is present in the provided ontology. This method looks in the provided
             ontology _ontology_name
@@ -317,12 +409,11 @@ if OLS_AVAILABLE:
                 try:
                     term = self.ontology_term_parser(x)
                     terms.append(term)
-                except ValueError as e:
-                    column_info = f" in column '{column_name}'" if column_name else ""
+                except ValueError:
                     errors.append(
-                        LogicError(
-                            message=f"Term: {x}{column_info}, is not a valid ontology term. Error: {str(e)}",
-                            row=-1,
+                        LogicError.from_code(
+                            ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT,
+                            value=x,
                             column=column_name,
                             error_type=logging.ERROR,
                         )
@@ -367,16 +458,28 @@ if OLS_AVAILABLE:
                     # Skip empty values - they are handled by empty_cells validator
                     if not cell_value or str(cell_value).strip() == "":
                         continue
-                    column_info = f" in column '{column_name}'" if column_name else ""
+                    # Build suggestion with description and examples
+                    suggestion_parts = []
+                    if self.description:
+                        suggestion_parts.append(self.description)
+                    else:
+                        suggestion_parts.append(f"Value should be a valid term from: {', '.join(self.ontologies)}")
+                    if self.examples:
+                        example_str = ", ".join(f"'{ex}'" for ex in self.examples[:3])
+                        if len(self.examples) > 3:
+                            example_str += f" (and {len(self.examples) - 3} more)"
+                        suggestion_parts.append(f"Examples: {example_str}")
+                    suggestion = ". ".join(suggestion_parts)
+
                     errors.append(
-                        LogicError(
-                            message=(
-                                f"Term: {cell_value}{column_info}, is not found in the "
-                                f"given ontology list {';'.join(self.ontologies)}"
-                            ),
-                            row=idx,
+                        LogicError.from_code(
+                            ErrorCode.ONTOLOGY_TERM_NOT_FOUND,
+                            value=cell_value,
                             column=column_name,
+                            ontologies=";".join(self.ontologies),
+                            row=idx,
                             error_type=self.error_level,
+                            suggestion=suggestion,
                         )
                     )
             return errors
@@ -420,7 +523,13 @@ if OLS_AVAILABLE:
 
 @register_validator(validator_name="pattern")
 class PatternValidator(SDRFValidator):
-    """Validator that checks if values match a regular expression pattern."""
+    """Validator that checks if values match a regular expression pattern.
+
+    Params:
+        pattern: The regex pattern to match
+        case_sensitive: Whether the match is case-sensitive (default: False)
+        allow_empty: Whether to skip empty values (default: True)
+    """
 
     def validate(self, series: pd.Series, column_name: str) -> list[LogicError]:  # type: ignore[override]
         """
@@ -436,19 +545,63 @@ class PatternValidator(SDRFValidator):
 
         pattern = self.params["pattern"]
         case = self.params.get("case_sensitive", False)
+        allow_empty = self.params.get("allow_empty", True)
 
         series = series.astype(str)
-        not_matched = series[~series.str.match(pat=pattern, case=case)].reset_index(drop=True)
+
+        # Filter out empty values if allow_empty is True
+        if allow_empty:
+            non_empty_series = series[series.str.strip() != ""]
+        else:
+            non_empty_series = series
+
+        not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)]
         errors = []
 
-        for idx, value in enumerate(not_matched.values, start=1):
-            column_info = f" in column '{column_name}'"
+        # Build suggestion from YAML params (description and examples)
+        description = self.params.get("description")
+        examples = self.params.get("examples", [])
+
+        # Build suggestion message
+        suggestion_parts = []
+
+        if description:
+            suggestion_parts.append(description)
+        else:
+            # Fall back to pattern hints for common patterns
+            pattern_hints = {
+                r"^\d+[yYmMdD]": "Age format like '25y', '6m', '30d' or combinations like '25y6m'",
+                r"not available|not applicable": "Use 'not available' or 'not applicable' for missing values",
+                r"NT=.+;AC=": "Ontology term format: NT=term_name;AC=ONTOLOGY:accession",
+            }
+            for hint_pattern, hint_text in pattern_hints.items():
+                if hint_pattern in pattern:
+                    suggestion_parts.append(hint_text)
+                    break
+            if not suggestion_parts:
+                suggestion_parts.append(f"Value must match the pattern: {pattern}")
+
+        # Add examples if available
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])  # Show up to 3 examples
+            if len(examples) > 3:
+                example_str += f" (and {len(examples) - 3} more)"
+            suggestion_parts.append(f"Examples: {example_str}")
+
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in not_matched.items():
+            # Convert to 1-based row number for user display
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
             errors.append(
-                LogicError(
-                    message=f"Value '{value}'{column_info} does not match the required pattern: {pattern}",
-                    row=idx,
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
                     column=column_name,
                     error_type=logging.ERROR,
+                    suggestion=suggestion,
+                    pattern=pattern,
                 )
             )
 
@@ -463,39 +616,45 @@ class ColumnOrderValidator(SDRFValidator):
         errors = []
         characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
         if characteristics_after_assay:
-            error_message = (
-                f"All characteristics columns must be before 'assay name'. "
-                f"Found after: {', '.join(characteristics_after_assay)}"
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.CHARACTERISTICS_AFTER_ASSAY,
+                    columns=", ".join(characteristics_after_assay),
+                    error_type=logging.ERROR,
+                )
             )
-            errors.append(LogicError(message=error_message, error_type=logging.ERROR))
         return errors
 
-    def _validate_column_before_assay(self, column: str, idx: int, assay_index: int) -> tuple[str, int | None]:
-        error_message, error_type = "", None
+    def _validate_column_before_assay(
+        self, column: str, idx: int, assay_index: int
+    ) -> tuple[ErrorCode | None, int | None]:
+        error_code, error_type = None, None
 
         if "comment" in column:
-            error_message = f"The column '{column}' cannot be before the assay name"
+            error_code = ErrorCode.COMMENT_BEFORE_ASSAY
             error_type = logging.ERROR
         elif "technology type" in column:
-            error_message = f"The column '{column}' must be immediately after the assay name"
+            error_code = ErrorCode.TECHNOLOGY_TYPE_MISPLACED
             if assay_index - idx > 1:
                 error_type = logging.ERROR
             else:
                 error_type = logging.WARNING
 
-        return error_message, error_type
+        return error_code, error_type
 
-    def _validate_column_after_assay(self, column: str, idx: int, assay_index: int) -> tuple[str, int | None]:
-        error_message, error_type = "", None
+    def _validate_column_after_assay(
+        self, column: str, idx: int, assay_index: int
+    ) -> tuple[ErrorCode | None, int | None]:
+        error_code, error_type = None, None
 
         if "characteristics" in column or ("material type" in column and "factor value" not in column):
-            error_message = f"The column '{column}' cannot be after the assay name"
+            error_code = ErrorCode.COLUMN_ORDER_INVALID
             error_type = logging.ERROR
         elif "technology type" in column and idx > assay_index + 1:
-            error_message = f"The column '{column}' must be immediately after the assay name"
+            error_code = ErrorCode.TECHNOLOGY_TYPE_MISPLACED
             error_type = logging.ERROR
 
-        return error_message, error_type
+        return error_code, error_type
 
     def _validate_individual_columns(self, cnames: list[str], assay_index: int) -> tuple[list[LogicError], int | None]:
         errors = []
@@ -503,12 +662,12 @@ class ColumnOrderValidator(SDRFValidator):
 
         for idx, column in enumerate(cnames):
             if idx < assay_index:
-                error_message, error_type = self._validate_column_before_assay(column, idx, assay_index)
+                error_code, error_type = self._validate_column_before_assay(column, idx, assay_index)
             else:
-                error_message, error_type = self._validate_column_after_assay(column, idx, assay_index)
+                error_code, error_type = self._validate_column_after_assay(column, idx, assay_index)
 
-            if error_type is not None:
-                errors.append(LogicError(message=error_message, error_type=error_type))
+            if error_type is not None and error_code is not None:
+                errors.append(LogicError.from_code(error_code, column=column, error_type=error_type))
 
             if "factor value" in column and factor_index is None:
                 factor_index = idx
@@ -518,18 +677,23 @@ class ColumnOrderValidator(SDRFValidator):
     def _validate_factor_columns(self, cnames: list[str], factor_index: int) -> list[LogicError]:
         errors = []
         temp: list[str] = []
-        error = []
+        error_cols: list[str] = []
 
         for column in cnames[factor_index:]:
             if "comment" in column or "characteristics" in column:
-                error.extend(temp)
+                error_cols.extend(temp)
                 temp = []
             elif "factor value" in column:
                 temp.append(column)
 
-        if len(error):
-            error_message = f"The following factor column should be last: {', '.join(error)}"
-            errors.append(LogicError(message=error_message, error_type=logging.ERROR))
+        if error_cols:
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.FACTOR_COLUMN_NOT_LAST,
+                    columns=", ".join(error_cols),
+                    error_type=logging.ERROR,
+                )
+            )
 
         return errors
 
@@ -551,7 +715,7 @@ class ColumnOrderValidator(SDRFValidator):
         if "assay name" not in list(df):
             return error_columns_order
 
-        cnames = list(df)
+        cnames: list[str] = [str(c) for c in df.columns]
         assay_index = cnames.index("assay name")
 
         error_columns_order.extend(self._check_characteristics_before_assay(cnames, assay_index))
@@ -590,25 +754,27 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
         missing_columns = [col for col in columns if col not in df.columns]
         if missing_columns:
             return [
-                LogicError(
-                    message=f"Columns not found in DataFrame: {', '.join(missing_columns)}",
+                LogicError.from_code(
+                    ErrorCode.COLUMNS_NOT_FOUND,
+                    columns=", ".join(missing_columns),
                     error_type=logging.ERROR,
                 )
             ]
-        inner_df = df.df
+        # Handle both SDRFDataFrame and plain DataFrame
+        inner_df: pd.DataFrame = df.df if isinstance(df, SDRFDataFrame) else df
         duplicates = inner_df[inner_df.duplicated(subset=columns, keep=False)]
-        errors = []
+        errors: list[LogicError] = []
 
         if not duplicates.empty:
             grouped = duplicates.groupby(columns).apply(lambda x: x.index.tolist())
             for combo, indices in grouped.items():
                 row_info = ", ".join(str(idx) for idx in indices)
-                column_info = f" in columns '{', '.join(columns)}'"
                 errors.append(
-                    LogicError(
-                        message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
-                        row=-1,
-                        column=", ".join(columns),
+                    LogicError.from_code(
+                        ErrorCode.DUPLICATE_COMBINATION,
+                        value=str(combo),
+                        columns=", ".join(columns),
+                        rows=row_info,
                         error_type=logging.ERROR,
                     )
                 )
@@ -623,8 +789,9 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
             missing_columns_warning = [col for col in columns_warning if col not in df.columns]
             if missing_columns_warning:
                 return [
-                    LogicError(
-                        message=f"Columns not found in DataFrame: {', '.join(missing_columns_warning)}",
+                    LogicError.from_code(
+                        ErrorCode.COLUMNS_NOT_FOUND,
+                        columns=", ".join(missing_columns_warning),
                         error_type=logging.ERROR,
                     )
                 ]
@@ -633,12 +800,12 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
                 grouped_warning = duplicates_warning.groupby(columns_warning).apply(lambda x: x.index.tolist())
                 for combo, indices in grouped_warning.items():
                     row_info = ", ".join(str(idx) for idx in indices)
-                    column_info = f" in columns '{', '.join(columns_warning)}'"
                     errors.append(
-                        LogicError(
-                            message=f"Combination '{combo}'{column_info} is duplicated at rows: {row_info}",
-                            row=-1,
-                            column=", ".join(columns_warning),
+                        LogicError.from_code(
+                            ErrorCode.DUPLICATE_COMBINATION,
+                            value=str(combo),
+                            columns=", ".join(columns_warning),
+                            rows=row_info,
                             error_type=logging.WARNING,
                         )
                     )
@@ -648,22 +815,38 @@ class CombinationOfColumnsNoDuplicateValidator(SDRFValidator):
 
 @register_validator(validator_name="empty_cells")
 class EmptyCellValidator(SDRFValidator):
-    """Validator that checks for empty cells in the SDRF file."""
+    """Validator that checks for empty cells in required columns of the SDRF file.
+
+    Params:
+        required_columns: List of column names that are required and should not have empty values.
+                         If not provided, the validator will be skipped (no columns checked).
+    """
 
     def validate(  # type: ignore[override]
         self, df: pd.DataFrame | SDRFDataFrame, column_name: str | None = None
     ) -> list[LogicError]:
         """
-        Check for empty cells in the SDRF. This method will return a list of errors if any empty cell is found.
+        Check for empty cells in required columns only.
 
         Parameters:
             df: The pandas DataFrame to validate
             column_name: Not used for this validator as it operates on the entire DataFrame
 
         Returns:
-            List of LogicError for empty cells
+            List of LogicError for empty cells in required columns
         """
-        errors = []
+        errors: list[LogicError] = []
+
+        # Get required columns from params - only check these columns
+        required_columns = self.params.get("required_columns", [])
+        if not required_columns:
+            # No required columns specified, skip validation
+            return errors
+
+        # Only check columns that exist in the DataFrame and are required
+        columns_to_check = [col for col in required_columns if col in df.columns]
+        if not columns_to_check:
+            return errors
 
         def validate_string(cell_value):
             if pd.isna(cell_value):
@@ -672,7 +855,9 @@ class EmptyCellValidator(SDRFValidator):
                 cell_value = str(cell_value)
             return cell_value != "nan" and len(cell_value.strip()) > 0
 
-        validation_results = df.map(validate_string)
+        # Only validate the required columns
+        df_subset = df[columns_to_check]
+        validation_results = df_subset.map(validate_string)
 
         # Get the indices where the validation fails
         failed_indices = [
@@ -683,7 +868,13 @@ class EmptyCellValidator(SDRFValidator):
         ]
 
         for row, col in failed_indices:
-            message = f"Empty value found Row: {row}, Column: {col}"
-            errors.append(LogicError(message=message, error_type=logging.ERROR))
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.EMPTY_CELL,
+                    row=row,
+                    column=col,
+                    error_type=logging.ERROR,
+                )
+            )
 
         return errors

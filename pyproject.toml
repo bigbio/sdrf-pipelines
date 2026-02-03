@@ -59,7 +59,8 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
+"sdrf_pipelines" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
+"sdrf_pipelines.sdrf" = ["sdrf-templates/**/*.yaml", "sdrf-templates/**/*.yml"]
 
 # Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
 # The callable encodes branch name into version for ontology cache downloads
@@ -93,6 +94,12 @@ max-complexity = 10
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "ontology: tests that require ontology dependencies (pooch, rdflib, requests)",
+]
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]

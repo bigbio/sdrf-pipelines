@@ -1,6 +1,7 @@
 import pandas as pd
+import pytest
 
-from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
+from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame, SDRFMetadata
 from sdrf_pipelines.utils.utils import ValidationProof
 
 
@@ -139,3 +140,87 @@ def test_validation_proof_hash_components():
         sdrf_base, "1.0.0", base_template, "different-salt"
     )
     assert base_proof["proof_hash"] != modified_salt_proof["proof_hash"]
+
+
+class TestSDRFMetadataFormats:
+    """Test metadata format parsing for templates and annotation tools."""
+
+    @pytest.mark.parametrize(
+        "template_value,expected_name,expected_version",
+        [
+            # Simple format: name vX.Y.Z (preferred)
+            ("human v1.1.0", "human", "v1.1.0"),
+            ("ms-proteomics v1.0.0", "ms-proteomics", "v1.0.0"),
+            # Key-value format with VV=
+            ("NT=human;VV=v1.1.0", "human", "v1.1.0"),
+            ("NT=ms-proteomics;VV=v2.0.0-dev", "ms-proteomics", "v2.0.0-dev"),
+            ("NT=cell-line;VV=v1.0.0", "cell-line", "v1.0.0"),
+        ],
+    )
+    def test_template_format_parsing(self, template_value, expected_name, expected_version):
+        """Test that template values are correctly parsed from different formats."""
+        test_df = pd.DataFrame(
+            {
+                "source name": ["sample 1"],
+                "comment[sdrf template]": [template_value],
+            }
+        )
+
+        metadata = SDRFMetadata(df=test_df)
+        templates = metadata.get_templates()
+
+        assert len(templates) == 1
+        assert templates[0]["template"] == expected_name
+        assert templates[0]["version"] == expected_version
+
+    def test_multiple_template_columns(self):
+        """Test parsing multiple template columns."""
+        test_df = pd.DataFrame(
+            {
+                "source name": ["sample 1"],
+                "comment[sdrf template]": ["human v1.1.0"],
+                "comment[sdrf template].1": ["ms-proteomics v1.1.0"],
+            }
+        )
+
+        metadata = SDRFMetadata(df=test_df)
+        templates = metadata.get_templates()
+
+        assert len(templates) == 2
+        template_names = [t["template"] for t in templates]
+        assert "human" in template_names
+        assert "ms-proteomics" in template_names
+
+    @pytest.mark.parametrize(
+        "tool_value",
+        [
+            "lesSDRF v0.1.0",
+            "sdrf-pipelines v1.0.0",
+            "NT=lesSDRF;VV=v0.1.0",
+            "NT=sdrf-pipelines;VV=v1.0.0",
+            "manual curation",
+        ],
+    )
+    def test_annotation_tool_formats(self, tool_value):
+        """Test that annotation tool values are stored correctly."""
+        test_df = pd.DataFrame(
+            {
+                "source name": ["sample 1"],
+                "comment[sdrf annotation tool]": [tool_value],
+            }
+        )
+
+        metadata = SDRFMetadata(df=test_df)
+        assert metadata.get_annotation_tool() == tool_value
+
+    def test_version_column_parsing(self):
+        """Test that version column is correctly parsed."""
+        test_df = pd.DataFrame(
+            {
+                "source name": ["sample 1"],
+                "comment[sdrf version]": ["v1.1.0"],
+            }
+        )
+
+        metadata = SDRFMetadata(df=test_df)
+        assert metadata.get_version() == "v1.1.0"
