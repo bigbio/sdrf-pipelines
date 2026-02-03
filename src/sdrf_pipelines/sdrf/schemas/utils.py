@@ -54,10 +54,9 @@ def _merge_fields_combine_strategy(merged: ColumnDefinition, col_def: ColumnDefi
 
 def _merge_validators(merged: ColumnDefinition, col_def: ColumnDefinition) -> None:
     """Merge validators without duplicates."""
-    existing_validators = {v.validator_name: v for v in merged.validators}
-    for v in col_def.validators:
-        if v.validator_name not in existing_validators:
-            merged.validators.append(v)
+    for new_validator in col_def.validators:
+        if new_validator not in merged.validators:
+            merged.validators.append(new_validator)
 
 
 def merge_column_defs(
