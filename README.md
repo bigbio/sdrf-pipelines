@@ -9,9 +9,9 @@ The official **SDRF-Proteomics validator and converter**. Validate your sample m
 
 ## Quick Start with sdrf as a command/line tool
 
-1. Install python and [pipx](https://pipx.pypa.io/stable/installation/) **or** just [uv](https://docs.astral.sh/uv/getting-started/installation/)
+Install python and [pipx](https://pipx.pypa.io/stable/installation/) **or** just [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-UV:
+uv:
 ```bash
 # Install
 uv tool install sdrf-pipelines
@@ -20,7 +20,7 @@ uv tool install sdrf-pipelines
 parse_sdrf validate-sdrf --sdrf_file your_file.sdrf.tsv
 ```
 
-Pipx:
+pipx:
 ```bash
 # Install
 pipx install sdrf-pipelines
