@@ -1,6 +1,6 @@
 [project]
 name = "sdrf-pipelines"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
 authors = [
@@ -52,7 +52,7 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -61,9 +61,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 "sdrf_pipelines" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
 "sdrf_pipelines.sdrf" = ["sdrf-templates/**/*.yaml", "sdrf-templates/**/*.yml"]
-
-# Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
-# The callable encodes branch name into version for ontology cache downloads
 
 [dependency-groups]
 dev = [
