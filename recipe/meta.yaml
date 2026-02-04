@@ -11,7 +11,7 @@ build:
   entry_points:
       - parse_sdrf = sdrf_pipelines.parse_sdrf:main
   script:
-    - {{ PYTHON }} -m pip install --no-deps --ignore-installed .
+    - {{ PYTHON }} -m pip install --no-deps --ignore-installed .[all]
 
 requirements:
   host:
