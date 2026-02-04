@@ -52,23 +52,22 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
-version = "0.0.0"  # Placeholder - actual version from git tags via poetry-dynamic-versioning
-packages = [{include = "sdrf_pipelines", from = "src"}]
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sdrf_pipelines"]
+
+[tool.hatch.build.targets.sdist]
 include = [
-    "src/sdrf_pipelines/**/*.xml",
-    "src/sdrf_pipelines/**/*.tsv",
-    "src/sdrf_pipelines/**/*.yaml",
-    "src/sdrf_pipelines/**/*.yml",
+    "/src",
+    "/tests",
+    "/README.md",
+    "/pyproject.toml",
 ]
-
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-style = "pep440"
 
 [dependency-groups]
 dev = [
