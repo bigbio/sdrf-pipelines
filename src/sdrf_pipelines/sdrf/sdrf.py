@@ -84,11 +84,13 @@ class SDRFMetadata:
         if version_cols and pd.notna(first_row.get(version_cols[0])):
             self.version = str(first_row[version_cols[0]])
 
-        # Parse comment[sdrf template] - can have multiple columns
-        template_cols = [c for c in df.columns if "comment[sdrf template]" in c.lower()]
-        for col in template_cols:
-            if pd.notna(first_row.get(col)):
-                template_val = str(first_row[col])
+        # Parse comment[sdrf template] - can have multiple columns (including duplicates)
+        # Use column indices to handle duplicate column names
+        template_col_indices = [i for i, c in enumerate(df.columns) if "comment[sdrf template]" in c.lower()]
+        for idx in template_col_indices:
+            value = df.iloc[0, idx]
+            if pd.notna(value):
+                template_val = str(value)
                 if template_val and template_val not in self.templates:
                     self.templates.append(template_val)
 
