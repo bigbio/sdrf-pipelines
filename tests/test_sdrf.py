@@ -175,12 +175,10 @@ class TestSDRFMetadataFormats:
 
     def test_multiple_template_columns(self):
         """Test parsing multiple template columns."""
+        # Create DataFrame with duplicate column names using arrays
         test_df = pd.DataFrame(
-            {
-                "source name": ["sample 1"],
-                "comment[sdrf template]": ["human v1.1.0"],
-                "comment[sdrf template].1": ["ms-proteomics v1.1.0"],
-            }
+            [["sample 1", "human v1.1.0", "ms-proteomics v1.1.0"]],
+            columns=["source name", "comment[sdrf template]", "comment[sdrf template]"],
         )
 
         metadata = SDRFMetadata(df=test_df)

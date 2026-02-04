@@ -591,8 +591,104 @@ def download_cache(ontology, cache_dir, show_info, force):
         sys.exit(1)
 
 
+@click.command("list-templates", short_help="List all available SDRF templates with their versions")
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "yaml"], case_sensitive=False),
+    default="table",
+    help="Output format (table, json, or yaml)",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Include detailed information (description, extends, layer)",
+)
+def list_templates(format: str, verbose: bool):
+    """
+    List all available SDRF templates with their versions.
+
+    Shows template names, latest versions, and optionally detailed information
+    like descriptions and inheritance relationships.
+
+    Examples:
+        parse_sdrf list-templates                    # Simple table view
+        parse_sdrf list-templates -v                 # Detailed table view
+        parse_sdrf list-templates -f json            # JSON output
+        parse_sdrf list-templates -f yaml -v         # Detailed YAML output
+    """
+    registry = SchemaRegistry()
+
+    if not hasattr(registry, "manifest") or not registry.manifest:
+        click.secho("Error: Could not load templates manifest", fg="red")
+        sys.exit(1)
+
+    templates = registry.manifest.get("templates", {})
+
+    if not templates:
+        click.secho("No templates found", fg="yellow")
+        return
+
+    if format == "json":
+        if verbose:
+            output = templates
+        else:
+            output = {
+                name: {"latest": info["latest"], "versions": info["versions"]} for name, info in templates.items()
+            }
+        click.echo(json.dumps(output, indent=2))
+
+    elif format == "yaml":
+        if verbose:
+            output = templates
+        else:
+            output = {
+                name: {"latest": info["latest"], "versions": info["versions"]} for name, info in templates.items()
+            }
+        click.echo(yaml.dump(output, default_flow_style=False, sort_keys=False))
+
+    else:  # table format
+        click.secho("\n=== Available SDRF Templates ===\n", fg="cyan", bold=True)
+
+        # Sort templates by name
+        sorted_templates = sorted(templates.items())
+
+        for name, info in sorted_templates:
+            latest = info.get("latest", "N/A")
+            versions = ", ".join(info.get("versions", []))
+            usable_alone = info.get("usable_alone", False)
+
+            # Color coding: green for usable standalone, yellow for must combine
+            name_color = "green" if usable_alone else "yellow"
+
+            click.secho(f"{name}", fg=name_color, bold=True, nl=False)
+            click.echo(f" (latest: {latest})")
+
+            if verbose:
+                click.echo(f"  Versions: {versions}")
+                if info.get("extends"):
+                    click.echo(f"  Extends: {info['extends']}")
+                if info.get("layer"):
+                    click.echo(f"  Layer: {info['layer']}")
+                if info.get("description"):
+                    # Wrap description at 80 characters
+                    desc = info["description"]
+                    click.echo(f"  Description: {desc}")
+                click.echo(f"  Usable alone: {'Yes' if usable_alone else 'No (must combine with other templates)'}")
+                click.echo()
+            else:
+                click.echo(f"  All versions: {versions}")
+                click.echo()
+
+        click.secho(f"Total templates: {len(templates)}", fg="cyan")
+        click.echo("\nNote: Green = standalone templates, Yellow = must be combined with others")
+        click.echo("Use --verbose/-v for detailed information")
+
+
 cli.add_command(download_cache)
 cli.add_command(validate_sdrf_simple)
+cli.add_command(list_templates)
 
 
 def main():
