@@ -7,11 +7,25 @@
 
 The official **SDRF-Proteomics validator and converter**. Validate your sample metadata files and convert them to workflow configurations for OpenMS, MaxQuant, MSstats, and more.
 
-## Quick Start
+## Quick Start with sdrf as a command/line tool
+
+Install python and [pipx](https://pipx.pypa.io/stable/installation/) **or** just [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+uv:
 
 ```bash
 # Install
-pip install sdrf-pipelines
+uv tool install sdrf-pipelines[all]
+
+# Validate your SDRF file
+parse_sdrf validate-sdrf --sdrf_file your_file.sdrf.tsv
+```
+
+pipx:
+
+```bash
+# Install
+pipx install sdrf-pipelines[all]
 
 # Validate your SDRF file
 parse_sdrf validate-sdrf --sdrf_file your_file.sdrf.tsv
