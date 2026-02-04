@@ -1,6 +1,6 @@
 [project]
 name = "sdrf-pipelines"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Validate and convert SDRF files to configuration files for pipelines."
 readme = "README.md"
 authors = [
@@ -52,15 +52,22 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["setuptools>=64"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.poetry]
+packages = [{include = "sdrf_pipelines", from = "src"}]
+include = [
+    "src/sdrf_pipelines/**/*.xml",
+    "src/sdrf_pipelines/**/*.tsv",
+    "src/sdrf_pipelines/**/*.yaml",
+    "src/sdrf_pipelines/**/*.yml",
+]
 
-[tool.setuptools.package-data]
-"sdrf_pipelines" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
-"sdrf_pipelines.sdrf" = ["sdrf-templates/**/*.yaml", "sdrf-templates/**/*.yml"]
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
 
 [dependency-groups]
 dev = [
