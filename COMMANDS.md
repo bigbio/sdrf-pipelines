@@ -23,6 +23,7 @@ Commands:
   convert-normalyzerde  convert sdrf to NormalyzerDE design file
   convert-openms        convert sdrf to openms file output
   download-cache        Download ontology cache files from GitHub
+  list-templates        List all available SDRF templates with their versions
   split-sdrf            Command to split the sdrf file
   validate-sdrf         Command to validate the sdrf file
   validate-sdrf-simple  Simple command to validate the sdrf file.

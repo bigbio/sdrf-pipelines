@@ -620,11 +620,11 @@ def list_templates(format: str, verbose: bool):
     """
     registry = SchemaRegistry()
 
-    if not hasattr(registry, 'manifest') or not registry.manifest:
+    if not hasattr(registry, "manifest") or not registry.manifest:
         click.secho("Error: Could not load templates manifest", fg="red")
         sys.exit(1)
 
-    templates = registry.manifest.get('templates', {})
+    templates = registry.manifest.get("templates", {})
 
     if not templates:
         click.secho("No templates found", fg="yellow")
@@ -635,11 +635,7 @@ def list_templates(format: str, verbose: bool):
             output = templates
         else:
             output = {
-                name: {
-                    "latest": info["latest"],
-                    "versions": info["versions"]
-                }
-                for name, info in templates.items()
+                name: {"latest": info["latest"], "versions": info["versions"]} for name, info in templates.items()
             }
         click.echo(json.dumps(output, indent=2))
 
@@ -648,11 +644,7 @@ def list_templates(format: str, verbose: bool):
             output = templates
         else:
             output = {
-                name: {
-                    "latest": info["latest"],
-                    "versions": info["versions"]
-                }
-                for name, info in templates.items()
+                name: {"latest": info["latest"], "versions": info["versions"]} for name, info in templates.items()
             }
         click.echo(yaml.dump(output, default_flow_style=False, sort_keys=False))
 
