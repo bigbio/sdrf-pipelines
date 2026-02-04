@@ -56,6 +56,7 @@ requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
+version = "0.0.0"  # Placeholder - actual version from git tags via poetry-dynamic-versioning
 packages = [{include = "sdrf_pipelines", from = "src"}]
 include = [
     "src/sdrf_pipelines/**/*.xml",
