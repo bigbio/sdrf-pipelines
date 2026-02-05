@@ -45,5 +45,6 @@ class SchemaDefinition(BaseModel):
 
     name: str
     description: str
+    version: str = Field(default="1.0.0", description="Template version (semver)")
     validators: list[ValidatorConfig] = Field(default_factory=list)
     columns: list[ColumnDefinition] = Field(default_factory=list)

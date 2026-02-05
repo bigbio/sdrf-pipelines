@@ -164,7 +164,7 @@ class SchemaRegistry:
 
     def _merge_basic_properties(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
         """Merge basic properties from child schema."""
-        for key in ["name", "description"]:
+        for key in ["name", "description", "version"]:
             if key in child_schema:
                 result[key] = child_schema[key]
 
