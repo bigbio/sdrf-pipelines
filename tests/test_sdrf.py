@@ -85,11 +85,11 @@ def test_generate_validation_proof():
     )
     assert proof_same["proof_hash"] == proof_with_salt_fixed["proof_hash"]
 
-    minimum_validator = ValidationProof(template_name="minimum")
-    proof_minimum = minimum_validator.generate_validation_proof(
+    base_validator = ValidationProof(template_name="base")
+    proof_base = base_validator.generate_validation_proof(
         sdrf, validator_version, user_salt=user_salt, timestamp=fixed_timestamp
     )
-    assert proof_minimum["proof_hash"] != proof_with_salt_fixed["proof_hash"]
+    assert proof_base["proof_hash"] != proof_with_salt_fixed["proof_hash"]
 
 
 def test_validation_proof_deterministic():

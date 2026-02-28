@@ -22,21 +22,7 @@ class SchemaRegistry:
 
     Loads schemas from the sdrf-templates submodule by default. The templates
     follow a versioned directory structure: {template_name}/{version}/{template_name}.yaml
-
-    For backwards compatibility, legacy schema names are mapped to new template names:
-        - "minimum" -> "base"
-        - "default" -> "ms-proteomics"
-        - "cell_lines" -> "cell-lines"
-        - "nonvertebrates" -> "invertebrates"
     """
-
-    # Mapping of legacy schema names to new versioned template names
-    LEGACY_NAME_MAPPING = {
-        "minimum": "base",
-        "default": "ms-proteomics",
-        "cell_lines": "cell-lines",
-        "nonvertebrates": "invertebrates",
-    }
 
     def __init__(
         self,
@@ -261,19 +247,8 @@ class SchemaRegistry:
         logging.info("Added schema '%s' to registry", schema_name)
 
     def get_schema(self, schema_name: str) -> SchemaDefinition | None:
-        """Get a schema by name.
-
-        Supports legacy schema names for backwards compatibility.
-        """
-        if schema_name in self.schemas:
-            return self.schemas.get(schema_name)
-
-        mapped_name = self.LEGACY_NAME_MAPPING.get(schema_name)
-        if mapped_name and mapped_name in self.schemas:
-            logging.info("Mapped legacy schema name '%s' to '%s'", schema_name, mapped_name)
-            return self.schemas.get(mapped_name)
-
-        return None
+        """Get a schema by name."""
+        return self.schemas.get(schema_name)
 
     def get_schema_names(self) -> list[str]:
         """Get all schema names in the registry."""
