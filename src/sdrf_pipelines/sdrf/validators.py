@@ -701,6 +701,115 @@ class NumberWithUnitValidator(SDRFValidator):
         return errors
 
 
+@register_validator(validator_name="mz_value")
+class MzValueValidator(SDRFValidator):
+    """Validate m/z values in the format ``{number} m/z`` or ``{number}m/z``.
+
+    Accepts both ``400 m/z`` (preferred, consistent with ``10 ppm``) and
+    ``400m/z`` (legacy, seen in existing datasets). Optional whitespace
+    between number and unit.
+
+    Params:
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    _MZ_PATTERN = re.compile(r"^(\d+(\.\d+)?)\s*m/z$", re.IGNORECASE)
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        description = self.params.get("description", "m/z value with unit, e.g. '400 m/z' or '400m/z'")
+        examples = self.params.get("examples", ["400 m/z", "1200 m/z", "350.5m/z"])
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        non_empty = non_empty[~non_empty.str.strip().str.lower().isin(["not applicable", "not available"])]
+
+        errors = []
+        suggestion_parts = [description]
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in non_empty.items():
+            if not self._MZ_PATTERN.match(value.strip()):
+                row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.PATTERN_MISMATCH,
+                        value=str(value),
+                        row=row_num,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                        suggestion=suggestion,
+                        pattern=self._MZ_PATTERN.pattern,
+                    )
+                )
+        return errors
+
+
+@register_validator(validator_name="mz_range_interval")
+class MzRangeIntervalValidator(SDRFValidator):
+    """Validate m/z range intervals in the format ``{number} m/z-{number} m/z``.
+
+    Accepts both spaced (``400 m/z-1200 m/z``, preferred) and compact
+    (``400m/z-1200m/z``, legacy) notation. Validates that the lower bound
+    is less than the upper bound.
+
+    Params:
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    _INTERVAL_PATTERN = re.compile(r"^(\d+(\.\d+)?)\s*m/z\s*-\s*(\d+(\.\d+)?)\s*m/z$", re.IGNORECASE)
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        description = self.params.get("description", "m/z range interval, e.g. '400 m/z-1200 m/z' or '400m/z-1200m/z'")
+        examples = self.params.get("examples", ["400 m/z-1200 m/z", "100m/z-2000m/z"])
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        non_empty = non_empty[~non_empty.str.strip().str.lower().isin(["not applicable", "not available"])]
+
+        errors = []
+        suggestion_parts = [description]
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in non_empty.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            m = self._INTERVAL_PATTERN.match(value.strip())
+            if not m:
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.PATTERN_MISMATCH,
+                        value=str(value),
+                        row=row_num,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                        suggestion=suggestion,
+                        pattern=self._INTERVAL_PATTERN.pattern,
+                    )
+                )
+            else:
+                lower = float(m.group(1))
+                upper = float(m.group(3))
+                if lower >= upper:
+                    errors.append(
+                        LogicError.from_code(
+                            ErrorCode.INVALID_VALUE,
+                            value=str(value),
+                            row=row_num,
+                            column=column_name,
+                            error_type=logging.ERROR,
+                            suggestion=f"Lower bound ({lower}) must be less than upper bound ({upper})",
+                        )
+                    )
+        return errors
+
+
 @register_validator(validator_name="accession")
 class AccessionValidator(SDRFValidator):
     """Validate accession identifiers with prefix + suffix format.
@@ -734,7 +843,10 @@ class AccessionValidator(SDRFValidator):
             if fmt not in self.PREDEFINED_FORMATS:
                 return [
                     LogicError(
-                        message=f"Unknown accession format '{fmt}'. Known formats: {', '.join(self.PREDEFINED_FORMATS.keys())}",
+                        message=(
+                            f"Unknown accession format '{fmt}'. "
+                            f"Known formats: {', '.join(self.PREDEFINED_FORMATS.keys())}"
+                        ),
                         column=column_name,
                         error_type=logging.ERROR,
                     )
@@ -809,7 +921,7 @@ class IdentifierValidator(SDRFValidator):
         description: str — human-readable description
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         charset = self.params.get("charset", "[A-Za-z0-9_-]")
         special_values = self.params.get("special_values", [])
         allow_not_available = self.params.get("allow_not_available", False)
@@ -866,7 +978,7 @@ class DateValidator(SDRFValidator):
         error_level: str — "error" or "warning" (default: "warning")
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         precision = self.params.get("precision", ["year", "month", "day"])
         allow_not_available = self.params.get("allow_not_available", False)
         allow_not_applicable = self.params.get("allow_not_applicable", False)
@@ -927,7 +1039,7 @@ class StructuredKVValidator(SDRFValidator):
         description: str — human-readable description
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         separator = self.params.get("separator", ";")
         fields = self.params.get("fields", [])
         allow_not_available = self.params.get("allow_not_available", False)
@@ -1001,7 +1113,7 @@ class SemverValidator(SDRFValidator):
         error_level: str — "error" or "warning" (default: "error")
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         prefix = self.params.get("prefix", "")
         allow_prerelease = self.params.get("allow_prerelease", True)
         error_level = self.params.get("error_level", "error")

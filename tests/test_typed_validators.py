@@ -1,7 +1,4 @@
-import logging
-
 import pandas as pd
-import pytest
 
 from sdrf_pipelines.sdrf.validators import get_validator
 
@@ -292,68 +289,80 @@ class TestStructuredKVValidator:
         self.cls = cls
 
     def test_valid_crosslinker_format(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [
-                {"key": "NT", "value": ".+"},
-                {"key": "AC", "value": r"(XLMOD|CHEBI|UNIMOD):\d+"},
-            ],
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [
+                    {"key": "NT", "value": ".+"},
+                    {"key": "AC", "value": r"(XLMOD|CHEBI|UNIMOD):\d+"},
+                ],
+            }
+        )
         series = pd.Series(["NT=DSS;AC=XLMOD:02001", "NT=BS3;AC=CHEBI:73327"])
         errors = v.validate(series, column_name="comment[cross-linker]")
         assert len(errors) == 0
 
     def test_missing_required_key(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [
-                {"key": "NT", "value": ".+"},
-                {"key": "AC", "value": ".+"},
-            ],
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [
+                    {"key": "NT", "value": ".+"},
+                    {"key": "AC", "value": ".+"},
+                ],
+            }
+        )
         series = pd.Series(["NT=DSS"])
         errors = v.validate(series, column_name="test")
         assert len(errors) == 1
 
     def test_invalid_value_pattern(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [
-                {"key": "NT", "value": ".+"},
-                {"key": "AC", "value": r"(XLMOD|CHEBI):\d+"},
-            ],
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [
+                    {"key": "NT", "value": ".+"},
+                    {"key": "AC", "value": r"(XLMOD|CHEBI):\d+"},
+                ],
+            }
+        )
         series = pd.Series(["NT=DSS;AC=INVALID:abc"])
         errors = v.validate(series, column_name="test")
         assert len(errors) == 1
 
     def test_sdrf_template_format(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [
-                {"key": "NT", "value": r"[\w-]+"},
-                {"key": "VV", "value": r"v\d+\.\d+\.\d+"},
-            ],
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [
+                    {"key": "NT", "value": r"[\w-]+"},
+                    {"key": "VV", "value": r"v\d+\.\d+\.\d+"},
+                ],
+            }
+        )
         series = pd.Series(["NT=ms-proteomics;VV=v1.1.0"])
         errors = v.validate(series, column_name="comment[sdrf template]")
         assert len(errors) == 0
 
     def test_not_available_respected(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [{"key": "NT", "value": ".+"}],
-            "allow_not_available": True,
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [{"key": "NT", "value": ".+"}],
+                "allow_not_available": True,
+            }
+        )
         series = pd.Series(["not available", "NT=value"])
         errors = v.validate(series, column_name="test")
         assert len(errors) == 0
 
     def test_empty_values_skipped(self):
-        v = self.cls(params={
-            "separator": ";",
-            "fields": [{"key": "NT", "value": ".+"}],
-        })
+        v = self.cls(
+            params={
+                "separator": ";",
+                "fields": [{"key": "NT", "value": ".+"}],
+            }
+        )
         series = pd.Series(["", "NT=value"])
         errors = v.validate(series, column_name="test")
         assert len(errors) == 0

@@ -22,9 +22,9 @@ def detect_plexdia_type(label_set: set[str]) -> dict | None:
     Raises:
         ValueError: If labels are not recognized
     """
-    normalized = {l.strip() for l in label_set}
+    normalized = {lbl.strip() for lbl in label_set}
 
-    if all(l.lower() == "label free sample" for l in normalized):
+    if all(lbl.lower() == "label free sample" for lbl in normalized):
         return None
 
     for plex_type, registry in PLEXDIA_REGISTRY.items():

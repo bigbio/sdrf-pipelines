@@ -1,5 +1,7 @@
 """Constants for DIA-NN conversion including plexDIA channel definitions and enzyme mappings."""
 
+from typing import Any
+
 # DIA-NN enzyme cut rules
 # Format: cleavage_rule where K* = cleave after K, !*P = don't cleave before P
 ENZYME_SPECIFICITY = {
@@ -74,7 +76,7 @@ SILAC_PLEXES = {
 }
 
 # Map of all plexDIA types to their channel dicts and fixed mod info
-PLEXDIA_REGISTRY = {
+PLEXDIA_REGISTRY: dict[str, Any] = {
     "mtraq": {"channels": MTRAQ_CHANNELS, "fixed_mod": MTRAQ_FIXED_MOD, "plexes": MTRAQ_PLEXES},
     "dimethyl": {"channels": DIMETHYL_CHANNELS, "fixed_mod": DIMETHYL_FIXED_MOD, "plexes": DIMETHYL_PLEXES},
     "silac": {"channels": SILAC_CHANNELS, "fixed_mod": SILAC_FIXED_MOD, "plexes": SILAC_PLEXES},

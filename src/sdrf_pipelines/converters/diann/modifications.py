@@ -43,9 +43,7 @@ class DiannModificationConverter:
 
         return ",".join(parts)
 
-    def convert_all_modifications(
-        self, fixed_mods: list[str], var_mods: list[str]
-    ) -> tuple[list[str], list[str]]:
+    def convert_all_modifications(self, fixed_mods: list[str], var_mods: list[str]) -> tuple[list[str], list[str]]:
         """Convert lists of SDRF modifications to DIA-NN format.
 
         Args:

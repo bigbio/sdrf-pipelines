@@ -13,10 +13,10 @@ import pandas as pd
 import yaml
 
 from sdrf_pipelines import __version__
+from sdrf_pipelines.converters.diann.diann import DiaNN
 from sdrf_pipelines.converters.maxquant.maxquant import Maxquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
-from sdrf_pipelines.converters.diann.diann import DiaNN
 from sdrf_pipelines.converters.openms.openms import OpenMS
 from sdrf_pipelines.ols.ols import (
     OLS_AVAILABLE,

@@ -176,7 +176,9 @@ class SchemaRegistry:
             logging.warning(
                 "Version constraint '%s' for template '%s' matched no available version. "
                 "Available: %s. Falling back to latest.",
-                constraint, template_name, available,
+                constraint,
+                template_name,
+                available,
             )
 
         if template_name in self.template_versions:
@@ -195,10 +197,7 @@ class SchemaRegistry:
             template_dir = os.path.join(self.schema_dir, template_name)
             if not os.path.isdir(template_dir) or template_name.startswith(".") or template_name == "scripts":
                 continue
-            version_dirs = [
-                d for d in os.listdir(template_dir)
-                if os.path.isdir(os.path.join(template_dir, d))
-            ]
+            version_dirs = [d for d in os.listdir(template_dir) if os.path.isdir(os.path.join(template_dir, d))]
             if version_dirs:
                 available[template_name] = sorted(version_dirs)
         return available
@@ -264,6 +263,8 @@ class SchemaRegistry:
         extends_raw = schema_data.get("extends")
         if extends_raw:
             parent_name, version_constraint = parse_extends(extends_raw)
+            if parent_name is None:
+                raise ValueError(f"Schema '{schema_name}' has invalid extends value: '{extends_raw}'")
 
             # If a version constraint is specified, we may need to load a specific version
             if version_constraint and self.use_versioned:
@@ -274,9 +275,7 @@ class SchemaRegistry:
             if parent_name not in self.raw_schema_data:
                 raise ValueError(f"Schema '{schema_name}' extends non-existent schema '{parent_name}'")
 
-            parent_schema = self._process_schema_inheritance(
-                parent_name, self.raw_schema_data[parent_name]
-            )
+            parent_schema = self._process_schema_inheritance(parent_name, self.raw_schema_data[parent_name])
             processed_data = self._merge_schemas(parent_schema, processed_data)
 
         return processed_data
