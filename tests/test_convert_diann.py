@@ -182,8 +182,6 @@ class TestDiannScanRanges:
 
     def test_compact_mz_format(self, diann_data_dir, on_tmpdir):
         """Verify that compact format without spaces (400m/z) also works."""
-        import tempfile
-        import shutil
 
         # Create a temp SDRF with compact format
         tmp = on_tmpdir / "compact.sdrf.tsv"
