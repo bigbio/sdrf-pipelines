@@ -17,6 +17,7 @@ Options:
 
 Commands:
   build-index-ontology  Convert an ontology file to an index file
+  convert-diann         convert sdrf to DIA-NN configuration files
   convert-maxquant      convert sdrf to maxquant parameters file and generate
                         an experimental design file
   convert-msstats       convert sdrf to msstats annotation file
@@ -50,7 +51,7 @@ parse_sdrf validate-sdrf [OPTIONS]
 | Option | Description |
 |--------|-------------|
 | `-s, --sdrf_file TEXT` | SDRF file to be validated |
-| `-t, --template TEXT` | select the template that will be use to validate the file (default: default) |
+| `-t, --template TEXT` | select the template that will be use to validate the file (default: ms-proteomics) |
 | `--use_ols_cache_only` | Use ols cache for validation of the terms and not OLS internet service |
 | `--skip-ontology` | Skip ontology term validation (useful when ontology dependencies are not installed) |
 | `-o, --out TEXT` | Output file to write the validation results to (default: stdout) |

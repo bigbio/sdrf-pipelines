@@ -3,9 +3,9 @@
 import pytest
 
 from sdrf_pipelines.converters.diann.plexdia import (
-    detect_plexdia_type,
     build_channels_flag,
     build_fixed_mod_flag,
+    detect_plexdia_type,
 )
 
 

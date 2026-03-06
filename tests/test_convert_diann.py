@@ -1,6 +1,5 @@
 """Tests for DIA-NN SDRF converter."""
 
-import os
 from pathlib import Path
 
 import pytest
