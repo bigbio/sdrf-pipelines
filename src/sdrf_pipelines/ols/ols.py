@@ -18,6 +18,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 # Characters that may break OLS exact search (known bug with terms like "SILAC heavy L:13C(6)")
 _SPECIAL_CHARS_PATTERN = re.compile(r"[():]")
 
@@ -30,8 +32,6 @@ try:
     OLS_AVAILABLE = True
 except ImportError:
     OLS_AVAILABLE = False
-
-import pandas as pd
 
 try:
     from sdrf_pipelines import __version__
@@ -604,15 +604,10 @@ class OlsClient:
                 # 2. If empty and term has special chars, retry with normalized fuzzy query
                 if (terms is None or len(terms) == 0) and _SPECIAL_CHARS_PATTERN.search(term):
                     normalized = self._normalize_term_for_fuzzy_query(term)
-                    fuzzy_results = self.ols_search(
-                        normalized, ontology=ontology, exact=False, **kwargs
-                    )
+                    fuzzy_results = self.ols_search(normalized, ontology=ontology, exact=False, **kwargs)
                     if fuzzy_results:
                         term_lower = term.lower()
-                        exact_matches = [
-                            r for r in fuzzy_results
-                            if r.get("label", "").lower() == term_lower
-                        ]
+                        exact_matches = [r for r in fuzzy_results if r.get("label", "").lower() == term_lower]
                         if exact_matches:
                             terms = exact_matches
                             logger.debug(
