@@ -734,7 +734,10 @@ class AccessionValidator(SDRFValidator):
             if fmt not in self.PREDEFINED_FORMATS:
                 return [
                     LogicError(
-                        message=f"Unknown accession format '{fmt}'. Known formats: {', '.join(self.PREDEFINED_FORMATS.keys())}",
+                        message=(
+                            f"Unknown accession format '{fmt}'. "
+                            f"Known formats: {', '.join(self.PREDEFINED_FORMATS.keys())}"
+                        ),
                         column=column_name,
                         error_type=logging.ERROR,
                     )
