@@ -568,7 +568,11 @@ class OlsClient:
 
     def search(self, term: str, ontology: str | None = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
-        Search a term in the OLS
+        Search a term in the OLS.
+
+        Known bug: OLS API exact search returns no results for some valid PRIDE terms
+        (e.g. "SILAC heavy L:13C(6)", "SILAC light L:12C(6)") that exist in the ontology.
+        When OLS returns empty, we fall back to the local parquet cache.
 
         Parameters:
             term (str): The name of the term
@@ -584,7 +588,9 @@ class OlsClient:
         else:
             try:
                 terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-                if terms is None and self.use_cache:
+                # Fall back to cache when OLS returns no results (e.g. OLS exact match
+                # fails for terms like "SILAC heavy L:13C(6)" that exist in PRIDE ontology)
+                if (terms is None or len(terms) == 0) and self.use_cache:
                     terms = self.cache_search(term, ontology)
             except requests.exceptions.ConnectionError as e:
                 logger.warning("Connection error during OLS search: %s", e)
