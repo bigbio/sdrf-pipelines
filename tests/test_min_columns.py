@@ -16,17 +16,18 @@ TESTS_DIR = Path(__file__).parent
 def test_min_columns_ms_proteomics_schema():
     """Test validation with ontology checking on a file with valid ontology terms.
 
-    The error.sdrf.tsv file has valid ontology terms, so ontology validation
-    doesn't add errors. The 7 errors are structural (column order, missing columns
-    including comment[technical replicate] which is now required).
+    The error.sdrf.tsv file has 7 structural errors at ERROR level (column order,
+    missing columns including comment[technical replicate] which is now required).
+    Ontology validation adds warnings for terms not found in ontology lists.
     """
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
     test_file = TESTS_DIR / "data/generic/error.sdrf.tsv"
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "ms-proteomics", skip_ontology=False)
-    # Same as skip_ontology=True because the file has valid ontology terms
-    assert len(errors) == 7
+    # 7 structural errors at ERROR level, plus ontology warnings
+    error_only = [e for e in errors if e.error_type == logging.ERROR]
+    assert len(error_only) == 7
 
 
 def test_min_columns_ms_proteomics_schema_skip_ontology():
