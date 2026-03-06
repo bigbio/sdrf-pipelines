@@ -264,6 +264,7 @@ class SchemaRegistry:
         extends_raw = schema_data.get("extends")
         if extends_raw:
             parent_name, version_constraint = parse_extends(extends_raw)
+            assert parent_name is not None, "parse_extends returned None parent_name for non-empty extends"
 
             # If a version constraint is specified, we may need to load a specific version
             if version_constraint and self.use_versioned:

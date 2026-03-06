@@ -86,7 +86,7 @@ class DiaNN(BaseConverter):
             Dict mapping filename -> {labels, enzyme, fixed_mods, var_mods,
                                        precursor_tol, precursor_unit, fragment_tol, fragment_unit, uri}
         """
-        file_data = {}
+        file_data: dict[str, dict] = {}
 
         # Find modification columns
         mod_cols = [c for c in sdrf.columns if c.startswith("comment[modification parameters")]

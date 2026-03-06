@@ -809,7 +809,7 @@ class IdentifierValidator(SDRFValidator):
         description: str — human-readable description
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         charset = self.params.get("charset", "[A-Za-z0-9_-]")
         special_values = self.params.get("special_values", [])
         allow_not_available = self.params.get("allow_not_available", False)
@@ -866,7 +866,7 @@ class DateValidator(SDRFValidator):
         error_level: str — "error" or "warning" (default: "warning")
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         precision = self.params.get("precision", ["year", "month", "day"])
         allow_not_available = self.params.get("allow_not_available", False)
         allow_not_applicable = self.params.get("allow_not_applicable", False)
@@ -927,7 +927,7 @@ class StructuredKVValidator(SDRFValidator):
         description: str — human-readable description
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         separator = self.params.get("separator", ";")
         fields = self.params.get("fields", [])
         allow_not_available = self.params.get("allow_not_available", False)
@@ -1001,7 +1001,7 @@ class SemverValidator(SDRFValidator):
         error_level: str — "error" or "warning" (default: "error")
     """
 
-    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
         prefix = self.params.get("prefix", "")
         allow_prerelease = self.params.get("allow_prerelease", True)
         error_level = self.params.get("error_level", "error")
