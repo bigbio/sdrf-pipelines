@@ -1409,12 +1409,22 @@ class EmptyCellValidator(SDRFValidator):
             if not validation_results.at[row, col]
         ]
 
-        for row, col in failed_indices:
+        inner_df = df.df if isinstance(df, SDRFDataFrame) else df
+        source_name_col = "source name" if "source name" in inner_df.columns else None
+
+        for row_idx, col in failed_indices:
+            row_display = int(row_idx) + 1 if isinstance(row_idx, (int, float)) else row_idx
+            source_name = "n/a"
+            if source_name_col is not None:
+                val = inner_df.loc[row_idx, source_name_col]
+                source_name = str(val).strip() if pd.notna(val) and str(val).strip() else "n/a"
+
             errors.append(
                 LogicError.from_code(
                     ErrorCode.EMPTY_CELL,
-                    row=row,
+                    row=row_display,
                     column=col,
+                    source_name=source_name,
                     error_type=logging.ERROR,
                 )
             )
