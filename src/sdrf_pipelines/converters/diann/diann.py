@@ -10,8 +10,6 @@ import re
 
 import pandas as pd
 
-logger = logging.getLogger(__name__)
-
 from sdrf_pipelines.converters.base import BaseConverter
 from sdrf_pipelines.converters.diann.constants import ENZYME_NAME_MAPPINGS, ENZYME_SPECIFICITY
 from sdrf_pipelines.converters.diann.modifications import DiannModificationConverter
@@ -22,13 +20,13 @@ from sdrf_pipelines.converters.diann.plexdia import (
 )
 from sdrf_pipelines.converters.openms.utils import parse_tolerance
 
+logger = logging.getLogger(__name__)
+
 # Pattern for parsing m/z values like "400 m/z" or "400m/z"
 _MZ_VALUE_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*m/z$", re.IGNORECASE)
 
 # Pattern for parsing m/z range intervals like "400 m/z-1200 m/z" or "400m/z-1200m/z"
-_MZ_RANGE_PATTERN = re.compile(
-    r"^(\d+(?:\.\d+)?)\s*m/z\s*-\s*(\d+(?:\.\d+)?)\s*m/z$", re.IGNORECASE
-)
+_MZ_RANGE_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*m/z\s*-\s*(\d+(?:\.\d+)?)\s*m/z$", re.IGNORECASE)
 
 # Column names for scan range data (interval format)
 _SCAN_RANGE_COLS = {
@@ -200,9 +198,13 @@ class DiaNN(BaseConverter):
                            fragment_min, fragment_max, fragment_unit.
                            Values are None if no valid tolerances found or units are mixed.
         """
-        result = {
-            "precursor_min": None, "precursor_max": None, "precursor_unit": None,
-            "fragment_min": None, "fragment_max": None, "fragment_unit": None,
+        result: dict[str, float | str | None] = {
+            "precursor_min": None,
+            "precursor_max": None,
+            "precursor_unit": None,
+            "fragment_min": None,
+            "fragment_max": None,
+            "fragment_unit": None,
         }
 
         precursor_vals = []
@@ -228,8 +230,7 @@ class DiaNN(BaseConverter):
         if precursor_vals:
             if len(precursor_units) > 1:
                 self.add_warning(
-                    f"Mixed precursor tolerance units across runs ({precursor_units}), "
-                    "cannot compute global min/max"
+                    f"Mixed precursor tolerance units across runs ({precursor_units}), cannot compute global min/max"
                 )
             else:
                 vals = [v for v, _ in precursor_vals]
@@ -240,8 +241,7 @@ class DiaNN(BaseConverter):
         if fragment_vals:
             if len(fragment_units) > 1:
                 self.add_warning(
-                    f"Mixed fragment tolerance units across runs ({fragment_units}), "
-                    "cannot compute global min/max"
+                    f"Mixed fragment tolerance units across runs ({fragment_units}), cannot compute global min/max"
                 )
             else:
                 vals = [v for v, _ in fragment_vals]
@@ -265,7 +265,7 @@ class DiaNN(BaseConverter):
             Dict with keys: ms1_min, ms1_max, ms2_min, ms2_max.
             Values are None if no valid scan ranges found.
         """
-        result = {"ms1_min": None, "ms1_max": None, "ms2_min": None, "ms2_max": None}
+        result: dict[str, float | None] = {"ms1_min": None, "ms1_max": None, "ms2_min": None, "ms2_max": None}
 
         for level in ("ms1", "ms2"):
             min_vals = []
@@ -364,8 +364,7 @@ class DiaNN(BaseConverter):
                     range_max = float(match.group(2))
                 else:
                     self.add_warning(
-                        f"Could not parse {ms_level} scan range interval: '{val}'. "
-                        "Expected format: '400 m/z-1200 m/z'"
+                        f"Could not parse {ms_level} scan range interval: '{val}'. Expected format: '400 m/z-1200 m/z'"
                     )
 
         # Try discrete columns
@@ -377,10 +376,7 @@ class DiaNN(BaseConverter):
                 if match:
                     discrete_min = float(match.group(1))
                 else:
-                    self.add_warning(
-                        f"Could not parse {ms_level} min m/z value: '{val}'. "
-                        "Expected format: '400 m/z'"
-                    )
+                    self.add_warning(f"Could not parse {ms_level} min m/z value: '{val}'. Expected format: '400 m/z'")
         if max_col and max_col in row.index:
             val = str(row[max_col]).strip()
             if val and val.lower() not in ("nan", "not available"):
@@ -388,10 +384,7 @@ class DiaNN(BaseConverter):
                 if match:
                     discrete_max = float(match.group(1))
                 else:
-                    self.add_warning(
-                        f"Could not parse {ms_level} max m/z value: '{val}'. "
-                        "Expected format: '1200 m/z'"
-                    )
+                    self.add_warning(f"Could not parse {ms_level} max m/z value: '{val}'. Expected format: '1200 m/z'")
 
         # Resolve: range takes precedence over discrete
         if range_min is not None and range_max is not None:
