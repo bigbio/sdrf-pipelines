@@ -17,7 +17,8 @@ def test_min_columns_ms_proteomics_schema():
     """Test validation with ontology checking on a file with valid ontology terms.
 
     The error.sdrf.tsv file has valid ontology terms, so ontology validation
-    doesn't add errors. The 6 errors are structural (column order, missing columns).
+    doesn't add errors. The 7 errors are structural (column order, missing columns
+    including comment[technical replicate] which is now required).
     """
     registry = SchemaRegistry()  # Default registry, but users can create their own
     validator = SchemaValidator(registry)
@@ -25,7 +26,7 @@ def test_min_columns_ms_proteomics_schema():
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "ms-proteomics", skip_ontology=False)
     # Same as skip_ontology=True because the file has valid ontology terms
-    assert len(errors) == 6
+    assert len(errors) == 7
 
 
 def test_min_columns_ms_proteomics_schema_skip_ontology():
@@ -36,7 +37,7 @@ def test_min_columns_ms_proteomics_schema_skip_ontology():
     sdrf_df = SDRFDataFrame(read_sdrf(test_file))
     errors = validator.validate(sdrf_df, "ms-proteomics", skip_ontology=True)
     # Without ontology validation, we expect fewer errors
-    assert len(errors) == 6
+    assert len(errors) == 7
 
 
 def test_min_columns_with_reduced_columns():
@@ -67,7 +68,7 @@ def test_min_columns_with_reduced_columns():
     # Check error counts by code (more robust than checking exact messages)
     assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME) == 1
     assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE) == 1
-    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 5
+    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 6
     assert manifest.count_by_code(ErrorCode.PATTERN_MISMATCH) == 1
 
     # Check that specific columns are flagged as missing
@@ -76,8 +77,9 @@ def test_min_columns_with_reduced_columns():
     assert "characteristics[biological replicate]" in missing_columns
     assert "technology type" in missing_columns
     assert "comment[data file]" in missing_columns
-    assert "comment[instrument]" in missing_columns
     assert "characteristics[disease]" in missing_columns
+    assert "comment[technical replicate]" in missing_columns
+    assert "characteristics[sex]" in missing_columns
 
     # Check that age pattern validation failed
     pattern_errors = manifest.filter_by_column("characteristics[age]")
@@ -86,7 +88,7 @@ def test_min_columns_with_reduced_columns():
 
     # Total errors (only count ERROR level, not warnings)
     error_only = [e for e in errors if e.error_type == logging.ERROR]
-    assert len(error_only) == 8
+    assert len(error_only) == 9
 
 
 @pytest.mark.ontology
@@ -117,7 +119,7 @@ def test_min_columns_with_reduced_columns_with_ontology():
     # Structure errors
     assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME) == 1
     assert manifest.count_by_code(ErrorCode.TRAILING_WHITESPACE) == 1
-    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 5
+    assert manifest.count_by_code(ErrorCode.MISSING_REQUIRED_COLUMN) == 6
 
     # Pattern errors
     assert manifest.count_by_code(ErrorCode.PATTERN_MISMATCH) == 1
@@ -130,7 +132,7 @@ def test_min_columns_with_reduced_columns_with_ontology():
     assert "characteristics[organism]" in ontology_columns
     assert "characteristics[organism part]" in ontology_columns
 
-    # Total errors (9 errors + 1 warning for organism part)
+    # Total errors (10 errors + 1 warning for organism part)
     error_only = [e for e in errors if e.error_type == logging.ERROR]
-    assert len(error_only) == 9
+    assert len(error_only) == 10
     assert manifest.warning_count == 1

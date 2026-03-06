@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import os
+import re
 from collections import OrderedDict
 from typing import Any
 
@@ -15,6 +16,91 @@ from sdrf_pipelines.sdrf.schemas.models import (
     SchemaDefinition,
 )
 from sdrf_pipelines.sdrf.schemas.utils import merge_column_defs
+
+
+def parse_extends(extends_value: str | None) -> tuple[str | None, str | None]:
+    """Parse an extends field into (template_name, version_constraint).
+
+    Supports:
+      - "ms-proteomics"                     -> ("ms-proteomics", None)               # latest
+      - "ms-proteomics@1.1.0"              -> ("ms-proteomics", "1.1.0")             # exact
+      - "ms-proteomics@>=1.1.0"            -> ("ms-proteomics", ">=1.1.0")           # lower bound
+      - "ms-proteomics@>=1.1.0,<2.0.0"    -> ("ms-proteomics", ">=1.1.0,<2.0.0")   # range
+    """
+    if not extends_value:
+        return None, None
+    if "@" in extends_value:
+        name, constraint = extends_value.split("@", 1)
+        return name.strip(), constraint.strip()
+    return extends_value.strip(), None
+
+
+def _parse_version_tuple(version_str: str) -> tuple[int, ...]:
+    """Parse a version string like '1.1.0' into a tuple of ints for comparison."""
+    parts = re.match(r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?", version_str)
+    if not parts:
+        return (0,)
+    return tuple(int(p) for p in parts.groups() if p is not None)
+
+
+def _parse_range_constraint(constraint: str) -> tuple[tuple[int, ...], tuple[int, ...] | None] | None:
+    """Parse a range constraint into (lower_bound, upper_bound).
+
+    Supports:
+      - '>=1.1.0'          -> lower bound only (no upper limit)
+      - '>=1.1.0,<2.0.0'  -> lower and upper bound
+
+    Returns:
+        Tuple of (lower_bound_inclusive, upper_bound_exclusive_or_None),
+        or None if the constraint is not a valid range.
+    """
+    parts = [p.strip() for p in constraint.split(",")]
+    lower = None
+    upper = None
+    for part in parts:
+        if part.startswith(">="):
+            lower = _parse_version_tuple(part[2:])
+        elif part.startswith("<"):
+            upper = _parse_version_tuple(part[1:])
+    if lower is not None:
+        return lower, upper
+    return None
+
+
+def resolve_version_constraint(constraint: str, available_versions: list[str]) -> str | None:
+    """Resolve a version constraint against available versions.
+
+    Args:
+        constraint: Version constraint string:
+            - "1.1.0"              -> exact match
+            - ">=1.1.0"           -> lower bound only (latest >= 1.1.0)
+            - ">=1.1.0,<2.0.0"   -> range (>= lower, < upper)
+        available_versions: List of available version strings
+
+    Returns:
+        Best matching version string, or None if no match.
+    """
+    if not available_versions:
+        return None
+
+    range_bounds = _parse_range_constraint(constraint)
+    if range_bounds:
+        lower, upper = range_bounds
+        candidates = []
+        for v in available_versions:
+            v_parts = _parse_version_tuple(v)
+            if v_parts >= lower and (upper is None or v_parts < upper):
+                candidates.append((v_parts, v))
+
+        if candidates:
+            candidates.sort(reverse=True)
+            return candidates[0][1]
+        return None
+    else:
+        # Exact match
+        if constraint in available_versions:
+            return constraint
+        return None
 
 
 class SchemaRegistry:
@@ -43,6 +129,7 @@ class SchemaRegistry:
         self.use_versioned = use_versioned
         self.template_versions = template_versions or {}
         self.manifest: dict[str, Any] = {}
+        self._available_versions: dict[str, list[str]] = {}
 
         if schema_dir is None:
             current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -73,8 +160,25 @@ class SchemaRegistry:
             return self._load_schema_file(manifest_path)
         return {}
 
-    def _get_template_version(self, template_name: str) -> str | None:
-        """Get the version to use for a template."""
+    def _get_template_version(self, template_name: str, constraint: str | None = None) -> str | None:
+        """Get the version to use for a template.
+
+        Args:
+            template_name: Name of the template.
+            constraint: Optional version constraint (e.g., "1.1.0", "~1.1").
+                       If None, uses user-specified version or manifest latest.
+        """
+        if constraint:
+            available = self._available_versions.get(template_name, [])
+            resolved = resolve_version_constraint(constraint, available)
+            if resolved:
+                return resolved
+            logging.warning(
+                "Version constraint '%s' for template '%s' matched no available version. "
+                "Available: %s. Falling back to latest.",
+                constraint, template_name, available,
+            )
+
         if template_name in self.template_versions:
             return self.template_versions[template_name]
 
@@ -84,23 +188,34 @@ class SchemaRegistry:
 
         return None
 
-    def _load_versioned_schemas(self):
-        """Load schemas from versioned directory structure (sdrf-templates format)."""
-        self.manifest = self._load_manifest()
-
+    def _scan_available_versions(self) -> dict[str, list[str]]:
+        """Scan the schema directory and return available versions per template."""
+        available: dict[str, list[str]] = {}
         for template_name in os.listdir(self.schema_dir):
             template_dir = os.path.join(self.schema_dir, template_name)
             if not os.path.isdir(template_dir) or template_name.startswith(".") or template_name == "scripts":
                 continue
+            version_dirs = [
+                d for d in os.listdir(template_dir)
+                if os.path.isdir(os.path.join(template_dir, d))
+            ]
+            if version_dirs:
+                available[template_name] = sorted(version_dirs)
+        return available
 
+    def _load_versioned_schemas(self):
+        """Load schemas from versioned directory structure (sdrf-templates format)."""
+        self.manifest = self._load_manifest()
+        self._available_versions = self._scan_available_versions()
+
+        for template_name, versions in self._available_versions.items():
             version = self._get_template_version(template_name)
             if version is None:
-                version_dirs = [d for d in os.listdir(template_dir) if os.path.isdir(os.path.join(template_dir, d))]
-                if version_dirs:
-                    version = sorted(version_dirs)[-1]
-                else:
-                    continue
+                version = versions[-1] if versions else None
+            if version is None:
+                continue
 
+            template_dir = os.path.join(self.schema_dir, template_name)
             version_dir = os.path.join(template_dir, version)
             schema_file = os.path.join(version_dir, f"{template_name}.yaml")
 
@@ -133,20 +248,48 @@ class SchemaRegistry:
             logging.info("Added schema '%s' to registry", schema_name)
 
     def _process_schema_inheritance(self, schema_name: str, schema_data: dict[str, Any]) -> dict[str, Any]:
-        """Process schema inheritance by merging with parent schemas."""
+        """Process schema inheritance by merging with parent schemas.
+
+        The extends field supports version constraints:
+          - "ms-proteomics"                   -> use the already-loaded version (latest)
+          - "ms-proteomics@1.1.0"             -> require exact version 1.1.0
+          - "ms-proteomics@>=1.1.0"           -> require version >= 1.1.0
+          - "ms-proteomics@>=1.1.0,<2.0.0"   -> require version in range [1.1.0, 2.0.0)
+
+        When a version constraint is specified and the loaded version doesn't match,
+        the correct version is loaded on demand.
+        """
         processed_data = schema_data.copy()
 
-        parent_schema_name = schema_data.get("extends")
-        if parent_schema_name:
-            if parent_schema_name not in self.raw_schema_data:
-                raise ValueError(f"Schema '{schema_name}' extends non-existent schema '{parent_schema_name}'")
+        extends_raw = schema_data.get("extends")
+        if extends_raw:
+            parent_name, version_constraint = parse_extends(extends_raw)
+
+            # If a version constraint is specified, we may need to load a specific version
+            if version_constraint and self.use_versioned:
+                resolved_version = self._get_template_version(parent_name, version_constraint)
+                if resolved_version:
+                    self._ensure_template_loaded(parent_name, resolved_version)
+
+            if parent_name not in self.raw_schema_data:
+                raise ValueError(f"Schema '{schema_name}' extends non-existent schema '{parent_name}'")
 
             parent_schema = self._process_schema_inheritance(
-                parent_schema_name, self.raw_schema_data[parent_schema_name]
+                parent_name, self.raw_schema_data[parent_name]
             )
             processed_data = self._merge_schemas(parent_schema, processed_data)
 
         return processed_data
+
+    def _ensure_template_loaded(self, template_name: str, version: str) -> None:
+        """Load a specific version of a template if not already loaded."""
+        template_dir = os.path.join(self.schema_dir, template_name)
+        version_dir = os.path.join(template_dir, version)
+        schema_file = os.path.join(version_dir, f"{template_name}.yaml")
+
+        if os.path.exists(schema_file):
+            self.raw_schema_data[template_name] = self._load_schema_file(schema_file)
+            logging.info("Loaded template '%s' version '%s' (version-pinned)", template_name, version)
 
     def _merge_basic_properties(self, result: dict[str, Any], child_schema: dict[str, Any]) -> None:
         """Merge basic properties from child schema."""
@@ -183,16 +326,13 @@ class SchemaRegistry:
     def _merge_column_validators(
         self, merged_col: dict[str, Any], parent_col: dict[str, Any], child_col: dict[str, Any]
     ) -> None:
-        """Merge validators for a single column."""
-        if "validators" in child_col:
-            if "validators" not in merged_col:
-                merged_col["validators"] = []
+        """Merge validators for a single column.
 
-            parent_col_validators = parent_col.get("validators", [])
-            child_col_validators = child_col["validators"]
-            for validator in child_col_validators + parent_col_validators:
-                if validator not in merged_col["validators"]:
-                    merged_col["validators"].append(validator)
+        If the child defines validators, they fully replace the parent's validators
+        for that column. The child is intentionally overriding validation behavior.
+        """
+        if "validators" in child_col:
+            merged_col["validators"] = list(child_col["validators"])
 
     def _merge_single_column(self, parent_col: dict[str, Any], child_col: dict[str, Any]) -> dict[str, Any]:
         """Merge a single column definition from parent and child."""
