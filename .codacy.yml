@@ -10,6 +10,8 @@ engines:
     enabled: false  # ruff covers this; avoid duplicate noise
   bandit:
     enabled: true  # security checks (OWASP-relevant)
+    exclude_paths:
+      - "tests/**"  # assert in tests is expected (S101)
   prospector:
     enabled: false
   # Markdown / docs
