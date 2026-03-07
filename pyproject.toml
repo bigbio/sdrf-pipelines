@@ -36,8 +36,17 @@ ontology = [
     "rdflib",
     "requests",
 ]
+# DuckDB backend for faster ontology cache search (memory efficient, optional)
+speed = [
+    "duckdb",
+    "fastparquet",
+    "pooch",
+    "rdflib",
+    "requests",
+]
 # All features
 all = [
+    "duckdb",
     "fastparquet",
     "pooch",
     "rdflib",

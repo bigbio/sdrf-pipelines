@@ -70,6 +70,7 @@ class SchemaValidator:
         schema: SchemaDefinition,
         use_ols_cache_only: bool,
         skip_ontology: bool,
+        use_duckdb: bool = False,
     ) -> list[LogicError]:
         """Apply global (schema-level) validators."""
         errors = []
@@ -77,7 +78,7 @@ class SchemaValidator:
 
         for validator_config in schema.validators:
             # Copy params to avoid mutating the original configuration
-            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
+            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only, "use_duckdb": use_duckdb}
             if validator_config.validator_name == "empty_cells":
                 params["required_columns"] = required_columns
             temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
@@ -110,6 +111,7 @@ class SchemaValidator:
         column_def: ColumnDefinition,
         use_ols_cache_only: bool,
         skip_ontology: bool,
+        use_duckdb: bool = False,
     ) -> list[LogicError]:
         """Apply validators to a specific column."""
         errors = []
@@ -118,6 +120,7 @@ class SchemaValidator:
             params = {
                 **validator_config.params,
                 "use_ols_cache_only": use_ols_cache_only,
+                "use_duckdb": use_duckdb,
                 "allow_not_applicable": column_def.allow_not_applicable,
                 "allow_not_available": column_def.allow_not_available,
             }
@@ -178,6 +181,7 @@ class SchemaValidator:
         column_def: ColumnDefinition,
         use_ols_cache_only: bool,
         skip_ontology: bool,
+        use_duckdb: bool = False,
     ) -> list[LogicError]:
         """Process validation for a single column."""
         errors: list[LogicError] = []
@@ -186,7 +190,9 @@ class SchemaValidator:
             # Ensure we have a Series, not a DataFrame (can happen with duplicate column names)
             column_series: pd.Series = column_data if isinstance(column_data, pd.Series) else column_data.iloc[:, 0]
 
-            errors.extend(self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology))
+            errors.extend(
+                self._apply_column_validators(column_series, column_def, use_ols_cache_only, skip_ontology, use_duckdb)
+            )
             errors.extend(self._validate_not_applicable_values(column_series, column_def))
             errors.extend(self._validate_not_available_values(column_series, column_def))
 
@@ -198,6 +204,7 @@ class SchemaValidator:
         schema_name: str,
         use_ols_cache_only: bool = False,
         skip_ontology: bool = False,
+        use_duckdb: bool = False,
     ) -> list[LogicError]:
         """Validate a DataFrame against a schema.
 
@@ -206,6 +213,7 @@ class SchemaValidator:
             schema_name: Name of the schema to validate against
             use_ols_cache_only: If True, use only cached OLS data
             skip_ontology: If True, skip ontology term validation
+            use_duckdb: If True, use DuckDB backend for cache search
 
         Returns:
             List of validation errors
@@ -216,11 +224,13 @@ class SchemaValidator:
 
         errors: list[LogicError] = []
 
-        errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only, skip_ontology))
+        errors.extend(self._apply_global_validators(df, schema, use_ols_cache_only, skip_ontology, use_duckdb))
         errors.extend(self._validate_required_columns(df, schema))
 
         for column_def in schema.columns:
-            errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology))
+            errors.extend(
+                self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology, use_duckdb)
+            )
 
         return errors
 
