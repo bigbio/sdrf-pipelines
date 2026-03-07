@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+import re
+from typing import Any, ClassVar
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -348,6 +349,8 @@ if OLS_AVAILABLE:
         ontologies: list[str] = Field(default_factory=list)
         error_level: int = logging.INFO
         use_ols_cache_only: bool = False
+        allow_not_applicable: bool = True
+        allow_not_available: bool = True
         description: str = ""
         examples: list[str] = Field(default_factory=list)
         model_config = {"arbitrary_types_allowed": True}
@@ -368,6 +371,10 @@ if OLS_AVAILABLE:
                             self.error_level = logging.INFO
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
+                    elif key == "allow_not_applicable":
+                        self.allow_not_applicable = value
+                    elif key == "allow_not_available":
+                        self.allow_not_available = value
                     elif key == "description":
                         self.description = value
                     elif key == "examples":
@@ -445,8 +452,11 @@ if OLS_AVAILABLE:
                     query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
                     if term[self.term_name] in query_labels:
                         labels.append(term[self.term_name])
-            labels.append(NOT_AVAILABLE)
-            labels.append(NOT_APPLICABLE)  # We have to double-check that the column allows this.
+            # Only allow sentinel values when the column definition permits them
+            if self.allow_not_available:
+                labels.append(NOT_AVAILABLE)
+            if self.allow_not_applicable:
+                labels.append(NOT_APPLICABLE)
             labels.append(NORM)
 
             validation_indexes = value.apply(lambda cell_value: _validate_cell(cell_value, labels))
@@ -555,6 +565,11 @@ class PatternValidator(SDRFValidator):
         else:
             non_empty_series = series
 
+        # Skip sentinel values — SchemaValidator enforces allow_not_applicable/allow_not_available flags
+        non_empty_series = non_empty_series[
+            ~non_empty_series.str.strip().str.lower().isin(["not applicable", "not available"])
+        ]
+
         not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)]
         errors = []
 
@@ -600,6 +615,533 @@ class PatternValidator(SDRFValidator):
                     row=row_num,
                     column=column_name,
                     error_type=logging.ERROR,
+                    suggestion=suggestion,
+                    pattern=pattern,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="number_with_unit")
+class NumberWithUnitValidator(SDRFValidator):
+    """Validate values in number-unit format (e.g., '10 ppm', '0.5 Da').
+
+    Params:
+        units: list[str] — allowed unit strings (required)
+        allow_negative: bool — allow negative numbers (default: False)
+        allow_decimal: bool — allow decimal numbers (default: True)
+        special_values: list[str] — additional allowed literal values (default: [])
+        error_level: str — "error" or "warning" (default: "error")
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        units = self.params.get("units", [])
+        allow_negative = self.params.get("allow_negative", False)
+        allow_decimal = self.params.get("allow_decimal", True)
+        special_values = self.params.get("special_values", [])
+        allow_not_available = self.params.get("allow_not_available", False)
+        allow_not_applicable = self.params.get("allow_not_applicable", False)
+        error_level = self.params.get("error_level", "error")
+        description = self.params.get("description", "")
+        examples = self.params.get("examples", [])
+
+        if not units:
+            return []
+
+        sign = "-?" if allow_negative else ""
+        decimal = r"(\.\d+)?" if allow_decimal else ""
+        units_pattern = "|".join(re.escape(u) for u in units)
+        pattern = rf"^{sign}\d+{decimal}\s*({units_pattern})$"
+
+        special = list(special_values)
+        if allow_not_available:
+            special.append("not available")
+        if allow_not_applicable:
+            special.append("not applicable")
+        if special:
+            pattern += "|" + "|".join(rf"^{re.escape(s)}$" for s in special)
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        not_matched = non_empty[~non_empty.str.match(pat=pattern, case=False)]
+
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+        units_str = ", ".join(units)
+
+        suggestion_parts = []
+        if description:
+            suggestion_parts.append(description)
+        else:
+            suggestion_parts.append(f"Expected format: <number> <unit> where unit is one of: {units_str}")
+        if special_values:
+            suggestion_parts.append(f"Also accepts: {', '.join(special_values)}")
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in not_matched.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
+                    column=column_name,
+                    error_type=level,
+                    suggestion=suggestion,
+                    pattern=pattern,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="mz_value")
+class MzValueValidator(SDRFValidator):
+    """Validate m/z values in the format ``{number} m/z`` or ``{number}m/z``.
+
+    Accepts both ``400 m/z`` (preferred, consistent with ``10 ppm``) and
+    ``400m/z`` (legacy, seen in existing datasets). Optional whitespace
+    between number and unit.
+
+    Params:
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    _MZ_PATTERN = re.compile(r"^(\d+(\.\d+)?)\s*m/z$", re.IGNORECASE)
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        description = self.params.get("description", "m/z value with unit, e.g. '400 m/z' or '400m/z'")
+        examples = self.params.get("examples", ["400 m/z", "1200 m/z", "350.5m/z"])
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        non_empty = non_empty[~non_empty.str.strip().str.lower().isin(["not applicable", "not available"])]
+
+        errors = []
+        suggestion_parts = [description]
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in non_empty.items():
+            if not self._MZ_PATTERN.match(value.strip()):
+                row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.PATTERN_MISMATCH,
+                        value=str(value),
+                        row=row_num,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                        suggestion=suggestion,
+                        pattern=self._MZ_PATTERN.pattern,
+                    )
+                )
+        return errors
+
+
+@register_validator(validator_name="mz_range_interval")
+class MzRangeIntervalValidator(SDRFValidator):
+    """Validate m/z range intervals in the format ``{number} m/z-{number} m/z``.
+
+    Accepts both spaced (``400 m/z-1200 m/z``, preferred) and compact
+    (``400m/z-1200m/z``, legacy) notation. Validates that the lower bound
+    is less than the upper bound.
+
+    Params:
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    _INTERVAL_PATTERN = re.compile(r"^(\d+(\.\d+)?)\s*m/z\s*-\s*(\d+(\.\d+)?)\s*m/z$", re.IGNORECASE)
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        description = self.params.get("description", "m/z range interval, e.g. '400 m/z-1200 m/z' or '400m/z-1200m/z'")
+        examples = self.params.get("examples", ["400 m/z-1200 m/z", "100m/z-2000m/z"])
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        non_empty = non_empty[~non_empty.str.strip().str.lower().isin(["not applicable", "not available"])]
+
+        errors = []
+        suggestion_parts = [description]
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in non_empty.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            m = self._INTERVAL_PATTERN.match(value.strip())
+            if not m:
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.PATTERN_MISMATCH,
+                        value=str(value),
+                        row=row_num,
+                        column=column_name,
+                        error_type=logging.ERROR,
+                        suggestion=suggestion,
+                        pattern=self._INTERVAL_PATTERN.pattern,
+                    )
+                )
+            else:
+                lower = float(m.group(1))
+                upper = float(m.group(3))
+                if lower >= upper:
+                    errors.append(
+                        LogicError.from_code(
+                            ErrorCode.INVALID_VALUE,
+                            value=str(value),
+                            row=row_num,
+                            column=column_name,
+                            error_type=logging.ERROR,
+                            suggestion=f"Lower bound ({lower}) must be less than upper bound ({upper})",
+                        )
+                    )
+        return errors
+
+
+@register_validator(validator_name="accession")
+class AccessionValidator(SDRFValidator):
+    """Validate accession identifiers with prefix + suffix format.
+
+    Params:
+        format: str — predefined format ("biosample", "cellosaurus", "proteomexchange")
+        prefix: str — custom prefix (literal or simple regex)
+        suffix: str — custom suffix regex (default: r"\\d+")
+        error_level: str — "error" or "warning" (default: "error")
+        description: str — human-readable description
+        examples: list[str] — example valid values
+    """
+
+    PREDEFINED_FORMATS: ClassVar[dict[str, dict[str, str]]] = {
+        "biosample": {"prefix": r"SAM(N|EA|D)", "suffix": r"\d+"},
+        "cellosaurus": {"prefix": r"CVCL_", "suffix": r"[A-Z0-9]+"},
+        "proteomexchange": {"prefix": r"PXD", "suffix": r"\d+"},
+    }
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        fmt = self.params.get("format")
+        prefix = self.params.get("prefix")
+        suffix = self.params.get("suffix", r"\d+")
+        allow_not_available = self.params.get("allow_not_available", False)
+        allow_not_applicable = self.params.get("allow_not_applicable", False)
+        error_level = self.params.get("error_level", "error")
+        description = self.params.get("description", "")
+        examples = self.params.get("examples", [])
+
+        if fmt:
+            if fmt not in self.PREDEFINED_FORMATS:
+                return [
+                    LogicError(
+                        message=(
+                            f"Unknown accession format '{fmt}'. "
+                            f"Known formats: {', '.join(self.PREDEFINED_FORMATS.keys())}"
+                        ),
+                        column=column_name,
+                        error_type=logging.ERROR,
+                    )
+                ]
+            preset = self.PREDEFINED_FORMATS[fmt]
+            prefix = preset["prefix"]
+            suffix = preset["suffix"]
+        elif not prefix:
+            return [
+                LogicError(
+                    message="AccessionValidator requires either 'format' or 'prefix' param",
+                    column=column_name,
+                    error_type=logging.ERROR,
+                )
+            ]
+
+        pattern = rf"^{prefix}{suffix}$"
+
+        special = []
+        if allow_not_available:
+            special.append("not available")
+        if allow_not_applicable:
+            special.append("not applicable")
+        if special:
+            special_pattern = "|".join(rf"^{re.escape(s)}$" for s in special)
+            pattern = rf"(?:{pattern})|(?i:(?:{special_pattern}))"
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        not_matched = non_empty[~non_empty.str.match(pat=pattern, case=True)]
+
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+
+        suggestion_parts = []
+        if description:
+            suggestion_parts.append(description)
+        elif fmt:
+            suggestion_parts.append(f"Expected {fmt} accession format")
+        else:
+            suggestion_parts.append(f"Expected format: {prefix}<{suffix}>")
+        if examples:
+            example_str = ", ".join(f"'{ex}'" for ex in examples[:3])
+            suggestion_parts.append(f"Examples: {example_str}")
+        suggestion = ". ".join(suggestion_parts)
+
+        for idx, value in not_matched.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
+                    column=column_name,
+                    error_type=level,
+                    suggestion=suggestion,
+                    pattern=pattern,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="identifier")
+class IdentifierValidator(SDRFValidator):
+    """Validate alphanumeric identifiers with optional special values.
+
+    Params:
+        charset: str — character class regex (default: "[A-Za-z0-9_-]")
+        special_values: list[str] — additional allowed literal values (default: [])
+        error_level: str — "error" or "warning" (default: "error")
+        description: str — human-readable description
+    """
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        charset = self.params.get("charset", "[A-Za-z0-9_-]")
+        special_values = self.params.get("special_values", [])
+        allow_not_available = self.params.get("allow_not_available", False)
+        allow_not_applicable = self.params.get("allow_not_applicable", False)
+        error_level = self.params.get("error_level", "error")
+        description = self.params.get("description", "")
+
+        pattern = rf"^{charset}+$"
+
+        special = list(special_values)
+        if allow_not_available:
+            special.append("not available")
+        if allow_not_applicable:
+            special.append("not applicable")
+        if special:
+            special_escaped = [re.escape(s) for s in special]
+            pattern += "|" + "|".join(rf"^{s}$" for s in special_escaped)
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        not_matched = non_empty[~non_empty.str.match(pat=pattern, case=False)]
+
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+
+        suggestion = description or f"Expected alphanumeric identifier matching {charset}"
+        if special_values:
+            suggestion += f". Also accepts: {', '.join(special_values)}"
+
+        for idx, value in not_matched.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
+                    column=column_name,
+                    error_type=level,
+                    suggestion=suggestion,
+                    pattern=pattern,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="date")
+class DateValidator(SDRFValidator):
+    """Validate ISO 8601 date values at variable precision.
+
+    Params:
+        format: str — date format ("iso8601")
+        precision: list[str] — allowed precision levels: "year", "month", "day"
+        error_level: str — "error" or "warning" (default: "warning")
+    """
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        precision = self.params.get("precision", ["year", "month", "day"])
+        allow_not_available = self.params.get("allow_not_available", False)
+        allow_not_applicable = self.params.get("allow_not_applicable", False)
+        error_level = self.params.get("error_level", "warning")
+
+        branches = []
+        if "day" in precision:
+            branches.append(r"\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])")
+        if "month" in precision:
+            branches.append(r"\d{4}-(0[1-9]|1[0-2])")
+        if "year" in precision:
+            branches.append(r"\d{4}")
+
+        pattern = "^(" + "|".join(branches) + ")$"
+
+        special = []
+        if allow_not_available:
+            special.append("not available")
+        if allow_not_applicable:
+            special.append("not applicable")
+        if special:
+            pattern += "|" + "|".join(rf"^{re.escape(s)}$" for s in special)
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        not_matched = non_empty[~non_empty.str.match(pat=pattern, case=False)]
+
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+        precision_str = ", ".join(precision)
+        suggestion = f"Expected ISO 8601 date (precision: {precision_str}). Examples: 2024, 2024-01, 2024-01-15"
+
+        for idx, value in not_matched.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
+                    column=column_name,
+                    error_type=level,
+                    suggestion=suggestion,
+                    pattern=pattern,
+                )
+            )
+
+        return errors
+
+
+@register_validator(validator_name="structured_kv")
+class StructuredKVValidator(SDRFValidator):
+    """Validate semicolon-separated key=value pair formats.
+
+    Params:
+        separator: str — separator between pairs (default: ";")
+        fields: list[dict] — list of {"key": str, "value": str} field definitions
+        error_level: str — "error" or "warning" (default: "error")
+        description: str — human-readable description
+    """
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        separator = self.params.get("separator", ";")
+        fields = self.params.get("fields", [])
+        allow_not_available = self.params.get("allow_not_available", False)
+        allow_not_applicable = self.params.get("allow_not_applicable", False)
+        error_level = self.params.get("error_level", "error")
+        description = self.params.get("description", "")
+
+        if not fields:
+            return []
+
+        series = series.astype(str)
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+
+        expected_parts = [f"{f['key']}=<{f.get('value', '...')}>" for f in fields]
+        expected_format = separator.join(expected_parts)
+        suggestion = description or f"Expected format: {expected_format}"
+
+        for idx, value in series.items():
+            str_value = str(value).strip()
+            if str_value == "" or str_value.lower() == "nan":
+                continue
+            if allow_not_available and str_value.lower() == "not available":
+                continue
+            if allow_not_applicable and str_value.lower() == "not applicable":
+                continue
+
+            parts = str_value.split(separator)
+            parsed = {}
+            for part in parts:
+                part = part.strip()
+                if "=" not in part:
+                    continue
+                key, val = part.split("=", 1)
+                parsed[key.strip()] = val.strip()
+
+            valid = True
+            for field_def in fields:
+                key = field_def["key"]
+                value_pattern = field_def.get("value", ".+")
+                if key not in parsed:
+                    valid = False
+                    break
+                if not re.match(rf"^{value_pattern}$", parsed[key]):
+                    valid = False
+                    break
+
+            if not valid:
+                row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.PATTERN_MISMATCH,
+                        value=str_value,
+                        row=row_num,
+                        column=column_name,
+                        error_type=level,
+                        suggestion=suggestion,
+                    )
+                )
+
+        return errors
+
+
+@register_validator(validator_name="semver")
+class SemverValidator(SDRFValidator):
+    """Validate semantic version strings.
+
+    Params:
+        prefix: str — optional prefix (e.g., "v")
+        allow_prerelease: bool — allow -alpha, -rc.1 suffixes (default: True)
+        error_level: str — "error" or "warning" (default: "error")
+    """
+
+    def validate(self, series: pd.Series, column_name: str | None = None) -> list[LogicError]:  # type: ignore[override]
+        prefix = self.params.get("prefix", "")
+        allow_prerelease = self.params.get("allow_prerelease", True)
+        error_level = self.params.get("error_level", "error")
+
+        prefix_escaped = re.escape(prefix) if prefix else ""
+        prerelease = r"(-[\w.]+)?" if allow_prerelease else ""
+        pattern = rf"^{prefix_escaped}\d+\.\d+\.\d+{prerelease}$"
+
+        series = series.astype(str)
+        non_empty = series[series.str.strip() != ""]
+        # Skip sentinel values — SchemaValidator enforces allow_not_applicable/allow_not_available flags
+        non_empty = non_empty[~non_empty.str.strip().str.lower().isin(["not applicable", "not available"])]
+        not_matched = non_empty[~non_empty.str.match(pat=pattern, case=False)]
+
+        errors = []
+        level = logging.WARNING if error_level == "warning" else logging.ERROR
+        example = f"{prefix}1.0.0" if prefix else "1.0.0"
+        suggestion = f"Expected semantic version format: {example}"
+
+        for idx, value in not_matched.items():
+            row_num = int(idx) + 1 if isinstance(idx, (int, float)) else -1
+            errors.append(
+                LogicError.from_code(
+                    ErrorCode.PATTERN_MISMATCH,
+                    value=str(value),
+                    row=row_num,
+                    column=column_name,
+                    error_type=level,
                     suggestion=suggestion,
                     pattern=pattern,
                 )
@@ -867,12 +1409,22 @@ class EmptyCellValidator(SDRFValidator):
             if not validation_results.at[row, col]
         ]
 
-        for row, col in failed_indices:
+        inner_df = df.df if isinstance(df, SDRFDataFrame) else df
+        source_name_col = "source name" if "source name" in inner_df.columns else None
+
+        for row_idx, col in failed_indices:
+            row_display = int(row_idx) + 1 if isinstance(row_idx, (int, float)) else row_idx
+            source_name = "n/a"
+            if source_name_col is not None:
+                val = inner_df.loc[row_idx, source_name_col]
+                source_name = str(val).strip() if pd.notna(val) and str(val).strip() else "n/a"
+
             errors.append(
                 LogicError.from_code(
                     ErrorCode.EMPTY_CELL,
-                    row=row,
+                    row=row_display,
                     column=col,
+                    source_name=source_name,
                     error_type=logging.ERROR,
                 )
             )

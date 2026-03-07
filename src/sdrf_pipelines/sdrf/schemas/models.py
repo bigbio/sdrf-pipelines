@@ -35,8 +35,12 @@ class ColumnDefinition(BaseModel):
     name: str
     description: str
     requirement: RequirementLevel
+    type: str | None = None
+    cardinality: str | None = None
     allow_not_applicable: bool = False
     allow_not_available: bool = False
+    allow_pooled: bool = False
+    allow_anonymized: bool = False
     validators: list[ValidatorConfig] = Field(default_factory=list)
 
 
@@ -45,5 +49,10 @@ class SchemaDefinition(BaseModel):
 
     name: str
     description: str
+    version: str = Field(default="1.0.0", description="Template version (semver)")
+    extends: str | None = None
+    usable_alone: bool = True
+    layer: str | None = None
+    mutually_exclusive_with: list[str] = Field(default_factory=list)
     validators: list[ValidatorConfig] = Field(default_factory=list)
     columns: list[ColumnDefinition] = Field(default_factory=list)

@@ -13,9 +13,15 @@ TODO: handle requests.exceptions.ConnectionError when traffic is too high and AP
 
 import logging
 import os.path
+import re
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+import pandas as pd
+
+# Characters that may break OLS exact search (known bug with terms like "SILAC heavy L:13C(6)")
+_SPECIAL_CHARS_PATTERN = re.compile(r"[():]")
 
 # Try to import OLS dependencies - these are optional and only needed for ontology validation
 try:
@@ -26,8 +32,6 @@ try:
     OLS_AVAILABLE = True
 except ImportError:
     OLS_AVAILABLE = False
-
-import pandas as pd
 
 try:
     from sdrf_pipelines import __version__
@@ -566,9 +570,20 @@ class OlsClient:
             )
             raise ex
 
+    def _normalize_term_for_fuzzy_query(self, term: str) -> str:
+        """Replace special characters that break OLS exact search with spaces, collapse spaces."""
+        normalized = _SPECIAL_CHARS_PATTERN.sub(" ", term)
+        return re.sub(r"\s+", " ", normalized).strip()
+
     def search(self, term: str, ontology: str | None = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
-        Search a term in the OLS
+        Search a term in the OLS.
+
+        Known bug: OLS API exact search returns no results for some valid PRIDE terms
+        (e.g. "SILAC heavy L:13C(6)", "SILAC light L:12C(6)") that contain special
+        characters like : ( ). When exact search fails and the term has these chars,
+        we retry with a normalized query (fuzzy) and filter results by Python exact
+        match on the label. If still no match, we fall back to the local parquet cache.
 
         Parameters:
             term (str): The name of the term
@@ -583,8 +598,25 @@ class OlsClient:
             terms = self.cache_search(term, ontology)
         else:
             try:
+                # 1. First try normal exact query (hoping OLS will fix the bug someday)
                 terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-                if terms is None and self.use_cache:
+
+                # 2. If empty and term has special chars, retry with normalized fuzzy query
+                if (terms is None or len(terms) == 0) and _SPECIAL_CHARS_PATTERN.search(term):
+                    normalized = self._normalize_term_for_fuzzy_query(term)
+                    fuzzy_results = self.ols_search(normalized, ontology=ontology, exact=False, **kwargs)
+                    if fuzzy_results:
+                        term_lower = term.lower()
+                        exact_matches = [r for r in fuzzy_results if r.get("label", "").lower() == term_lower]
+                        if exact_matches:
+                            terms = exact_matches
+                            logger.debug(
+                                "Found term via normalized fuzzy query + exact filter: %s",
+                                term,
+                            )
+
+                # 3. Fall back to cache when OLS still returns no results
+                if (terms is None or len(terms) == 0) and self.use_cache:
                     terms = self.cache_search(term, ontology)
             except requests.exceptions.ConnectionError as e:
                 logger.warning("Connection error during OLS search: %s", e)
