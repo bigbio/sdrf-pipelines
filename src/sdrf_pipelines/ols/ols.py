@@ -391,6 +391,12 @@ def download_ontology_cache(
     return downloaded_files
 
 
+# Module-level shared state for backend reuse across OlsClient instances
+_shared_ontology_map: dict[str, str] | None = None
+_shared_dict_backend: DictBackend | None = None
+_shared_duckdb_backend: DuckDBBackend | None = None
+
+
 def get_cache_parquet_files() -> dict[str, str] | None:
     """
     Get cached ontology parquet files from pooch cache or local development directory.
@@ -599,27 +605,41 @@ class OlsClient:
         self.ontology_term = self.base + API_TERM
         self.ontology_ancestors = self.base + API_ANCESTORS
 
-        # Initialize cache backend
+        # Initialize cache backend (shared across all OlsClient instances)
         self._backend: CacheBackend | None = None
         self._ontology_map: dict[str, str] = {}  # {ontology_name: parquet_path}
 
         if use_cache:
-            ontology_map = get_cache_parquet_files()
+            global _shared_ontology_map, _shared_dict_backend, _shared_duckdb_backend
+
+            # Reuse shared ontology map if available
+            if _shared_ontology_map is not None:
+                ontology_map = _shared_ontology_map
+            else:
+                ontology_map = get_cache_parquet_files()
+                _shared_ontology_map = ontology_map
+
             if ontology_map is None:
                 logger.info("No cached ontology files found. Falling back to OLS API.")
                 self.use_cache = False
             else:
                 self._ontology_map = ontology_map
-                # Select backend
+                # Select and reuse shared backend
                 if use_duckdb and DUCKDB_AVAILABLE:
-                    self._backend = DuckDBBackend()
-                    logger.info("Using DuckDB cache backend")
+                    if _shared_duckdb_backend is None:
+                        _shared_duckdb_backend = DuckDBBackend()
+                        logger.info("Using DuckDB cache backend")
+                    self._backend = _shared_duckdb_backend
                 elif use_duckdb and not DUCKDB_AVAILABLE:
                     logger.warning("duckdb not installed, falling back to Dict backend")
-                    self._backend = DictBackend()
+                    if _shared_dict_backend is None:
+                        _shared_dict_backend = DictBackend()
+                    self._backend = _shared_dict_backend
                 else:
-                    self._backend = DictBackend()
-                    logger.info("Using Dict cache backend")
+                    if _shared_dict_backend is None:
+                        _shared_dict_backend = DictBackend()
+                        logger.info("Using Dict cache backend")
+                    self._backend = _shared_dict_backend
 
     # Mapping from ontology names used in templates to parquet filenames
     # when they differ (e.g., validators use "ms" but the file is "psi-ms.parquet")
