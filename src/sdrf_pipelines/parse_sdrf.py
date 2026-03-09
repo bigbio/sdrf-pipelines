@@ -13,6 +13,7 @@ import pandas as pd
 import yaml
 
 from sdrf_pipelines import __version__
+from sdrf_pipelines.converters.diann.diann import DiaNN
 from sdrf_pipelines.converters.maxquant.maxquant import Maxquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
@@ -180,8 +181,8 @@ def maxquant_from_sdrf(
 @click.option(
     "--template",
     "-t",
-    help="select the template that will be use to validate the file (default: default)",
-    default="default",
+    help="select the template that will be use to validate the file (default: ms-proteomics)",
+    default="ms-proteomics",
     required=False,
 )
 @click.option(
@@ -256,7 +257,7 @@ def validate_sdrf(
         raise AppConfigException(msg)
 
     if template is None:
-        template = "default"
+        template = "ms-proteomics"
 
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
@@ -421,6 +422,19 @@ def normalyzerde_from_sdrf(
     )
 
 
+@click.command("convert-diann", short_help="convert sdrf to DIA-NN configuration files")
+@click.option("--sdrf", "-s", help="SDRF file", required=True)
+@click.pass_context
+def diann_from_sdrf(ctx, sdrf: str):
+    if sdrf is None:
+        help()
+    try:
+        DiaNN().diann_convert(sdrf)
+    except Exception as ex:
+        msg = "Error: " + str(ex)
+        raise ValueError(msg) from ex
+
+
 @click.command("build-index-ontology", short_help="Convert an ontology file to an index file")
 @click.option("--ontology", "-in", help="ontology file")
 @click.option("--index", "-out", help="Output file in parquet format")
@@ -441,12 +455,13 @@ cli.add_command(maxquant_from_sdrf)
 cli.add_command(split_sdrf)
 cli.add_command(msstats_from_sdrf)
 cli.add_command(normalyzerde_from_sdrf)
+cli.add_command(diann_from_sdrf)
 cli.add_command(build_index_ontology)
 
 
 @click.command("validate-sdrf-simple", short_help="Simple command to validate the sdrf file.")
 @click.argument("sdrf_file", type=click.Path(exists=True))
-@click.option("--template", "-t", default="default", help="The template to validate against.")
+@click.option("--template", "-t", default="ms-proteomics", help="The template to validate against.")
 @click.option(
     "--use_ols_cache_only", is_flag=True, help="Use only the OLS cache for validation. This option is deprecated."
 )

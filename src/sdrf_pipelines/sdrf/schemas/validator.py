@@ -115,7 +115,12 @@ class SchemaValidator:
         errors = []
         for validator_config in column_def.validators:
             # Copy params to avoid mutating the original configuration
-            params = {**validator_config.params, "use_ols_cache_only": use_ols_cache_only}
+            params = {
+                **validator_config.params,
+                "use_ols_cache_only": use_ols_cache_only,
+                "allow_not_applicable": column_def.allow_not_applicable,
+                "allow_not_available": column_def.allow_not_available,
+            }
             temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
             validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
             if validator:
@@ -201,7 +206,6 @@ class SchemaValidator:
             schema_name: Name of the schema to validate against
             use_ols_cache_only: If True, use only cached OLS data
             skip_ontology: If True, skip ontology term validation
-
         Returns:
             List of validation errors
         """

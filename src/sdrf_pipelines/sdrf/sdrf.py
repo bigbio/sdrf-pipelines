@@ -259,7 +259,7 @@ class SDRFDataFrame(BaseModel):
         Validate the SDRF DataFrame against a schema template.
 
         Args:
-            template: Name of the schema template to validate against (e.g., 'default', 'human')
+            template: Name of the schema template to validate against (e.g., 'ms-proteomics', 'human')
             **kwargs: Additional validation parameters (use_ols_cache_only, skip_ontology, etc.)
 
         Returns:
@@ -273,7 +273,7 @@ class SDRFDataFrame(BaseModel):
 
         registry = SchemaRegistry()
         validator = SchemaValidator(registry)
-        schema_name = template or "default"
+        schema_name = template or "ms-proteomics"
         return validator.validate(self, schema_name, **kwargs)
 
 

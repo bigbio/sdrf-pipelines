@@ -1,0 +1,4 @@
+source name	characteristics[organism]	assay name	comment[label]	comment[instrument]	comment[cleavage agent details]	comment[modification parameters]	comment[modification parameters]	comment[precursor mass tolerance]	comment[fragment mass tolerance]	comment[data file]
+Sample 1	Homo sapiens	run 1 ch0	NT=MTRAQ0;AC=PRIDE:0000851	AC=MS:1001742;NT=LTQ Orbitrap Velos	NT=Trypsin/P;AC=MS:1001313	NT=Carbamidomethyl;TA=C;MT=fixed;AC=UNIMOD:4	NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35	10 ppm	20 ppm	run1.raw
+Sample 2	Homo sapiens	run 1 ch4	NT=MTRAQ4;AC=PRIDE:0000852	AC=MS:1001742;NT=LTQ Orbitrap Velos	NT=Trypsin/P;AC=MS:1001313	NT=Carbamidomethyl;TA=C;MT=fixed;AC=UNIMOD:4	NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35	10 ppm	20 ppm	run1.raw
+Sample 3	Homo sapiens	run 1 ch8	NT=MTRAQ8;AC=PRIDE:0000853	AC=MS:1001742;NT=LTQ Orbitrap Velos	NT=Trypsin/P;AC=MS:1001313	NT=Carbamidomethyl;TA=C;MT=fixed;AC=UNIMOD:4	NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35	10 ppm	20 ppm	run1.raw

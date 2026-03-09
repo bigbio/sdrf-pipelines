@@ -52,10 +52,7 @@ class ValidationProof:
                 raise ValueError("Either template_content or template_name must be provided")
             if not self.schema_registry:
                 raise ValueError("No schema registry available to retrieve template content")
-            # Resolve legacy name if needed
             actual_name = self.template_name
-            if actual_name in self.schema_registry.LEGACY_NAME_MAPPING:
-                actual_name = self.schema_registry.LEGACY_NAME_MAPPING[actual_name]
             if actual_name not in self.schema_registry.raw_schema_data:
                 available = list(self.schema_registry.raw_schema_data.keys())
                 raise ValueError(

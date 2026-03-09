@@ -13,9 +13,16 @@ TODO: handle requests.exceptions.ConnectionError when traffic is too high and AP
 
 import logging
 import os.path
+import re
 import urllib.parse
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+
+import pandas as pd
+
+# Characters that may break OLS exact search (known bug with terms like "SILAC heavy L:13C(6)")
+_SPECIAL_CHARS_PATTERN = re.compile(r"[():]")
 
 # Try to import OLS dependencies - these are optional and only needed for ontology validation
 try:
@@ -27,8 +34,6 @@ try:
 except ImportError:
     OLS_AVAILABLE = False
 
-import pandas as pd
-
 try:
     from sdrf_pipelines import __version__
 except ImportError:
@@ -39,6 +44,79 @@ OLS = "https://www.ebi.ac.uk/ols4"
 __all__ = ["OlsClient", "OLS_AVAILABLE"]
 
 logger = logging.getLogger(__name__)
+
+
+class CacheBackend(ABC):
+    """Abstract base class for ontology cache backends."""
+
+    @abstractmethod
+    def search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
+        """Search for a term in the cache."""
+        ...
+
+    @abstractmethod
+    def get_ontologies(self) -> list[str]:
+        """Return list of available ontology names."""
+        ...
+
+    @abstractmethod
+    def load_ontology(self, name: str, path: str) -> None:
+        """Load a single ontology from a parquet file."""
+        ...
+
+    @abstractmethod
+    def is_ontology_loaded(self, name: str) -> bool:
+        """Check if an ontology has been loaded."""
+        ...
+
+
+class DictBackend(CacheBackend):
+    """Dict-based cache backend. No extra dependencies. 0.01ms/query after build."""
+
+    def __init__(self) -> None:
+        # {ontology_lower: {label_lower: [{"ontology_name": str, "label": str, "obo_id": str}]}}
+        self._index: dict[str, dict[str, list[dict[str, str]]]] = {}
+        self._ontology_names: list[str] = []
+
+    def load_ontology(self, name: str, path: str) -> None:
+        name_lower = name.lower()
+        if name_lower in self._index:
+            return
+        df = pd.read_parquet(path, engine="fastparquet")
+        index: dict[str, list[dict[str, str]]] = {}
+        for row in df.itertuples(index=False):
+            label_lower = str(row.label).lower()
+            entry = {"ontology_name": str(row.ontology), "label": str(row.label), "obo_id": str(row.accession)}
+            if label_lower in index:
+                index[label_lower].append(entry)
+            else:
+                index[label_lower] = [entry]
+        self._index[name_lower] = index
+        if name_lower not in self._ontology_names:
+            self._ontology_names.append(name_lower)
+        logger.info("DictBackend: loaded %s (%d terms)", name, len(df))
+
+    def is_ontology_loaded(self, name: str) -> bool:
+        return name.lower() in self._index
+
+    def get_ontologies(self) -> list[str]:
+        return list(self._ontology_names)
+
+    def search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
+        term_lower = term.lower()
+        if ontology is not None:
+            ont_index = self._index.get(ontology.lower())
+            if ont_index is None:
+                return []
+            return list(ont_index.get(term_lower, []))
+        if not full_search:
+            return []
+        # full_search: search across all loaded ontologies
+        results = []
+        for ont_index in self._index.values():
+            results.extend(ont_index.get(term_lower, []))
+        return results
+
 
 API_SUGGEST = "/api/suggest"
 API_SEARCH = "/api/search"
@@ -53,7 +131,12 @@ ONTOLOGY_FILES = [
     "chebi.parquet",
     "cl.parquet",
     "clo.parquet",
+    "doid.parquet",
     "efo.parquet",
+    "envo.parquet",
+    "gaz.parquet",
+    "hancestro.parquet",
+    "mod.parquet",
     "mondo.parquet",
     "ncbitaxon.parquet",
     "ncit.parquet",
@@ -66,19 +149,24 @@ ONTOLOGY_FILES = [
 
 # Pooch registry with SHA256 hashes for all ontology parquet files
 ONTOLOGY_REGISTRY = {
-    "bto.parquet": "sha256:21801b276e7e8579e548ef8bedde7bf619bf1bdd9415948fd97440c153f9da60",
-    "chebi.parquet": "sha256:df67582ed67d25e06bf388bb1bfaf8aa24dc37b6355b01a8569091c19fb085b1",
-    "cl.parquet": "sha256:7518368ad07950ed02c80b3bc40235c1c2331d1b0886dff1dce36dac052dfe3f",
-    "clo.parquet": "sha256:d7fa1bb3a4eef179d2d06afe22695682bb888337d9d7122a5576a036830d5e33",
-    "efo.parquet": "sha256:22acf52b85b2c79788629a5f345c79558e25bb534c1e83fec19772b42cf7e309",
-    "mondo.parquet": "sha256:d9c37abe3067e7d66f0f07ec4917f277eb3ad23bf198f4d9a40d1e7a1a07d2ab",
-    "ncbitaxon.parquet": "sha256:e8ffb653aa7bd98111633f462c74c326f10a21d779d909f3f20c6443543bb27e",
-    "ncit.parquet": "sha256:9f9b3ef71c718b8f3e458c41256b72307736133fb0a0626097b6e8c12dce9ffe",
-    "pato.parquet": "sha256:3562e992d89af36303978ddff9c0b59b6b18d5aff20e9030491b19cfc054b382",
-    "pride.parquet": "sha256:de6d9878b10041ea1db52d8206dd3e58d98df895e411697cbf617cc08eed2952",
-    "psi-ms.parquet": "sha256:a897c46c4e707cf3ff6299d15dd2fa5a3bfbcd960ca6e2e9878e0451e55f411e",
-    "uberon.parquet": "sha256:564fd8ae93d15e5b95db8074160f1866105d321c95492da75a5e900f8dd16249",
-    "unimod.parquet": "sha256:2e4e9657253d94ed8be8f8b78f4238631b87949433a25af243ec4ee11feeb08d",
+    "bto.parquet": "sha256:7acb89a4347534482f342bf01d31447d1c5f3a49b9def0a9cf1756691a718f98",
+    "chebi.parquet": "sha256:868519678979c2ac7f9e6c46844188fb964270d061c786ba82920ad56c29dcfb",
+    "cl.parquet": "sha256:e44d510e1c3f51e71b0dfd4ca9f1f61e329a29be028f6441fcb8a01db1cb473a",
+    "clo.parquet": "sha256:dc85a1ef7544b43ae71e703e1cedb776f44f93a925ba1af2d1affbc90acbd745",
+    "doid.parquet": "sha256:d56bdbe3eda288b9cea6292737d5a76f8668ac9488b59b2c7fe3530720f2a112",
+    "efo.parquet": "sha256:cd21bb394f1a370c73c92d3b483fe2a9be7ef5ee5ebeec67210072780c9c20cd",
+    "envo.parquet": "sha256:b432b44ca0a080d4d4b96040a1e2d14085e2d26d8397dd0715a0ffa60a835299",
+    "gaz.parquet": "sha256:80304c7a05cccc1eeb1dd9a30c1b5c13429fb2926dfa6aa30e1716f1fc52c618",
+    "hancestro.parquet": "sha256:b04fb43c0c9642a8df40d3a02cbefa6e7d45c099b0135b540510c80c8fd26129",
+    "mod.parquet": "sha256:7a03296251013d7494d0bcf8847f7ef6618c13e65594f0a9df4ef48da4548b12",
+    "mondo.parquet": "sha256:735005008a635f7774e61fff0c3775df826d3204ccd0c4048f3ea533681fda56",
+    "ncbitaxon.parquet": "sha256:598aabc6e65f38d4f1274c55816f03901b00c206bce32181e641dfeb72da55b1",
+    "ncit.parquet": "sha256:3e3d159bcf0ab2f873ece56d2d1569c504eb1b48305ec38e8be56edacd468b2c",
+    "pato.parquet": "sha256:979de9c24e5eb484922c04735466e0c400d1d96015a90efb2d67635c33d9a27b",
+    "pride.parquet": "sha256:23bd9a67f5b0c58a6a2fc27a0b7ca3776f4cc2aaec38bc69d291d47012590cb3",
+    "psi-ms.parquet": "sha256:5bfeb07884032a82598459430c33b28ed23c14b026fa6d2a9721425e4139ab02",
+    "uberon.parquet": "sha256:dec2be2f92e626ab79e0c0a34cdb31222f073a87c0504406df2a8e35ca1c728b",
+    "unimod.parquet": "sha256:43f95d2b9b0bee4842ac6cf8dcc9f94fba4fbcd784634c2cd7c5e789e752da5c",
 }
 
 # Pooch configuration for downloading ontology files from GitHub
@@ -238,16 +326,24 @@ def download_ontology_cache(
     return downloaded_files
 
 
-def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
+# Module-level shared state for backend reuse across OlsClient instances
+_shared_ontology_map: dict[str, str] | None = None
+_shared_dict_backend: DictBackend | None = None
+
+
+def get_cache_parquet_files() -> dict[str, str] | None:
     """
     Get cached ontology parquet files from pooch cache or local development directory.
     If no cache exists, attempts to download files from GitHub using pooch.
 
+    Returns a mapping of {ontology_name: parquet_path} WITHOUT loading any data.
+    Ontology names are derived from filenames (e.g., 'efo.parquet' -> 'efo').
+
     Returns:
-        tuple: A tuple containing (list of parquet file paths, list of unique ontology names),
-               or None if cache cannot be obtained and download fails
+        dict: A mapping of ontology names to parquet file paths,
+              or None if no cache files can be found
     """
-    parquet_files = []
+    parquet_files: list[str] = []
 
     # 1. Try pooch cache directory
     if ONTOLOGY_POOCH is not None:
@@ -278,19 +374,17 @@ def get_cache_parquet_files() -> tuple[list[str], list[str]] | None:
                 "Ensure you have internet connectivity."
             ) from e
 
-    # Load all parquets and extract unique ontology names
-    try:
-        df = pd.concat([pd.read_parquet(f, engine="fastparquet") for f in parquet_files], ignore_index=True)
-    except Exception as e:
-        logger.error(f"Failed to read parquet files: {e}")
-        raise RuntimeError(f"Failed to read cached ontology files: {e}") from e
-
-    if df is None or df.empty:
-        logger.warning("The parquet files found do not contain valid ontologies.")
+    if not parquet_files:
         return None
 
-    ontologies = df.ontology.unique().tolist()
-    return parquet_files, ontologies
+    # Build {ontology_name: path} mapping from filenames — no data loading
+    ontology_map: dict[str, str] = {}
+    for fp in parquet_files:
+        name = Path(fp).stem.lower()  # e.g., "efo.parquet" -> "efo"
+        ontology_map[name] = fp
+
+    logger.info(f"Found {len(ontology_map)} ontology cache files: {', '.join(sorted(ontology_map.keys()))}")
+    return ontology_map
 
 
 def get_obo_accession(uri: str) -> str | None:
@@ -443,17 +537,49 @@ class OlsClient:
         self.ontology_term = self.base + API_TERM
         self.ontology_ancestors = self.base + API_ANCESTORS
 
-        # Initialize cache variables
-        self._cached_df: pd.DataFrame | None = None
-        self._ontology_cache: dict[str, pd.DataFrame] = {}
+        # Initialize cache backend (shared across all OlsClient instances)
+        self._backend: CacheBackend | None = None
+        self._ontology_map: dict[str, str] = {}  # {ontology_name: parquet_path}
 
         if use_cache:
-            cache_result = get_cache_parquet_files()
-            if cache_result is None:
+            global _shared_ontology_map, _shared_dict_backend
+
+            # Reuse shared ontology map if available
+            if _shared_ontology_map is not None:
+                ontology_map: dict[str, str] | None = _shared_ontology_map
+            else:
+                ontology_map = get_cache_parquet_files()
+                _shared_ontology_map = ontology_map
+
+            if ontology_map is None:
                 logger.info("No cached ontology files found. Falling back to OLS API.")
                 self.use_cache = False
             else:
-                self.parquet_files, self.ontologies = cache_result
+                self._ontology_map = ontology_map
+                # Reuse shared backend
+                if _shared_dict_backend is None:
+                    _shared_dict_backend = DictBackend()
+                    logger.info("Using Dict cache backend")
+                self._backend = _shared_dict_backend
+
+    # Mapping from ontology names used in templates to parquet filenames
+    # when they differ (e.g., validators use "ms" but the file is "psi-ms.parquet")
+    _ONTOLOGY_ALIASES: dict[str, str] = {
+        "ms": "psi-ms",
+    }
+
+    @property
+    def ontologies(self) -> list[str]:
+        """Return list of available ontology names from cache files.
+
+        Includes both filename-derived names and known aliases.
+        """
+        names = list(self._ontology_map.keys())
+        # Add alias names (e.g., "ms" for "psi-ms")
+        for alias, filename in self._ONTOLOGY_ALIASES.items():
+            if filename in self._ontology_map and alias not in names:
+                names.append(alias)
+        return names
 
     @staticmethod
     def build_ontology_index(ontology_file: str, output_file: str | None = None, ontology_name: str | None = None):
@@ -566,9 +692,20 @@ class OlsClient:
             )
             raise ex
 
+    def _normalize_term_for_fuzzy_query(self, term: str) -> str:
+        """Replace special characters that break OLS exact search with spaces, collapse spaces."""
+        normalized = _SPECIAL_CHARS_PATTERN.sub(" ", term)
+        return re.sub(r"\s+", " ", normalized).strip()
+
     def search(self, term: str, ontology: str | None = None, exact=True, use_ols_cache_only: bool = False, **kwargs):
         """
-        Search a term in the OLS
+        Search a term in the OLS.
+
+        Known bug: OLS API exact search returns no results for some valid PRIDE terms
+        (e.g. "SILAC heavy L:13C(6)", "SILAC light L:12C(6)") that contain special
+        characters like : ( ). When exact search fails and the term has these chars,
+        we retry with a normalized query (fuzzy) and filter results by Python exact
+        match on the label. If still no match, we fall back to the local parquet cache.
 
         Parameters:
             term (str): The name of the term
@@ -583,8 +720,25 @@ class OlsClient:
             terms = self.cache_search(term, ontology)
         else:
             try:
+                # 1. First try normal exact query (hoping OLS will fix the bug someday)
                 terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
-                if terms is None and self.use_cache:
+
+                # 2. If empty and term has special chars, retry with normalized fuzzy query
+                if (terms is None or len(terms) == 0) and _SPECIAL_CHARS_PATTERN.search(term):
+                    normalized = self._normalize_term_for_fuzzy_query(term)
+                    fuzzy_results = self.ols_search(normalized, ontology=ontology, exact=False, **kwargs)
+                    if fuzzy_results:
+                        term_lower = term.lower()
+                        exact_matches = [r for r in fuzzy_results if r.get("label", "").lower() == term_lower]
+                        if exact_matches:
+                            terms = exact_matches
+                            logger.debug(
+                                "Found term via normalized fuzzy query + exact filter: %s",
+                                term,
+                            )
+
+                # 3. Fall back to cache when OLS still returns no results
+                if (terms is None or len(terms) == 0) and self.use_cache:
                     terms = self.cache_search(term, ontology)
             except requests.exceptions.ConnectionError as e:
                 logger.warning("Connection error during OLS search: %s", e)
@@ -764,6 +918,35 @@ class OlsClient:
         logger.debug("OLS select returned empty response for %s", name)
         return None
 
+    def _resolve_parquet_path(self, ontology: str) -> str | None:
+        """Resolve an ontology name to its parquet file path, handling aliases."""
+        ont_lower = ontology.lower()
+        # Direct match (e.g., "efo" -> "efo.parquet")
+        path = self._ontology_map.get(ont_lower)
+        if path is not None:
+            return path
+        # Check aliases (e.g., "ms" -> "psi-ms.parquet")
+        alias_filename = self._ONTOLOGY_ALIASES.get(ont_lower)
+        if alias_filename is not None:
+            return self._ontology_map.get(alias_filename)
+        return None
+
+    def _ensure_ontology_loaded(self, ontology: str) -> bool:
+        """Lazily load an ontology into the backend if not already loaded.
+
+        Returns True if the ontology is available, False otherwise.
+        """
+        if self._backend is None:
+            return False
+        ont_lower = ontology.lower()
+        if self._backend.is_ontology_loaded(ont_lower):
+            return True
+        parquet_path = self._resolve_parquet_path(ont_lower)
+        if parquet_path is None:
+            return False
+        self._backend.load_ontology(ont_lower, parquet_path)
+        return True
+
     def cache_search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
         """
         Search a term in cache files and return them as list.
@@ -776,57 +959,25 @@ class OlsClient:
         Returns:
             list: A list of terms found
         """
-        is_cached = False
-        if ontology is not None:
-            for cache_ontologies in self.ontologies:
-                if cache_ontologies.lower() == ontology.lower():
-                    is_cached = True
-                    break
-        if not is_cached and not full_search:
+        if self._backend is None:
             return []
 
-        # Build cached DataFrame on first use
-        if self._cached_df is None:
-            self._cached_df = pd.concat(
-                [pd.read_parquet(f, engine="fastparquet") for f in self.parquet_files], ignore_index=True
-            )
-            # Ensure all fields are strings
-            self._cached_df["accession"] = self._cached_df["accession"].astype(str)
-            self._cached_df["label"] = self._cached_df["label"].astype(str)
-            self._cached_df["ontology"] = self._cached_df["ontology"].astype(str)
-
-        # Get or create per-ontology filtered cache
         if ontology is not None:
-            ontology_key = ontology.lower()
-            if ontology_key not in self._ontology_cache:
-                self._ontology_cache[ontology_key] = self._cached_df[
-                    self._cached_df["ontology"].str.lower() == ontology_key
-                ]
-            df = self._ontology_cache[ontology_key]
-        else:
-            df = self._cached_df
+            if self._resolve_parquet_path(ontology) is None and not full_search:
+                return []
+            self._ensure_ontology_loaded(ontology)
+        elif full_search:
+            # Load all ontologies for full search
+            for ont_name in self._ontology_map:
+                self._ensure_ontology_loaded(ont_name)
 
-        # Filter for case-insensitive search
-        df = df[df["label"].str.lower() == term.lower()]
-
-        if df is None or df.empty:
-            return []
-
-        terms = []
-        for _, row in df.iterrows():
-            terms.append(
-                {
-                    "ontology_name": row.ontology,
-                    "label": row.label,
-                    "obo_id": row.accession,
-                }
-            )
-
-        return terms
+        return self._backend.search(term, ontology, full_search)
 
     def clear_cache(self) -> None:
         """
-        Clear the cached DataFrames to free memory or force reload.
+        Clear the cache backend and force reload.
         """
-        self._cached_df = None
-        self._ontology_cache.clear()
+        if isinstance(self._backend, DictBackend):
+            self._backend = DictBackend()
+        else:
+            self._backend = None

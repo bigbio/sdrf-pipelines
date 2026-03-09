@@ -52,18 +52,17 @@ Repository = "https://github.com/bigbio/sdrf-pipelines"
 parse_sdrf = "sdrf_pipelines.parse_sdrf:main"
 
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.version]
+source = "vcs"
 
-[tool.setuptools.package-data]
-"sdrf_pipelines" = ["*.xml", "*.tsv", "*.yaml", "*.yml"]
-"sdrf_pipelines.sdrf" = ["sdrf-templates/**/*.yaml", "sdrf-templates/**/*.yml"]
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
 
-# Note: setuptools_scm configuration is in setup.py to support custom local_scheme callable
-# The callable encodes branch name into version for ontology cache downloads
+[tool.hatch.build.targets.wheel]
+packages = ["src/sdrf_pipelines"]
 
 [dependency-groups]
 dev = [
@@ -90,6 +89,9 @@ ignore = ["E203"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]  # assert is expected in test files
 
 [tool.ruff.format]
 quote-style = "double"

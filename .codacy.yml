@@ -1,0 +1,43 @@
+---
+# Codacy configuration for sdrf-pipelines
+# Focus on meaningful code quality issues; skip noise from vendored/generated files.
+
+engines:
+  # Python linting — align with project's ruff + mypy setup
+  ruff:
+    enabled: true
+  pylint:
+    enabled: false  # ruff covers this; avoid duplicate noise
+  bandit:
+    enabled: true  # security checks (OWASP-relevant)
+    exclude_paths:
+      - "tests/**"  # assert in tests is expected (S101)
+  prospector:
+    enabled: false
+  # Markdown / docs
+  markdownlint:
+    enabled: false  # docs are minimal; not worth the noise
+  # Duplication detection
+  duplication:
+    enabled: true
+    exclude_paths:
+      - "tests/**"
+
+exclude_paths:
+  # Vendored submodule — validated upstream in sdrf-templates repo
+  - "src/sdrf_pipelines/sdrf/sdrf-templates/**"
+  # Generated files
+  - "src/sdrf_pipelines/_version.py"
+  - "docs/cli_reference.md"
+  # Test fixtures / data files
+  - "tests/data/**"
+  # Build / config scripts
+  - "scripts/**"
+  # IDE / tooling
+  - ".github/**"
+  - ".vscode/**"
+  - ".idea/**"
+
+languages:
+  python:
+    version: "3.10"
