@@ -14,6 +14,7 @@ import yaml
 
 from sdrf_pipelines import __version__
 from sdrf_pipelines.converters.maxquant.maxquant import Maxquant
+from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.converters.openms.openms import OpenMS
@@ -686,6 +687,44 @@ def list_templates(format: str, verbose: bool):
         click.echo("Use --verbose/-v for detailed information")
 
 
+@click.command("convert-mhcquant", short_help="convert sdrf to mhcquant samplesheet and search presets")
+@click.option("--sdrf", "-s", help="SDRF file", required=True)
+@click.option(
+    "--output_samplesheet",
+    "-os",
+    help="Output samplesheet file path",
+    default="mhcquant_samplesheet.tsv",
+)
+@click.option(
+    "--output_presets",
+    "-op",
+    help="Output search presets file path",
+    default="search_presets.tsv",
+)
+@click.option(
+    "--raw_file_prefix",
+    "-r",
+    help="Prefix to prepend to raw file names",
+    default="",
+)
+@click.option(
+    "--default_presets_file",
+    "-d",
+    help="Custom default presets TSV file (overrides built-in defaults)",
+    default=None,
+)
+@click.pass_context
+def mhcquant_from_sdrf(ctx, sdrf, output_samplesheet, output_presets, raw_file_prefix, default_presets_file):
+    if sdrf is None:
+        help()
+    try:
+        MHCquant().convert(sdrf, output_samplesheet, output_presets, raw_file_prefix, default_presets_file)
+    except Exception as ex:
+        msg = "Error: " + str(ex)
+        raise ValueError(msg) from ex
+
+
+cli.add_command(mhcquant_from_sdrf)
 cli.add_command(download_cache)
 cli.add_command(validate_sdrf_simple)
 cli.add_command(list_templates)
