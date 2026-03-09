@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
-from sdrf_pipelines.converters.mhcquant.constants import DEFAULT_PRESETS
+from sdrf_pipelines.converters.mhcquant.constants import load_default_presets
 
 DATA_DIR = Path(__file__).parent / "data" / "mhcquant"
 BASIC_SDRF = DATA_DIR / "test_immunopeptidomics.sdrf.tsv"
@@ -139,7 +139,7 @@ class TestFallbackPreset:
 
         preset_df = pd.read_csv(presets, sep="\t")
         row = preset_df.iloc[0]
-        expected = DEFAULT_PRESETS["qe_class1"]
+        expected = load_default_presets()["qe_class1"]
         assert row["PeptideMinLength"] == expected["PeptideMinLength"]
         assert row["PeptideMaxLength"] == expected["PeptideMaxLength"]
         assert row["PrecursorMassRange"] == expected["PrecursorMassRange"]
@@ -203,42 +203,42 @@ class TestInstrumentMapping:
 
     def test_q_exactive(self, converter):
         params = {"instrument_name": "Q Exactive", "mhc_class": "class1"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "qe_class1"
 
     def test_lumos(self, converter):
         params = {"instrument_name": "Orbitrap Fusion Lumos", "mhc_class": "class1"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "lumos_class1"
 
     def test_timstof(self, converter):
         params = {"instrument_name": "timsTOF Pro", "mhc_class": "class2"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "timstof_class2"
 
     def test_astral(self, converter):
         params = {"instrument_name": "Orbitrap Astral", "mhc_class": "class1"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "astral_class1"
 
     def test_xl(self, converter):
         params = {"instrument_name": "LTQ Orbitrap XL", "mhc_class": "class2"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "xl_class2"
 
     def test_exploris(self, converter):
         params = {"instrument_name": "Orbitrap Exploris 480", "mhc_class": "class1"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "lumos_class1"
 
     def test_eclipse(self, converter):
         params = {"instrument_name": "Orbitrap Eclipse", "mhc_class": "class2"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "lumos_class2"
 
     def test_unrecognized_instrument_falls_back_to_qe(self, converter):
         params = {"instrument_name": "Unknown Instrument", "mhc_class": "class1"}
-        name, _ = converter._map_to_default_preset(params, DEFAULT_PRESETS)
+        name, _ = converter._map_to_default_preset(params, load_default_presets())
         assert name == "qe_class1"
         assert any("Unrecognized instrument" in w for w in converter.warnings)
 

@@ -9,11 +9,11 @@ import pandas as pd
 
 from sdrf_pipelines.converters.mhcquant.constants import (
     COLUMN_ALIASES,
-    DEFAULT_PRESETS,
     INSTRUMENT_PRESET_MAP,
     MHC_CLASS_PEPTIDE_LENGTHS,
     PRESET_COLUMNS,
     REQUIRED_PRESET_FIELDS,
+    load_default_presets,
 )
 
 
@@ -123,16 +123,11 @@ class MHCquant:
         return sdrf
 
     def _load_default_presets(self, presets_file: str | None) -> dict[str, dict]:
-        """Load default presets from file or use built-in defaults."""
-        if presets_file is None:
-            return dict(DEFAULT_PRESETS)
+        """Load default presets from TSV file.
 
-        df = pd.read_csv(presets_file, sep="\t")
-        presets = {}
-        for _, row in df.iterrows():
-            name = str(row["PresetName"])
-            presets[name] = {col: row[col] for col in PRESET_COLUMNS if col in row.index}
-        return presets
+        Uses the bundled default_search_presets.tsv if no override is given.
+        """
+        return load_default_presets(presets_file)
 
     def _resolve_column(
         self, row: pd.Series, columns: pd.Index, primary_name: str
@@ -512,7 +507,7 @@ class MHCquant:
 
         # Should not happen with built-in defaults, but handle gracefully
         self._add_warning(f"Default preset '{preset_name}' not found. Using qe_class1.")
-        return "qe_class1", defaults.get("qe_class1", DEFAULT_PRESETS["qe_class1"])
+        return "qe_class1", defaults["qe_class1"]
 
     def _write_samplesheet(self, rows_data: list[dict], output_path: str) -> None:
         """Write the mhcquant samplesheet TSV."""

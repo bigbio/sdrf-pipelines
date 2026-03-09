@@ -1,5 +1,12 @@
 """Constants for the MHCquant SDRF converter."""
 
+from pathlib import Path
+
+import pandas as pd
+
+# Path to the bundled default search presets TSV (from nf-core/mhcquant assets)
+DEFAULT_PRESETS_FILE = Path(__file__).parent / "default_search_presets.tsv"
+
 # Column alias pairs: (new_name, old_name)
 # Check new names first, fall back to old names
 COLUMN_ALIASES = {
@@ -42,180 +49,6 @@ INSTRUMENT_PRESET_MAP = [
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
 ]
 
-# 10 built-in default presets from nf-core/mhcquant assets/search_presets.tsv
-DEFAULT_PRESETS = {
-    "lumos_class1": {
-        "PresetName": "lumos_class1",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 14,
-        "PrecursorMassRange": "800:2500",
-        "PrecursorCharge": "2:3",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 3,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "lumos_class2": {
-        "PresetName": "lumos_class2",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 30,
-        "PrecursorMassRange": "800:5000",
-        "PrecursorCharge": "2:5",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 5,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "qe_class1": {
-        "PresetName": "qe_class1",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 14,
-        "PrecursorMassRange": "800:2500",
-        "PrecursorCharge": "2:3",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 3,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "qe_class2": {
-        "PresetName": "qe_class2",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 30,
-        "PrecursorMassRange": "800:5000",
-        "PrecursorCharge": "2:5",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 5,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "timstof_class1": {
-        "PresetName": "timstof_class1",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 14,
-        "PrecursorMassRange": "800:2500",
-        "PrecursorCharge": "1:4",
-        "PrecursorMassTolerance": 20,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "timsTOF",
-        "ActivationMethod": "CID",
-        "Instrument": "high_res",
-        "NumberMods": 3,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "timstof_class2": {
-        "PresetName": "timstof_class2",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 30,
-        "PrecursorMassRange": "800:5000",
-        "PrecursorCharge": "1:5",
-        "PrecursorMassTolerance": 20,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "timsTOF",
-        "ActivationMethod": "CID",
-        "Instrument": "high_res",
-        "NumberMods": 5,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "astral_class1": {
-        "PresetName": "astral_class1",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 14,
-        "PrecursorMassRange": "800:2500",
-        "PrecursorCharge": "2:3",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 3,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "astral_class2": {
-        "PresetName": "astral_class2",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 30,
-        "PrecursorMassRange": "800:5000",
-        "PrecursorCharge": "2:5",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.01,
-        "FragmentBinOffset": 0.0,
-        "MS2PIPModel": "Immuno-HCD",
-        "ActivationMethod": "HCD",
-        "Instrument": "high_res",
-        "NumberMods": 5,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "xl_class1": {
-        "PresetName": "xl_class1",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 14,
-        "PrecursorMassRange": "800:2500",
-        "PrecursorCharge": "2:3",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.50025,
-        "FragmentBinOffset": 0.4,
-        "MS2PIPModel": "CIDch2",
-        "ActivationMethod": "CID",
-        "Instrument": "low_res",
-        "NumberMods": 3,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-    "xl_class2": {
-        "PresetName": "xl_class2",
-        "PeptideMinLength": 8,
-        "PeptideMaxLength": 30,
-        "PrecursorMassRange": "800:5000",
-        "PrecursorCharge": "2:5",
-        "PrecursorMassTolerance": 5,
-        "PrecursorErrorUnit": "ppm",
-        "FragmentMassTolerance": 0.50025,
-        "FragmentBinOffset": 0.4,
-        "MS2PIPModel": "CIDch2",
-        "ActivationMethod": "CID",
-        "Instrument": "low_res",
-        "NumberMods": 5,
-        "FixedMods": "",
-        "VariableMods": "Oxidation (M)",
-    },
-}
-
 # Preset column order for output TSV
 PRESET_COLUMNS = [
     "PresetName",
@@ -234,3 +67,22 @@ PRESET_COLUMNS = [
     "FixedMods",
     "VariableMods",
 ]
+
+
+def load_default_presets(presets_file: str | Path | None = None) -> dict[str, dict]:
+    """Load default presets from a TSV file.
+
+    Args:
+        presets_file: Path to a presets TSV. If None, uses the bundled
+            default_search_presets.tsv shipped with this package.
+
+    Returns:
+        Dict mapping preset name to a dict of preset column values.
+    """
+    path = Path(presets_file) if presets_file else DEFAULT_PRESETS_FILE
+    df = pd.read_csv(path, sep="\t", keep_default_na=False)
+    presets = {}
+    for _, row in df.iterrows():
+        name = str(row["PresetName"])
+        presets[name] = {col: row[col] for col in PRESET_COLUMNS if col in row.index}
+    return presets
