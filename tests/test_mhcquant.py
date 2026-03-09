@@ -99,14 +99,15 @@ class TestBasicConversion:
 class TestFallbackPreset:
     """Test preset fallback when mz/charge range columns are missing."""
 
-    def test_falls_back_to_default_preset(self, converter, tmpdir):
+    def test_falls_back_to_custom_with_sdrf_mods(self, converter, tmpdir):
         ss = tmpdir / "samplesheet.tsv"
         presets = tmpdir / "presets.tsv"
         converter.convert(str(BASIC_SDRF), str(ss), str(presets))
 
         df = pd.read_csv(ss, sep="\t")
-        # PXD009749: Q Exactive + MHC class I → qe_class1
-        assert all(df["SearchPreset"] == "qe_class1")
+        # PXD009749: Q Exactive + MHC class I, but has Deamidated mod
+        # → custom preset based on qe_class1 with SDRF mods
+        assert all(df["SearchPreset"] == "custom_1")
 
     def test_presets_file_contains_only_used_presets(self, converter, tmpdir):
         ss = tmpdir / "samplesheet.tsv"
@@ -115,7 +116,8 @@ class TestFallbackPreset:
 
         preset_df = pd.read_csv(presets, sep="\t")
         assert len(preset_df) == 1
-        assert preset_df.iloc[0]["PresetName"] == "qe_class1"
+        # Custom preset because SDRF mods differ from qe_class1 defaults
+        assert preset_df.iloc[0]["PresetName"] == "custom_1"
 
     def test_presets_file_columns(self, converter, tmpdir):
         ss = tmpdir / "samplesheet.tsv"
@@ -132,19 +134,22 @@ class TestFallbackPreset:
         ]
         assert list(preset_df.columns) == expected_cols
 
-    def test_default_preset_values_match(self, converter, tmpdir):
+    def test_fallback_preset_inherits_instrument_params(self, converter, tmpdir):
         ss = tmpdir / "samplesheet.tsv"
         presets = tmpdir / "presets.tsv"
         converter.convert(str(BASIC_SDRF), str(ss), str(presets))
 
         preset_df = pd.read_csv(presets, sep="\t")
         row = preset_df.iloc[0]
-        expected = load_default_presets()["qe_class1"]
-        assert row["PeptideMinLength"] == expected["PeptideMinLength"]
-        assert row["PeptideMaxLength"] == expected["PeptideMaxLength"]
-        assert row["PrecursorMassRange"] == expected["PrecursorMassRange"]
-        assert row["MS2PIPModel"] == expected["MS2PIPModel"]
-        assert row["Instrument"] == expected["Instrument"]
+        qe = load_default_presets()["qe_class1"]
+        # Instrument-level params should match the qe_class1 default
+        assert row["PeptideMinLength"] == qe["PeptideMinLength"]
+        assert row["PeptideMaxLength"] == qe["PeptideMaxLength"]
+        assert row["PrecursorMassRange"] == qe["PrecursorMassRange"]
+        assert row["MS2PIPModel"] == qe["MS2PIPModel"]
+        assert row["Instrument"] == qe["Instrument"]
+        # But mods come from the SDRF (Oxidation + Deamidated)
+        assert "Deamidated" in row["VariableMods"]
 
 
 class TestCustomPreset:

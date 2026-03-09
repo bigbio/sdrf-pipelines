@@ -447,8 +447,26 @@ class MHCquant:
             preset_dict["PresetName"] = preset_name
             return preset_name, preset_dict
 
-        # Fall back to default preset based on instrument + MHC class
-        return self._map_to_default_preset(search_params, defaults)
+        # Fall back to default preset based on instrument + MHC class,
+        # but always override modifications from the SDRF.
+        preset_name, preset_dict = self._map_to_default_preset(search_params, defaults)
+        preset_dict = dict(preset_dict)  # copy so we don't mutate the default
+        preset_dict["FixedMods"] = search_params.get("fixed_mods", "")
+        preset_dict["VariableMods"] = search_params.get("variable_mods", "Oxidation (M)")
+        preset_dict["NumberMods"] = search_params.get("number_mods", 3)
+
+        # Check if the modified preset still matches its original or an existing one
+        for name, existing in existing_presets.items():
+            if self._presets_match(preset_dict, existing):
+                return name, existing
+        for name, default in defaults.items():
+            if self._presets_match(preset_dict, default):
+                return name, default
+
+        # Mods differ from the default — create a new custom preset
+        new_name = f"custom_{custom_counter + 1}"
+        preset_dict["PresetName"] = new_name
+        return new_name, preset_dict
 
     def _build_custom_preset(self, params: dict, preset_name: str) -> dict:
         """Build a custom preset dict from extracted search params."""
@@ -477,10 +495,9 @@ class MHCquant:
         """Check if two presets have the same parameter values (ignoring name)."""
         keys = [k for k in PRESET_COLUMNS if k != "PresetName"]
         for key in keys:
-            val_a = preset_a.get(key, "")
-            val_b = preset_b.get(key, "")
-            # Compare as strings to handle numeric/string mismatches
-            if str(val_a) != str(val_b):
+            val_a = str(preset_a.get(key, "")).strip()
+            val_b = str(preset_b.get(key, "")).strip()
+            if val_a != val_b:
                 return False
         return True
 
