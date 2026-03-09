@@ -546,7 +546,7 @@ class OlsClient:
 
             # Reuse shared ontology map if available
             if _shared_ontology_map is not None:
-                ontology_map = _shared_ontology_map
+                ontology_map: dict[str, str] | None = _shared_ontology_map
             else:
                 ontology_map = get_cache_parquet_files()
                 _shared_ontology_map = ontology_map
