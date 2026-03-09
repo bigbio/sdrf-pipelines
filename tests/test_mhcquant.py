@@ -351,6 +351,72 @@ class TestResolution:
     def test_xl_without_orbitrap_ms2_is_low_res(self, converter):
         assert converter._determine_resolution("LTQ Orbitrap XL", "linear trap") == "low_res"
 
+    def test_high_fragment_tolerance_triggers_low_res(self, converter):
+        # 0.5 Da fragment tolerance → low_res even if analyzer says orbitrap
+        assert converter._determine_resolution("Q Exactive", "orbitrap", fragment_mass_tolerance=0.5) == "low_res"
+
+    def test_borderline_fragment_tolerance_triggers_low_res(self, converter):
+        # 0.1 Da is the threshold
+        assert converter._determine_resolution("Q Exactive", "orbitrap", fragment_mass_tolerance=0.1) == "low_res"
+
+    def test_small_fragment_tolerance_stays_high_res(self, converter):
+        assert converter._determine_resolution("Q Exactive", "orbitrap", fragment_mass_tolerance=0.02) == "high_res"
+
+
+class TestLowResEnforcement:
+    """Test that low-res detection forces correct fragment tolerance and bin offset."""
+
+    def test_low_res_forces_fragment_tolerance(self, converter):
+        """When low-res is detected, fragment tolerance must be exactly 0.50025."""
+        row = pd.Series({
+            "source name": "patient_1",
+            "characteristics[mhc protein complex]": "MHC class I protein complex",
+            "comment[precursor mass tolerance]": "5 ppm",
+            "comment[fragment mass tolerance]": "0.5 Da",
+            "comment[instrument]": "NT=LTQ Orbitrap XL;AC=MS:1000556",
+            "comment[ms2 mass analyzer]": "NT=ion trap;AC=MS:1000264",
+            "comment[dissociation method]": "NT=CID;AC=MS:1000133",
+        })
+        columns = row.index
+        params = converter._extract_search_params(row, columns)
+        assert params["fragment_mass_tolerance"] == 0.50025
+        assert params["fragment_bin_offset"] == 0.4
+        assert params["instrument_resolution"] == "low_res"
+
+    def test_low_res_from_high_frag_tol_forces_values(self, converter):
+        """Even with orbitrap analyzer, high frag tolerance → low_res with forced values."""
+        row = pd.Series({
+            "source name": "patient_1",
+            "characteristics[mhc protein complex]": "MHC class I protein complex",
+            "comment[precursor mass tolerance]": "10 ppm",
+            "comment[fragment mass tolerance]": "0.6 Da",
+            "comment[instrument]": "NT=Q Exactive;AC=MS:1001911",
+            "comment[ms2 mass analyzer]": "NT=orbitrap;AC=MS:1000484",
+            "comment[dissociation method]": "NT=HCD;AC=MS:1000422",
+        })
+        columns = row.index
+        params = converter._extract_search_params(row, columns)
+        assert params["fragment_mass_tolerance"] == 0.50025
+        assert params["fragment_bin_offset"] == 0.4
+        assert params["instrument_resolution"] == "low_res"
+
+    def test_high_res_keeps_original_frag_tol(self, converter):
+        """High-res should keep the SDRF's fragment tolerance as-is."""
+        row = pd.Series({
+            "source name": "patient_1",
+            "characteristics[mhc protein complex]": "MHC class I protein complex",
+            "comment[precursor mass tolerance]": "5 ppm",
+            "comment[fragment mass tolerance]": "0.02 Da",
+            "comment[instrument]": "NT=Q Exactive;AC=MS:1001911",
+            "comment[ms2 mass analyzer]": "NT=orbitrap;AC=MS:1000484",
+            "comment[dissociation method]": "NT=HCD;AC=MS:1000422",
+        })
+        columns = row.index
+        params = converter._extract_search_params(row, columns)
+        assert params["fragment_mass_tolerance"] == 0.02
+        assert params["fragment_bin_offset"] == 0.0
+        assert params["instrument_resolution"] == "high_res"
+
 
 class TestMS2PIPModel:
     """Test MS2PIP model determination."""

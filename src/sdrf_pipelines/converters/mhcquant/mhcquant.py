@@ -238,12 +238,19 @@ class MHCquant:
             params["ms2_analyzer"] = self._extract_nt_value(ms2_analyzer)
 
         resolution = self._determine_resolution(
-            params.get("instrument_name", ""), params.get("ms2_analyzer", "")
+            params.get("instrument_name", ""),
+            params.get("ms2_analyzer", ""),
+            params.get("fragment_mass_tolerance"),
         )
         params["instrument_resolution"] = resolution
 
-        # Fragment bin offset
-        params["fragment_bin_offset"] = 0.4 if resolution == "low_res" else 0.0
+        # For low-res: override fragment tolerance and bin offset to mhcquant's
+        # required values. Using anything else produces bad results.
+        if resolution == "low_res":
+            params["fragment_mass_tolerance"] = 0.50025
+            params["fragment_bin_offset"] = 0.4
+        else:
+            params["fragment_bin_offset"] = 0.0
 
         # MS2PIP model
         params["ms2pip_model"] = self._determine_ms2pip_model(
@@ -307,17 +314,32 @@ class MHCquant:
         match = re.search(r"NT=([^;]+)", value)
         return match.group(1).strip() if match else value.strip()
 
-    def _determine_resolution(self, instrument_name: str, ms2_analyzer: str) -> str:
-        """Determine instrument resolution (high_res/low_res)."""
+    def _determine_resolution(
+        self,
+        instrument_name: str,
+        ms2_analyzer: str,
+        fragment_mass_tolerance: float | None = None,
+    ) -> str:
+        """Determine instrument resolution (high_res/low_res).
+
+        Low-res is detected by any of:
+        - MS2 analyzer is ion trap / linear trap
+        - Instrument name contains "xl" (LTQ Orbitrap XL) without orbitrap MS2
+        - Fragment mass tolerance >= 0.1 Da (indicates low-res detector)
+        """
         lower_analyzer = ms2_analyzer.lower()
         lower_instrument = instrument_name.lower()
 
-        # Ion trap → low_res
+        # Ion trap / linear trap MS2 → low_res
         if "ion trap" in lower_analyzer or "linear trap" in lower_analyzer:
             return "low_res"
 
-        # Orbitrap XL with ion trap MS2 → low_res
+        # Orbitrap XL with non-orbitrap MS2 → low_res
         if ("orbitrap xl" in lower_instrument or "ltq" in lower_instrument) and "orbitrap" not in lower_analyzer:
+            return "low_res"
+
+        # High fragment mass tolerance indicates low-res MS2
+        if fragment_mass_tolerance is not None and fragment_mass_tolerance >= 0.1:
             return "low_res"
 
         return "high_res"
