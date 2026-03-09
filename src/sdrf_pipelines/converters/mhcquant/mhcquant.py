@@ -242,6 +242,9 @@ class MHCquant:
             params["fragment_mass_tolerance"] = 0.50025
             params["fragment_bin_offset"] = 0.4
         else:
+            # Halve fragment tolerance for high-res due to Comet tolerance binning
+            if "fragment_mass_tolerance" in params:
+                params["fragment_mass_tolerance"] = params["fragment_mass_tolerance"] / 2
             params["fragment_bin_offset"] = 0.0
 
         # MS2PIP model

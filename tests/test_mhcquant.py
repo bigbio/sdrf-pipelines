@@ -400,8 +400,8 @@ class TestLowResEnforcement:
         assert params["fragment_bin_offset"] == 0.4
         assert params["instrument_resolution"] == "low_res"
 
-    def test_high_res_keeps_original_frag_tol(self, converter):
-        """High-res should keep the SDRF's fragment tolerance as-is."""
+    def test_high_res_halves_frag_tol(self, converter):
+        """High-res should halve fragment tolerance due to Comet binning."""
         row = pd.Series({
             "source name": "patient_1",
             "characteristics[mhc protein complex]": "MHC class I protein complex",
@@ -413,7 +413,7 @@ class TestLowResEnforcement:
         })
         columns = row.index
         params = converter._extract_search_params(row, columns)
-        assert params["fragment_mass_tolerance"] == 0.02
+        assert params["fragment_mass_tolerance"] == 0.01
         assert params["fragment_bin_offset"] == 0.0
         assert params["instrument_resolution"] == "high_res"
 
