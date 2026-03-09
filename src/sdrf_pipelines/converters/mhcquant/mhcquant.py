@@ -84,15 +84,12 @@ class MHCquant:
             preset_name, preset_dict = self._determine_preset(
                 search_params, defaults, preset_params_map, custom_counter
             )
-            if preset_name.startswith("custom_"):
-                # Update custom counter to next available
-                num = int(preset_name.split("_")[1])
-                if num >= custom_counter:
-                    custom_counter = num + 1
 
             # Store preset if not already stored
             if preset_name not in preset_params_map:
                 preset_params_map[preset_name] = preset_dict
+                if preset_name.startswith("custom_"):
+                    custom_counter += 1
 
             rows_data.append({
                 "Sample": sample,
