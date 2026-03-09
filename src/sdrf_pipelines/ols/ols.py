@@ -35,20 +35,13 @@ except ImportError:
     OLS_AVAILABLE = False
 
 try:
-    import duckdb
-
-    DUCKDB_AVAILABLE = True
-except ImportError:
-    DUCKDB_AVAILABLE = False
-
-try:
     from sdrf_pipelines import __version__
 except ImportError:
     __version__ = "dev"
 
 OLS = "https://www.ebi.ac.uk/ols4"
 
-__all__ = ["OlsClient", "OLS_AVAILABLE", "DUCKDB_AVAILABLE"]
+__all__ = ["OlsClient", "OLS_AVAILABLE"]
 
 logger = logging.getLogger(__name__)
 
@@ -123,64 +116,6 @@ class DictBackend(CacheBackend):
         for ont_index in self._index.values():
             results.extend(ont_index.get(term_lower, []))
         return results
-
-
-class DuckDBBackend(CacheBackend):
-    """DuckDB-based cache backend. Memory efficient, 0.3ms/query. Requires duckdb."""
-
-    def __init__(self) -> None:
-        if not DUCKDB_AVAILABLE:
-            raise ImportError("duckdb is required for DuckDBBackend. Install with: pip install duckdb")
-        self._conn = duckdb.connect(":memory:")
-        self._loaded_ontologies: set[str] = set()
-        self._ontology_names: list[str] = []
-
-    def load_ontology(self, name: str, path: str) -> None:
-        name_lower = name.lower()
-        if name_lower in self._loaded_ontologies:
-            return
-        # Replace hyphens with underscores for SQL table names
-        table_name = name_lower.replace("-", "_")
-        self._conn.execute(
-            f"CREATE TABLE {table_name} AS SELECT * FROM read_parquet('{path}')"  # noqa: S608
-        )
-        self._loaded_ontologies.add(name_lower)
-        if name_lower not in self._ontology_names:
-            self._ontology_names.append(name_lower)
-        count = self._conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]  # noqa: S608
-        logger.info("DuckDBBackend: loaded %s (%d terms)", name, count)
-
-    def is_ontology_loaded(self, name: str) -> bool:
-        return name.lower() in self._loaded_ontologies
-
-    def get_ontologies(self) -> list[str]:
-        return list(self._ontology_names)
-
-    def search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
-        term_lower = term.lower()
-        if ontology is not None:
-            ont_lower = ontology.lower()
-            if ont_lower not in self._loaded_ontologies:
-                return []
-            table_name = ont_lower.replace("-", "_")
-            rows = self._conn.execute(
-                f"SELECT ontology, label, accession FROM {table_name} WHERE lower(label) = ?",  # noqa: S608
-                [term_lower],
-            ).fetchall()
-        elif full_search:
-            # Search across all loaded ontologies
-            rows = []
-            for ont in self._loaded_ontologies:
-                table_name = ont.replace("-", "_")
-                rows.extend(
-                    self._conn.execute(
-                        f"SELECT ontology, label, accession FROM {table_name} WHERE lower(label) = ?",  # noqa: S608
-                        [term_lower],
-                    ).fetchall()
-                )
-        else:
-            return []
-        return [{"ontology_name": r[0], "label": r[1], "obo_id": r[2]} for r in rows]
 
 
 API_SUGGEST = "/api/suggest"
@@ -394,7 +329,6 @@ def download_ontology_cache(
 # Module-level shared state for backend reuse across OlsClient instances
 _shared_ontology_map: dict[str, str] | None = None
 _shared_dict_backend: DictBackend | None = None
-_shared_duckdb_backend: DuckDBBackend | None = None
 
 
 def get_cache_parquet_files() -> dict[str, str] | None:
@@ -570,7 +504,6 @@ class OlsClient:
         field_list: list[str] | None = None,
         query_fields: list[str] | None = None,
         use_cache: bool = True,
-        use_duckdb: bool = False,
     ):
         """
         The Ols client is a wrapper around the OLS API.
@@ -581,7 +514,6 @@ class OlsClient:
             field_list (list): A list of fields to return
             query_fields (list): A list of fields to search
             use_cache (bool): Whether to use the cache
-            use_duckdb (bool): Whether to use DuckDB backend (requires duckdb package)
 
         Raises:
             ImportError: If optional OLS dependencies are not installed
@@ -610,7 +542,7 @@ class OlsClient:
         self._ontology_map: dict[str, str] = {}  # {ontology_name: parquet_path}
 
         if use_cache:
-            global _shared_ontology_map, _shared_dict_backend, _shared_duckdb_backend
+            global _shared_ontology_map, _shared_dict_backend
 
             # Reuse shared ontology map if available
             if _shared_ontology_map is not None:
@@ -624,22 +556,11 @@ class OlsClient:
                 self.use_cache = False
             else:
                 self._ontology_map = ontology_map
-                # Select and reuse shared backend
-                if use_duckdb and DUCKDB_AVAILABLE:
-                    if _shared_duckdb_backend is None:
-                        _shared_duckdb_backend = DuckDBBackend()
-                        logger.info("Using DuckDB cache backend")
-                    self._backend = _shared_duckdb_backend
-                elif use_duckdb and not DUCKDB_AVAILABLE:
-                    logger.warning("duckdb not installed, falling back to Dict backend")
-                    if _shared_dict_backend is None:
-                        _shared_dict_backend = DictBackend()
-                    self._backend = _shared_dict_backend
-                else:
-                    if _shared_dict_backend is None:
-                        _shared_dict_backend = DictBackend()
-                        logger.info("Using Dict cache backend")
-                    self._backend = _shared_dict_backend
+                # Reuse shared backend
+                if _shared_dict_backend is None:
+                    _shared_dict_backend = DictBackend()
+                    logger.info("Using Dict cache backend")
+                self._backend = _shared_dict_backend
 
     # Mapping from ontology names used in templates to parquet filenames
     # when they differ (e.g., validators use "ms" but the file is "psi-ms.parquet")
@@ -1058,7 +979,5 @@ class OlsClient:
         """
         if isinstance(self._backend, DictBackend):
             self._backend = DictBackend()
-        elif isinstance(self._backend, DuckDBBackend):
-            self._backend = DuckDBBackend()
         else:
             self._backend = None

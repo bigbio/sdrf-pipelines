@@ -349,7 +349,6 @@ if OLS_AVAILABLE:
         ontologies: list[str] = Field(default_factory=list)
         error_level: int = logging.INFO
         use_ols_cache_only: bool = False
-        use_duckdb: bool = False
         allow_not_applicable: bool = True
         allow_not_available: bool = True
         description: str = ""
@@ -372,11 +371,6 @@ if OLS_AVAILABLE:
                             self.error_level = logging.INFO
                     elif key == "use_ols_cache_only":
                         self.use_ols_cache_only = value
-                    elif key == "use_duckdb":
-                        self.use_duckdb = value
-                        # Re-create client with DuckDB backend
-                        if value:
-                            self.client = OlsClient(use_duckdb=True)
                     elif key == "allow_not_applicable":
                         self.allow_not_applicable = value
                     elif key == "allow_not_available":

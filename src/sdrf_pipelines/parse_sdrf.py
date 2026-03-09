@@ -194,11 +194,6 @@ def maxquant_from_sdrf(
     is_flag=True,
 )
 @click.option(
-    "--use_duckdb",
-    help="Use DuckDB backend for cache search (requires duckdb package, more memory efficient)",
-    is_flag=True,
-)
-@click.option(
     "--out",
     "-o",
     help="Output file to write the validation results to (default: stdout)",
@@ -229,7 +224,6 @@ def validate_sdrf(
     template: str,
     use_ols_cache_only: bool,
     skip_ontology: bool,
-    use_duckdb: bool = False,
     out: Optional[str] = None,
     proof_out: Optional[str] = None,
     generate_proof: bool = False,
@@ -283,9 +277,7 @@ def validate_sdrf(
         except Exception as e:
             logging.warning("Could not load template content for proof generation: %s", e)
 
-    errors = validator.validate(
-        sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology, use_duckdb=use_duckdb
-    )
+    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
     error_list = []
     for error in errors:
