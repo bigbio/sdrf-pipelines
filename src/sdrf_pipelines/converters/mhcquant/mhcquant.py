@@ -13,6 +13,7 @@ from sdrf_pipelines.converters.mhcquant.constants import (
     MHC_CLASS_PEPTIDE_LENGTHS,
     PRESET_COLUMNS,
     REQUIRED_PRESET_FIELDS,
+    UNIMOD_DEFAULT_TARGETS,
     load_default_presets,
 )
 
@@ -381,12 +382,13 @@ class MHCquant:
             mod_name = self._extract_nt_value(val)
             target_aa = self._extract_field(val, "TA")
             position = self._extract_field(val, "PP")
+            accession = self._extract_field(val, "AC")
 
             if not mod_name:
                 continue
 
             # Format modification name with residue info
-            mod_label = self._format_mod_label(mod_name, target_aa, position)
+            mod_label = self._format_mod_label(mod_name, target_aa, position, accession)
 
             if mod_type and mod_type.lower() == "fixed":
                 fixed_mods.append(mod_label)
@@ -395,12 +397,20 @@ class MHCquant:
 
         return ", ".join(fixed_mods), ", ".join(variable_mods)
 
-    def _format_mod_label(self, mod_name: str, target_aa: str | None, position: str | None) -> str:
-        """Format a modification label like 'Oxidation (M)' or 'Acetyl (Protein N-term)'."""
+    def _format_mod_label(
+        self, mod_name: str, target_aa: str | None, position: str | None, accession: str | None = None
+    ) -> str:
+        """Format a modification label like 'Oxidation (M)' or 'Acetyl (Protein N-term)'.
+
+        Falls back to UNIMOD_DEFAULT_TARGETS when TA= and PP= are missing.
+        """
         if target_aa and target_aa.lower() not in ("nan", "", "not available"):
             return f"{mod_name} ({target_aa})"
         if position and position.lower() not in ("nan", "", "not available", "anywhere"):
             return f"{mod_name} ({position})"
+        # Infer target from UNIMOD accession
+        if accession and accession in UNIMOD_DEFAULT_TARGETS:
+            return f"{mod_name} ({UNIMOD_DEFAULT_TARGETS[accession]})"
         return mod_name
 
     def _extract_field(self, value: str, field: str) -> str | None:
