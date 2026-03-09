@@ -49,16 +49,6 @@ INSTRUMENT_PRESET_MAP = [
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
 ]
 
-# Default target residues for common UNIMOD modifications.
-# Used as fallback when the SDRF entry has no TA= field.
-UNIMOD_DEFAULT_TARGETS = {
-    "UNIMOD:1": "Protein N-term",   # Acetyl
-    "UNIMOD:4": "C",                # Carbamidomethyl
-    "UNIMOD:7": "NQ",               # Deamidated
-    "UNIMOD:21": "ST",              # Phospho
-    "UNIMOD:35": "M",               # Oxidation
-}
-
 # Preset column order for output TSV
 PRESET_COLUMNS = [
     "PresetName",

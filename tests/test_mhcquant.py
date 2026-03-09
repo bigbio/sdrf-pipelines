@@ -9,6 +9,7 @@ import pytest
 
 from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.mhcquant.constants import load_default_presets
+from sdrf_pipelines.converters.openms.utils import parse_tolerance
 
 DATA_DIR = Path(__file__).parent / "data" / "mhcquant"
 BASIC_SDRF = DATA_DIR / "PXD009749.sdrf.tsv"
@@ -105,7 +106,7 @@ class TestFallbackPreset:
         converter.convert(str(BASIC_SDRF), str(ss), str(presets))
 
         df = pd.read_csv(ss, sep="\t")
-        # PXD009749: Q Exactive + MHC class I, but has Deamidated mod
+        # PXD009749: Q Exactive + MHC class I, with Deamidated (NQ) from SDRF
         # → custom preset based on qe_class1 with SDRF mods
         assert all(df["SearchPreset"] == "custom_1")
 
@@ -116,7 +117,7 @@ class TestFallbackPreset:
 
         preset_df = pd.read_csv(presets, sep="\t")
         assert len(preset_df) == 1
-        # Custom preset because SDRF mods differ from qe_class1 defaults
+        # Custom preset because SDRF has Deamidated (NQ) differing from qe_class1 defaults
         assert preset_df.iloc[0]["PresetName"] == "custom_1"
 
     def test_presets_file_columns(self, converter, tmpdir):
@@ -148,8 +149,10 @@ class TestFallbackPreset:
         assert row["PrecursorMassRange"] == qe["PrecursorMassRange"]
         assert row["MS2PIPModel"] == qe["MS2PIPModel"]
         assert row["Instrument"] == qe["Instrument"]
-        # But mods come from the SDRF (Oxidation + Deamidated)
-        assert "Deamidated" in row["VariableMods"]
+        # But mods come from the SDRF (Oxidation + Deamidated split per residue)
+        assert "Deamidated (N)" in row["VariableMods"]
+        assert "Deamidated (Q)" in row["VariableMods"]
+        assert "Oxidation (M)" in row["VariableMods"]
 
 
 class TestCustomPreset:
@@ -325,15 +328,15 @@ class TestColumnAliases:
 class TestToleranceParsing:
     """Test tolerance string parsing."""
 
-    def test_ppm(self, converter):
-        val, unit = converter._parse_tolerance("10 ppm")
-        assert val == 10.0
+    def test_ppm(self):
+        val, unit = parse_tolerance("10 ppm")
+        assert val == "10"
         assert unit == "ppm"
 
-    def test_da(self, converter):
-        val, unit = converter._parse_tolerance("0.01 Da")
-        assert val == 0.01
-        assert unit == "da"
+    def test_da(self):
+        val, unit = parse_tolerance("0.01 Da")
+        assert val == "0.01"
+        assert unit == "Da"
 
     def test_strip_unit_mz(self, converter):
         assert converter._strip_unit("300m/z") == "300"
