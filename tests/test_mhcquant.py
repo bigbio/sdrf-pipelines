@@ -11,8 +11,8 @@ from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.mhcquant.constants import load_default_presets
 
 DATA_DIR = Path(__file__).parent / "data" / "mhcquant"
-BASIC_SDRF = DATA_DIR / "test_immunopeptidomics.sdrf.tsv"
-FULL_SDRF = DATA_DIR / "test_immunopeptidomics_full.sdrf.tsv"
+BASIC_SDRF = DATA_DIR / "PXD009749.sdrf.tsv"
+FULL_SDRF = DATA_DIR / "PXD012308.sdrf.tsv"
 
 
 @pytest.fixture
