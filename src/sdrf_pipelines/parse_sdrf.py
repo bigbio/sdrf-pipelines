@@ -708,7 +708,9 @@ def list_templates(format: str, verbose: bool):
     default=None,
 )
 def mhcquant_from_sdrf(sdrf, output_samplesheet, output_presets, default_presets_file):
-    MHCquant().convert(sdrf, output_samplesheet, output_presets, default_presets_file)
+    MHCquant().convert(
+        sdrf, output_samplesheet, output_presets=output_presets, default_presets_file=default_presets_file
+    )
 
 
 cli.add_command(mhcquant_from_sdrf)

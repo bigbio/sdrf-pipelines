@@ -27,14 +27,12 @@ class MHCquant(BaseConverter):
         super().__init__()
         self._mod_converter = ModificationConverter()
 
-    def convert(
-        self,
-        sdrf_file: str,
-        output_samplesheet: str = "mhcquant_samplesheet.tsv",
-        output_presets: str = "search_presets.tsv",
-        default_presets_file: str | None = None,
-    ) -> None:
+    def convert(self, sdrf_file: str, output_path: str = "mhcquant_samplesheet.tsv", **kwargs) -> None:
         """Convert an SDRF file to mhcquant samplesheet and search presets."""
+        output_samplesheet = output_path
+        output_presets: str = kwargs.get("output_presets", "search_presets.tsv")
+        default_presets_file: str | None = kwargs.get("default_presets_file")
+
         sdrf = self.load_sdrf(sdrf_file)
 
         for col in ("source name", "comment[data file]"):
@@ -45,8 +43,7 @@ class MHCquant(BaseConverter):
         factor_cols = self.get_factor_columns(sdrf)
         if not factor_cols:
             raise ValueError(
-                "No factor value columns found in SDRF. "
-                "At least one 'factor value[...]' column is required."
+                "No factor value columns found in SDRF. At least one 'factor value[...]' column is required."
             )
 
         rows_data = []
@@ -68,12 +65,14 @@ class MHCquant(BaseConverter):
                 if preset_name.startswith("custom_"):
                     custom_presets_counter += 1
 
-            rows_data.append({
-                "Sample": sample,
-                "Condition": 1,
-                "ReplicateFileName": data_file,
-                "SearchPreset": preset_name,
-            })
+            rows_data.append(
+                {
+                    "Sample": sample,
+                    "Condition": 1,
+                    "ReplicateFileName": data_file,
+                    "SearchPreset": preset_name,
+                }
+            )
 
         self._write_samplesheet(rows_data, output_samplesheet)
         self._write_presets(preset_params_map, output_presets)
@@ -90,9 +89,7 @@ class MHCquant(BaseConverter):
         return val
 
     @staticmethod
-    def _get_sample_name(
-        row: pd.Series, factor_cols: list[str], source_name: str
-    ) -> str:
+    def _get_sample_name(row: pd.Series, factor_cols: list[str], source_name: str) -> str:
         """Extract sample name from factor value columns."""
         if factor_cols:
             val = str(row[factor_cols[0]])
@@ -147,8 +144,8 @@ class MHCquant(BaseConverter):
         )
         params["instrument_resolution"] = resolution
         if "fragment_mass_tolerance" in params:
-            params["fragment_mass_tolerance"], params["fragment_bin_offset"] = (
-                self._adjust_fragment_tolerance(resolution, params["fragment_mass_tolerance"])
+            params["fragment_mass_tolerance"], params["fragment_bin_offset"] = self._adjust_fragment_tolerance(
+                resolution, params["fragment_mass_tolerance"]
             )
 
         params["ms2pip_model"] = self._determine_ms2pip_model(
@@ -168,8 +165,7 @@ class MHCquant(BaseConverter):
         val = self._get_column_value(row, "characteristics[mhc protein complex]")
         if not val:
             raise ValueError(
-                "Missing 'characteristics[mhc protein complex]' column or value. "
-                "MHC class cannot be determined."
+                "Missing 'characteristics[mhc protein complex]' column or value. MHC class cannot be determined."
             )
         return self._parse_mhc_class(val)
 
@@ -248,8 +244,7 @@ class MHCquant(BaseConverter):
             return "Immuno-HCD"
 
         self.add_warning(
-            f"Unknown activation method '{activation_method}' for MS2PIP model selection. "
-            f"MS2PIP model left empty."
+            f"Unknown activation method '{activation_method}' for MS2PIP model selection. MS2PIP model left empty."
         )
         return ""
 
@@ -287,13 +282,14 @@ class MHCquant(BaseConverter):
         Otherwise, fall back to the default preset for the device-HLA class.
         """
         custom_fields = (
-            "precursor_mass_tolerance", "precursor_error_unit",
-            "fragment_mass_tolerance", "precursor_mass_range",
-            "precursor_charge", "activation_method",
+            "precursor_mass_tolerance",
+            "precursor_error_unit",
+            "fragment_mass_tolerance",
+            "precursor_mass_range",
+            "precursor_charge",
+            "activation_method",
         )
-        can_build_custom = all(
-            search_params.get(f) is not None for f in custom_fields
-        )
+        can_build_custom = all(search_params.get(f) is not None for f in custom_fields)
 
         if not can_build_custom:
             return self._map_to_default_preset(search_params, defaults)
@@ -362,9 +358,7 @@ class MHCquant(BaseConverter):
             for k in keys
         )
 
-    def _map_to_default_preset(
-        self, search_params: dict, defaults: dict[str, dict]
-    ) -> tuple[str, dict]:
+    def _map_to_default_preset(self, search_params: dict, defaults: dict[str, dict]) -> tuple[str, dict]:
         """Map instrument name + MHC class to a default preset."""
         instrument = search_params.get("instrument_name", "").lower()
         mhc_class = search_params.get("mhc_class", "class1")
@@ -376,8 +370,7 @@ class MHCquant(BaseConverter):
                 break
         else:
             self.add_warning(
-                f"Unrecognized instrument '{search_params.get('instrument_name', '')}'. "
-                f"Falling back to 'qe' preset."
+                f"Unrecognized instrument '{search_params.get('instrument_name', '')}'. Falling back to 'qe' preset."
             )
 
         name = f"{prefix}_{mhc_class}"
@@ -393,8 +386,7 @@ class MHCquant(BaseConverter):
             f.write("ID\tSample\tCondition\tReplicateFileName\tSearchPreset\n")
             for i, row in enumerate(rows_data, start=1):
                 f.write(
-                    f"{i}\t{row['Sample']}\t{row['Condition']}\t"
-                    f"{row['ReplicateFileName']}\t{row['SearchPreset']}\n"
+                    f"{i}\t{row['Sample']}\t{row['Condition']}\t{row['ReplicateFileName']}\t{row['SearchPreset']}\n"
                 )
 
     @staticmethod

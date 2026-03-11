@@ -45,6 +45,5 @@ def load_default_presets(presets_file: str | Path | None = None) -> dict[str, di
     path = Path(presets_file) if presets_file else DEFAULT_PRESETS_FILE
     df = pd.read_csv(path, sep="\t", keep_default_na=False)
     return {
-        row["PresetName"]: {col: row[col] for col in PRESET_COLUMNS if col in row.index}
-        for _, row in df.iterrows()
+        row["PresetName"]: {col: row[col] for col in PRESET_COLUMNS if col in row.index} for _, row in df.iterrows()
     }
