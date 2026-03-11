@@ -702,26 +702,13 @@ def list_templates(format: str, verbose: bool):
     default="search_presets.tsv",
 )
 @click.option(
-    "--raw_file_prefix",
-    "-r",
-    help="Prefix to prepend to raw file names",
-    default="",
-)
-@click.option(
     "--default_presets_file",
     "-d",
     help="Custom default presets TSV file (overrides built-in defaults)",
     default=None,
 )
-@click.pass_context
-def mhcquant_from_sdrf(ctx, sdrf, output_samplesheet, output_presets, raw_file_prefix, default_presets_file):
-    if sdrf is None:
-        help()
-    try:
-        MHCquant().convert(sdrf, output_samplesheet, output_presets, raw_file_prefix, default_presets_file)
-    except Exception as ex:
-        msg = "Error: " + str(ex)
-        raise ValueError(msg) from ex
+def mhcquant_from_sdrf(sdrf, output_samplesheet, output_presets, default_presets_file):
+    MHCquant().convert(sdrf, output_samplesheet, output_presets, default_presets_file)
 
 
 cli.add_command(mhcquant_from_sdrf)
