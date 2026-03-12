@@ -163,21 +163,20 @@ def normalize_preset_value(value: str) -> str:
         return value
 
 
-def presets_match(preset_a: PresetDict, preset_b: PresetDict) -> bool:
+def presets_match(preset_a: dict, preset_b: dict) -> bool:
     """Check if two presets have the same parameter values (ignoring name)."""
     keys = [k for k in PRESET_COLUMNS if k != "PresetName"]
     return all(
-        normalize_preset_value(str(preset_a.get(k, "")))
-        == normalize_preset_value(str(preset_b.get(k, "")))
+        normalize_preset_value(str(preset_a.get(k, ""))) == normalize_preset_value(str(preset_b.get(k, "")))
         for k in keys
     )
 
 
 def find_matching_preset(
-    preset_dict: PresetDict,
-    existing_presets: dict[str, PresetDict],
-    defaults: dict[str, PresetDict],
-) -> tuple[str, PresetDict] | None:
+    preset_dict: dict,
+    existing_presets: dict[str, dict],
+    defaults: dict[str, dict],
+) -> tuple[str, dict] | None:
     """Find a matching preset in existing presets or defaults."""
     for name, existing in existing_presets.items():
         if presets_match(preset_dict, existing):
@@ -188,29 +187,29 @@ def find_matching_preset(
     return None
 
 
-def build_custom_preset(params: SearchParams) -> PresetDict:
+def build_custom_preset(params: SearchParams) -> dict:
     """Build a custom preset dict from extracted search params."""
     min_len, max_len = MHC_CLASS_PEPTIDE_LENGTHS[params["mhc_class"]]
-    return PresetDict(
-        PresetName="",
-        PeptideMinLength=min_len,
-        PeptideMaxLength=max_len,
-        PrecursorMassRange=params["precursor_mass_range"],
-        PrecursorCharge=params["precursor_charge"],
-        PrecursorMassTolerance=params["precursor_mass_tolerance"],
-        PrecursorErrorUnit=params["precursor_error_unit"],
-        FragmentMassTolerance=params["fragment_mass_tolerance"],
-        FragmentBinOffset=params["fragment_bin_offset"],
-        MS2PIPModel=params["ms2pip_model"],
-        ActivationMethod=params["activation_method"],
-        Instrument=params["instrument_resolution"],
-        NumberMods=params["number_mods"],
-        FixedMods=params["fixed_mods"],
-        VariableMods=params["variable_mods"],
-    )
+    return {
+        "PresetName": "",
+        "PeptideMinLength": min_len,
+        "PeptideMaxLength": max_len,
+        "PrecursorMassRange": params["precursor_mass_range"],
+        "PrecursorCharge": params["precursor_charge"],
+        "PrecursorMassTolerance": params["precursor_mass_tolerance"],
+        "PrecursorErrorUnit": params["precursor_error_unit"],
+        "FragmentMassTolerance": params["fragment_mass_tolerance"],
+        "FragmentBinOffset": params["fragment_bin_offset"],
+        "MS2PIPModel": params["ms2pip_model"],
+        "ActivationMethod": params["activation_method"],
+        "Instrument": params["instrument_resolution"],
+        "NumberMods": params["number_mods"],
+        "FixedMods": params["fixed_mods"],
+        "VariableMods": params["variable_mods"],
+    }
 
 
-def write_presets(presets: dict[str, PresetDict], output_path: str) -> None:
+def write_presets(presets: dict[str, dict], output_path: str) -> None:
     """Write the search presets TSV."""
     rows = []
     for preset_dict in presets.values():

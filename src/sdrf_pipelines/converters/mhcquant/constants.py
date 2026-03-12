@@ -51,7 +51,7 @@ PRESET_COLUMNS = [
 ]
 
 
-def load_default_presets(presets_file: str | Path | None = None) -> dict[str, dict]:
+def load_default_presets(presets_file: str | Path | None = None) -> dict[str, dict[str, object]]:
     """Load default presets from a TSV file into a dict keyed by preset name."""
     path = Path(presets_file) if presets_file else DEFAULT_PRESETS_FILE
     df = pd.read_csv(path, sep="\t", keep_default_na=False)

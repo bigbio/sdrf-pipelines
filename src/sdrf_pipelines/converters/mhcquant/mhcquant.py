@@ -6,8 +6,24 @@ Converts SDRF files to nf-core/mhcquant samplesheet and search presets files.
 import pandas as pd
 
 from sdrf_pipelines.converters.base import BaseConverter
-from sdrf_pipelines.converters.mhcquant.constants import *
-from sdrf_pipelines.converters.mhcquant.utils import *
+from sdrf_pipelines.converters.mhcquant.constants import (
+    EMPTY_VALUES,
+    INSTRUMENT_PRESET_MAP,
+    load_default_presets,
+)
+from sdrf_pipelines.converters.mhcquant.utils import (
+    SearchParams,
+    build_custom_preset,
+    extract_nt_value,
+    find_matching_preset,
+    get_column_value,
+    get_sample_name,
+    parse_mhc_class,
+    ppm_to_da,
+    resolve_fragment_tolerance,
+    strip_unit,
+    write_presets,
+)
 from sdrf_pipelines.converters.openms.modifications import ModificationConverter
 from sdrf_pipelines.converters.openms.utils import parse_tolerance
 
@@ -39,7 +55,7 @@ class MHCquant(BaseConverter):
             )
 
         rows_data = []
-        preset_params_map: dict[str, PresetDict] = {}
+        preset_params_map: dict[str, dict] = {}
         custom_presets_counter = 0
 
         for _, row in sdrf.iterrows():
@@ -83,7 +99,7 @@ class MHCquant(BaseConverter):
         tol_str = get_column_value(row, "comment[precursor mass tolerance]")
         if tol_str:
             tol_val, tol_unit = parse_tolerance(tol_str)
-            if tol_val is not None:
+            if tol_val is not None and tol_unit is not None:
                 params["precursor_mass_tolerance"] = float(tol_val)
                 params["precursor_error_unit"] = tol_unit
 
@@ -115,7 +131,9 @@ class MHCquant(BaseConverter):
             if min_charge and max_charge:
                 min_charge_val = int(strip_unit(min_charge))
                 max_charge_val = int(strip_unit(max_charge))
-                params["precursor_mass_range"] = f"{int(min_mz_val * min_charge_val)}:{int(max_mz_val * max_charge_val)}"
+                params["precursor_mass_range"] = (
+                    f"{int(min_mz_val * min_charge_val)}:{int(max_mz_val * max_charge_val)}"
+                )
             else:
                 params["precursor_mass_range"] = f"{int(min_mz_val)}:{int(max_mz_val)}"
 
@@ -207,10 +225,10 @@ class MHCquant(BaseConverter):
     def _determine_preset(
         self,
         search_params: SearchParams,
-        defaults: dict[str, PresetDict],
-        existing_presets: dict[str, PresetDict],
+        defaults: dict[str, dict],
+        existing_presets: dict[str, dict],
         custom_counter: int,
-    ) -> tuple[str, PresetDict]:
+    ) -> tuple[str, dict]:
         """Determine the preset name and dict for a row's search params.
 
         If all DDA fields are present in the SDRF, build a custom preset.
@@ -237,9 +255,7 @@ class MHCquant(BaseConverter):
         preset_dict["PresetName"] = name
         return name, preset_dict
 
-    def _map_to_default_preset(
-        self, search_params: SearchParams, defaults: dict[str, PresetDict]
-    ) -> tuple[str, PresetDict]:
+    def _map_to_default_preset(self, search_params: SearchParams, defaults: dict[str, dict]) -> tuple[str, dict]:
         """Map instrument name + MHC class to a default preset."""
         instrument = search_params.get("instrument_name", "").lower()
         mhc_class = search_params.get("mhc_class", "class1")
