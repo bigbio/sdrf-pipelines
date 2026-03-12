@@ -107,6 +107,25 @@ class TestLowResEnforcement:
         assert params["fragment_mass_tolerance"] == 0.01
         assert params["fragment_bin_offset"] == 0.0
 
+    def test_ppm_fragment_tolerance_converted_to_da(self, converter):
+        """Fragment tolerance in ppm is converted to Da (MHCquant only supports Da)."""
+        row = pd.Series(
+            {
+                "source name": "patient_1",
+                "characteristics[mhc protein complex]": "MHC class I protein complex",
+                "comment[precursor mass tolerance]": "5 ppm",
+                "comment[fragment mass tolerance]": "20 ppm",
+                "comment[instrument]": "NT=Q Exactive;AC=MS:1001911",
+                "comment[ms2 mass analyzer]": "NT=orbitrap;AC=MS:1000484",
+                "comment[dissociation method]": "NT=HCD;AC=MS:1000422",
+            }
+        )
+        params = converter._extract_search_params(row)
+        # 20 ppm at 1000 Da reference = 0.02 Da, then halved for high-res Comet = 0.01
+        assert params["fragment_mass_tolerance"] == pytest.approx(0.01)
+        assert params["fragment_bin_offset"] == 0.0
+        assert any("ppm" in w for w in converter.warnings)
+
 
 class TestErrorHandling:
     """Test error handling for invalid SDRF files."""

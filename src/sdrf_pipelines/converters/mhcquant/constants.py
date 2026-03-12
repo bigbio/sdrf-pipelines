@@ -4,7 +4,18 @@ from pathlib import Path
 
 import pandas as pd
 
+__all__ = [
+    "DEFAULT_PRESETS_FILE",
+    "EMPTY_VALUES",
+    "INSTRUMENT_PRESET_MAP",
+    "MHC_CLASS_PEPTIDE_LENGTHS",
+    "PRESET_COLUMNS",
+    "load_default_presets",
+]
+
 DEFAULT_PRESETS_FILE = Path(__file__).parent / "default_search_presets.tsv"
+
+EMPTY_VALUES = {"nan", "", "not available"}
 
 MHC_CLASS_PEPTIDE_LENGTHS = {
     "class1": (8, 14),
