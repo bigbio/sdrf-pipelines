@@ -20,6 +20,7 @@ __all__ = [
     "get_column_value",
     "get_sample_name",
     "normalize_preset_value",
+    "overlay_params_on_preset",
     "parse_mhc_class",
     "ppm_to_da",
     "presets_match",
@@ -187,8 +188,25 @@ def find_matching_preset(
     return None
 
 
+# Mapping from SearchParams keys to preset column names.
+_PARAM_TO_PRESET: list[tuple[str, str]] = [
+    ("precursor_mass_tolerance", "PrecursorMassTolerance"),
+    ("precursor_error_unit", "PrecursorErrorUnit"),
+    ("fragment_mass_tolerance", "FragmentMassTolerance"),
+    ("fragment_bin_offset", "FragmentBinOffset"),
+    ("precursor_mass_range", "PrecursorMassRange"),
+    ("precursor_charge", "PrecursorCharge"),
+    ("activation_method", "ActivationMethod"),
+    ("instrument_resolution", "Instrument"),
+    ("ms2pip_model", "MS2PIPModel"),
+    ("number_mods", "NumberMods"),
+    ("fixed_mods", "FixedMods"),
+    ("variable_mods", "VariableMods"),
+]
+
+
 def build_custom_preset(params: SearchParams) -> dict:
-    """Build a custom preset dict from extracted search params."""
+    """Build a complete preset dict from extracted search params (all fields required)."""
     min_len, max_len = MHC_CLASS_PEPTIDE_LENGTHS[params["mhc_class"]]
     return {
         "PresetName": "",
@@ -207,6 +225,24 @@ def build_custom_preset(params: SearchParams) -> dict:
         "FixedMods": params["fixed_mods"],
         "VariableMods": params["variable_mods"],
     }
+
+
+def overlay_params_on_preset(base_preset: dict, params: SearchParams) -> dict:
+    """Overlay SDRF-extracted search params onto a base preset.
+
+    Starts with a copy of the base preset, then overrides any field for
+    which the SDRF provided a value. Peptide lengths are always set from
+    the MHC class.
+    """
+    result = dict(base_preset)
+    min_len, max_len = MHC_CLASS_PEPTIDE_LENGTHS[params["mhc_class"]]
+    result["PeptideMinLength"] = min_len
+    result["PeptideMaxLength"] = max_len
+    params_dict: dict = dict(params)
+    for param_key, preset_key in _PARAM_TO_PRESET:
+        if param_key in params_dict:
+            result[preset_key] = params_dict[param_key]
+    return result
 
 
 def write_presets(presets: dict[str, dict], output_path: str) -> None:

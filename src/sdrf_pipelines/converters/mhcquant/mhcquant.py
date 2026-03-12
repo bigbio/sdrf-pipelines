@@ -13,11 +13,11 @@ from sdrf_pipelines.converters.mhcquant.constants import (
 )
 from sdrf_pipelines.converters.mhcquant.utils import (
     SearchParams,
-    build_custom_preset,
     extract_nt_value,
     find_matching_preset,
     get_column_value,
     get_sample_name,
+    overlay_params_on_preset,
     parse_mhc_class,
     ppm_to_da,
     resolve_fragment_tolerance,
@@ -231,26 +231,23 @@ class MHCquant(BaseConverter):
     ) -> tuple[str, dict]:
         """Determine the preset name and dict for a row's search params.
 
-        If all DDA fields are present in the SDRF, build a custom preset.
-        Otherwise, fall back to the default preset for the device-HLA class.
+        Starts from the default preset for the instrument/MHC class, then
+        overlays any SDRF-extracted values. If the result matches an existing
+        preset, reuse it; otherwise create a custom preset.
         """
-        custom_fields = (
-            "precursor_mass_tolerance",
-            "precursor_error_unit",
-            "fragment_mass_tolerance",
-            "precursor_mass_range",
-            "precursor_charge",
-            "activation_method",
-        )
-        can_build_custom = all(search_params.get(f) is not None for f in custom_fields)
+        default_name, default_preset = self._map_to_default_preset(search_params, defaults)
+        preset_dict = overlay_params_on_preset(default_preset, search_params)
 
-        if not can_build_custom:
-            return self._map_to_default_preset(search_params, defaults)
+        # If nothing changed from the default, reuse it
+        match = find_matching_preset(preset_dict, {default_name: default_preset}, {})
+        if match:
+            return match
 
-        preset_dict = build_custom_preset(search_params)
+        # Check if it matches any other existing or default preset
         match = find_matching_preset(preset_dict, existing_presets, defaults)
         if match:
             return match
+
         name = f"custom_{custom_counter + 1}"
         preset_dict["PresetName"] = name
         return name, preset_dict

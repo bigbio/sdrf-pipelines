@@ -25,7 +25,7 @@ def tmpdir():
 
 
 class TestBasicConversion:
-    """Test conversion with PXD009749 SDRF (no mz/charge range columns → fallback preset)."""
+    """Test conversion with PXD009749 SDRF (no mz/charge range columns → hybrid preset)."""
 
     def test_samplesheet_and_presets(self, converter, tmpdir):
         ss = tmpdir / "samplesheet.tsv"
@@ -39,12 +39,19 @@ class TestBasicConversion:
         assert all(df["Sample"] == "07H103")
         assert all(df["Condition"] == 1)
         assert list(df["ReplicateFileName"]) == ["MHC_07H103_Rep1.raw", "MHC_07H103_Rep2.raw", "MHC_07H103_Rep3.raw"]
-        # Falls back to default qe_class1 because SDRF lacks DDA columns
-        assert all(df["SearchPreset"] == "qe_class1")
+        # Custom preset because SDRF overrides default with its own tolerances/mods
+        assert all(df["SearchPreset"] == "custom_1")
 
         preset_df = pd.read_csv(presets, sep="\t")
         assert len(preset_df) == 1
-        assert preset_df.iloc[0]["PresetName"] == "qe_class1"
+        p = preset_df.iloc[0]
+        assert p["PresetName"] == "custom_1"
+        # SDRF-specified precursor tolerance (10 ppm) overrides default (5 ppm)
+        assert p["PrecursorMassTolerance"] == 10.0
+        assert p["PrecursorErrorUnit"] == "ppm"
+        # SDRF-specified modifications are preserved
+        assert "Deamidated" in p["VariableMods"]
+        assert "Oxidation" in p["VariableMods"]
 
 
 class TestFullConversion:
