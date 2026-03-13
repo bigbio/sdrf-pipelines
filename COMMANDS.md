@@ -20,6 +20,8 @@ Commands:
   convert-diann         convert sdrf to DIA-NN configuration files
   convert-maxquant      convert sdrf to maxquant parameters file and generate
                         an experimental design file
+  convert-mhcquant      convert sdrf to mhcquant samplesheet and search
+                        presets
   convert-msstats       convert sdrf to msstats annotation file
   convert-normalyzerde  convert sdrf to NormalyzerDE design file
   convert-openms        convert sdrf to openms file output
@@ -125,6 +127,20 @@ parse_sdrf convert-normalyzerde [OPTIONS]
 | `-o, --outpath TEXT` | annotation out file path  [required] |
 | `-oc, --outpathcomparisons TEXT` | out file path for comparisons |
 | `-mq, --maxquant_exp_design_file TEXT` | Path to maxquant experimental design file for mapping MQ sample names |
+| `-h, --help` | Show this message and exit. |
+
+## Convert to MHCquant
+
+```bash
+parse_sdrf convert-mhcquant [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-s, --sdrf TEXT` | SDRF file  [required] |
+| `-os, --output_samplesheet TEXT` | Output samplesheet file path |
+| `-op, --output_presets TEXT` | Output search presets file path |
+| `-d, --default_presets_file TEXT` | Custom default presets TSV file (overrides built-in defaults) |
 | `-h, --help` | Show this message and exit. |
 
 ## Split SDRF

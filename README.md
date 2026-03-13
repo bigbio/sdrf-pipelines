@@ -75,6 +75,9 @@ parse_sdrf convert-maxquant -s sdrf.tsv -f database.fasta -r /path/to/raw/files
 
 # Convert to MSstats annotation
 parse_sdrf convert-msstats -s sdrf.tsv -o annotation.csv
+
+# Convert to MHCquant format (samplesheet + search presets)
+parse_sdrf convert-mhcquant -s sdrf.tsv -os samplesheet.tsv -op presets.tsv
 ```
 
 ## Development

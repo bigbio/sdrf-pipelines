@@ -14,6 +14,7 @@ from sdrf_pipelines.converters.base import (
     SampleTracker,
 )
 from sdrf_pipelines.converters.maxquant.maxquant import Maxquant
+from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.converters.openms.openms import OpenMS
@@ -26,6 +27,7 @@ __all__ = [
     "SAMPLE_IDENTIFIER_PATTERN",
     # Converters
     "Maxquant",
+    "MHCquant",
     "Msstats",
     "NormalyzerDE",
     "OpenMS",
