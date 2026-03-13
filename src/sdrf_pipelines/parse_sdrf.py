@@ -15,6 +15,7 @@ import yaml
 from sdrf_pipelines import __version__
 from sdrf_pipelines.converters.diann.diann import DiaNN
 from sdrf_pipelines.converters.maxquant.maxquant import Maxquant
+from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.converters.openms.openms import OpenMS
@@ -701,6 +702,33 @@ def list_templates(format: str, verbose: bool):
         click.echo("Use --verbose/-v for detailed information")
 
 
+@click.command("convert-mhcquant", short_help="convert sdrf to mhcquant samplesheet and search presets")
+@click.option("--sdrf", "-s", help="SDRF file", required=True)
+@click.option(
+    "--output_samplesheet",
+    "-os",
+    help="Output samplesheet file path",
+    default="mhcquant_samplesheet.tsv",
+)
+@click.option(
+    "--output_presets",
+    "-op",
+    help="Output search presets file path",
+    default="search_presets.tsv",
+)
+@click.option(
+    "--default_presets_file",
+    "-d",
+    help="Custom default presets TSV file (overrides built-in defaults)",
+    default=None,
+)
+def mhcquant_from_sdrf(sdrf, output_samplesheet, output_presets, default_presets_file):
+    MHCquant().convert(
+        sdrf, output_samplesheet, output_presets=output_presets, default_presets_file=default_presets_file
+    )
+
+
+cli.add_command(mhcquant_from_sdrf)
 cli.add_command(download_cache)
 cli.add_command(validate_sdrf_simple)
 cli.add_command(list_templates)

@@ -129,7 +129,7 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
     ),
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: "Term: {value} in column '{column}', is not a valid ontology term",
     # Content
-    ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}",
+    ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}, Source: {source_name}",
     ErrorCode.INVALID_VALUE: "Invalid value '{value}' - must be one of the allowed values",
     ErrorCode.NOT_APPLICABLE_NOT_ALLOWED: (
         "Column '{column}' contains 'not applicable' values but requires actual values"

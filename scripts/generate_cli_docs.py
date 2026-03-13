@@ -110,6 +110,7 @@ def main():
         ("convert-maxquant", "Convert to MaxQuant"),
         ("convert-msstats", "Convert to MSstats"),
         ("convert-normalyzerde", "Convert to NormalyzerDE"),
+        ("convert-mhcquant", "Convert to MHCquant"),
         ("split-sdrf", "Split SDRF"),
         ("download-cache", "Download Ontology Cache"),
     ]

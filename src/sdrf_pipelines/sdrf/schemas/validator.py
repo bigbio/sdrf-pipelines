@@ -206,7 +206,6 @@ class SchemaValidator:
             schema_name: Name of the schema to validate against
             use_ols_cache_only: If True, use only cached OLS data
             skip_ontology: If True, skip ontology term validation
-
         Returns:
             List of validation errors
         """
