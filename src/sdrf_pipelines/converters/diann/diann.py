@@ -598,7 +598,7 @@ class DiaNN(BaseConverter):
                 if val is not None:
                     parts.append(f"{flag} {val}")
 
-        with open("diann_config.cfg", "w") as f:
+        with open("diann_config.cfg", "w", encoding="utf-8") as f:
             f.write(" ".join(parts))
 
     def _write_filemap(self, file_data: dict, plex_info: dict | None, design_rows: list[dict] | None = None) -> None:
