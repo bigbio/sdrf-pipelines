@@ -622,7 +622,7 @@ class DiaNN(BaseConverter):
                 rows.append(self._filemap_row(filename, fd, label, label_type, design))
 
         df = pd.DataFrame(rows)
-        df.to_csv("diann_design.tsv", sep="\t", index=False)
+        df.to_csv("diann_design.tsv", sep="\t", index=False, encoding="utf-8")
 
     def _filemap_row(self, filename: str, fd: dict, label: str, label_type: str, design: dict | None = None) -> dict:
         """Build a single design file row."""
