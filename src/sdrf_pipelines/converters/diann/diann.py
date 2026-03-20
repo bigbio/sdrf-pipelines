@@ -420,7 +420,7 @@ class DiaNN(BaseConverter):
         col = "comment[proteomics data acquisition method]"
         if col in row.index:
             value = str(row[col]).strip()
-            if value.lower() not in ("", "nan"):
+            if value.lower() not in ("", "nan", "not available"):
                 # Extract NT= value if present (e.g. "NT=Data-Independent Acquisition;AC=NCIT:C161786")
                 if "NT=" in value:
                     nt_match = re.search(r"NT=([^;]+)", value)
@@ -434,7 +434,7 @@ class DiaNN(BaseConverter):
         col = "comment[dissociation method]"
         if col in row.index:
             value = str(row[col]).strip()
-            if value.lower() not in ("", "nan"):
+            if value.lower() not in ("", "nan", "not available"):
                 # Extract NT= value if present (e.g. "NT=HCD;AC=PRIDE:0000590" -> "HCD")
                 if "NT=" in value:
                     nt_match = re.search(r"NT=([^;]+)", value)
