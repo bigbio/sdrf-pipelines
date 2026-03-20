@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from click.testing import CliRunner
 
@@ -38,7 +39,7 @@ class TestDiannLabelFree:
         converter = DiaNN()
         converter.diann_convert(sdrf_file)
 
-        filemap_path = on_tmpdir / "diann_filemap.tsv"
+        filemap_path = on_tmpdir / "diann_design.tsv"
         assert filemap_path.exists()
         import pandas as pd
 
@@ -54,7 +55,7 @@ class TestDiannLabelFree:
 
         import pandas as pd
 
-        df = pd.read_csv(on_tmpdir / "diann_filemap.tsv", sep="\t")
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         row1 = df[df["Filename"] == "sample1.raw"].iloc[0]
         row2 = df[df["Filename"] == "sample2.raw"].iloc[0]
         # Tolerances are strings from parse_tolerance
@@ -86,7 +87,7 @@ class TestDiannMtraq:
 
         import pandas as pd
 
-        df = pd.read_csv(on_tmpdir / "diann_filemap.tsv", sep="\t")
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         assert len(df) == 3
         assert set(df["Label"]) == {"MTRAQ0", "MTRAQ4", "MTRAQ8"}
         assert all(df["LabelType"] == "mtraq")
@@ -158,7 +159,7 @@ class TestDiannScanRanges:
 
         import pandas as pd
 
-        df = pd.read_csv(on_tmpdir / "diann_filemap.tsv", sep="\t")
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         row1 = df[df["Filename"] == "sample1.raw"].iloc[0]
         row2 = df[df["Filename"] == "sample2.raw"].iloc[0]
         assert row1["MS1MinMz"] == 400.0
@@ -213,9 +214,184 @@ class TestDiannCli:
         result = runner.invoke(cli, ["convert-diann", "--sdrf", sdrf_file])
         assert result.exit_code == 0
         assert (on_tmpdir / "diann_config.cfg").exists()
-        assert (on_tmpdir / "diann_filemap.tsv").exists()
+        assert (on_tmpdir / "diann_design.tsv").exists()
 
     def test_cli_convert_diann_missing_sdrf(self):
         runner = CliRunner()
         result = runner.invoke(cli, ["convert-diann"])
         assert result.exit_code != 0
+
+
+class TestDiannUnifiedDesign:
+    """Tests for the unified diann_design.tsv output with experimental design columns."""
+
+    def test_design_file_has_all_columns(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        expected_cols = {
+            "Filename",
+            "URI",
+            "Sample",
+            "FractionGroup",
+            "Fraction",
+            "Label",
+            "LabelType",
+            "AcquisitionMethod",
+            "DissociationMethod",
+            "Condition",
+            "BioReplicate",
+            "Enzyme",
+            "FixedModifications",
+            "VariableModifications",
+            "PrecursorMassTolerance",
+            "PrecursorMassToleranceUnit",
+            "FragmentMassTolerance",
+            "FragmentMassToleranceUnit",
+            "MS1MinMz",
+            "MS1MaxMz",
+            "MS2MinMz",
+            "MS2MaxMz",
+        }
+        assert expected_cols.issubset(set(df.columns)), f"Missing: {expected_cols - set(df.columns)}"
+
+    def test_design_file_row_count(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(df) == 2
+
+    def test_condition_from_factor_values(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        conditions = df["Condition"].tolist()
+        assert "treatment_A" in conditions
+        assert "treatment_B" in conditions
+
+    def test_bioreplicate_assignment(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(set(df["BioReplicate"].tolist())) == 2
+
+    def test_sample_ids_assigned(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        samples = df["Sample"].tolist()
+        assert all(isinstance(s, (int, float)) for s in samples)
+        assert len(set(samples)) == 2
+
+    def test_fraction_group_and_fraction(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert all(df["Fraction"] == 1)
+        assert len(df["FractionGroup"].unique()) == 2
+
+    def test_acquisition_method_column(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert all(df["AcquisitionMethod"].str.contains("Independent", case=False))
+
+    def test_dissociation_method_column(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert all(df["DissociationMethod"] == "HCD")
+
+    def test_per_file_scan_ranges_preserved(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        row1 = df[df["Filename"] == "sample1.raw"].iloc[0]
+        assert row1["MS1MinMz"] == 400.0
+        assert row1["MS1MaxMz"] == 600.0
+        row2 = df[df["Filename"] == "sample2.raw"].iloc[0]
+        assert row2["MS1MinMz"] == 600.0
+        assert row2["MS1MaxMz"] == 800.0
+
+    def test_design_file_from_minimal_sdrf(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "label_free.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(df) == 2
+        assert all(df["Fraction"] == 1)
+        assert "Sample" in df.columns
+        assert "Condition" in df.columns
+        conditions = df["Condition"].tolist()
+        assert "Sample 1" in conditions
+        assert "Sample 2" in conditions
+
+
+class TestDiannGpfDesign:
+    def test_gpf_row_count(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(df) == 6
+
+    def test_gpf_per_file_scan_ranges(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        gpf1 = df[df["Filename"] == "sample1_gpf1.raw"].iloc[0]
+        gpf2 = df[df["Filename"] == "sample1_gpf2.raw"].iloc[0]
+        gpf3 = df[df["Filename"] == "sample1_gpf3.raw"].iloc[0]
+        assert gpf1["MS1MinMz"] == 400.0 and gpf1["MS1MaxMz"] == 600.0
+        assert gpf2["MS1MinMz"] == 600.0 and gpf2["MS1MaxMz"] == 800.0
+        assert gpf3["MS1MinMz"] == 800.0 and gpf3["MS1MaxMz"] == 1000.0
+
+    def test_gpf_fraction_numbers(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        sample1 = df[df["Filename"].str.startswith("sample1")].sort_values("Filename")
+        assert sample1["Fraction"].tolist() == [1, 2, 3]
+
+    def test_gpf_fraction_groups(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        sample1 = df[df["Filename"].str.startswith("sample1")]
+        sample2 = df[df["Filename"].str.startswith("sample2")]
+        assert sample1["FractionGroup"].nunique() == 1
+        assert sample2["FractionGroup"].nunique() == 1
+        assert sample1["FractionGroup"].iloc[0] != sample2["FractionGroup"].iloc[0]
+
+    def test_gpf_conditions(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        sample1 = df[df["Filename"].str.startswith("sample1")]
+        sample2 = df[df["Filename"].str.startswith("sample2")]
+        assert all(sample1["Condition"] == "control")
+        assert all(sample2["Condition"] == "treated")
+
+    def test_gpf_global_scan_range_in_config(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        config = Path("diann_config.cfg").read_text()
+        assert "--min-pr-mz 400" in config
+        assert "--max-pr-mz 1000" in config
+
+    def test_gpf_bioreplicates(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "gpf_fractions.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        sample1 = df[df["Filename"].str.startswith("sample1")]
+        assert sample1["BioReplicate"].nunique() == 1
+
+
+class TestDiannPlexDesign:
+    def test_mtraq_per_channel_conditions(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "mtraq_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(df) == 3
+        ch0 = df[df["Label"] == "MTRAQ0"].iloc[0]
+        ch4 = df[df["Label"] == "MTRAQ4"].iloc[0]
+        ch8 = df[df["Label"] == "MTRAQ8"].iloc[0]
+        assert ch0["Condition"] == "control"
+        assert ch4["Condition"] == "low_dose"
+        assert ch8["Condition"] == "high_dose"
+
+    def test_mtraq_per_channel_bioreplicates(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "mtraq_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(set(df["BioReplicate"].tolist())) == 3
+
+    def test_mtraq_per_channel_samples(self, diann_data_dir, on_tmpdir):
+        DiaNN().diann_convert(str(diann_data_dir / "mtraq_design.sdrf.tsv"))
+        df = pd.read_csv("diann_design.tsv", sep="\t")
+        assert len(set(df["Sample"].tolist())) == 3
+
+
+class TestDiannScanRangeValidation:
+    def test_inverted_scan_range_raises_error(self, diann_data_dir, on_tmpdir):
+        with pytest.raises(ValueError, match="[Ii]nverted|[Mm]in.*greater.*max"):
+            DiaNN().diann_convert(str(diann_data_dir / "scan_range_inverted.sdrf.tsv"))

@@ -2,7 +2,7 @@
 
 Converts SDRF files to DIA-NN configuration files:
 - diann_config.cfg: DIA-NN command-line flags (enzyme, mods, channels, tolerances, scan ranges)
-- diann_filemap.tsv: Per-file metadata (tolerances, labels, mods, scan ranges)
+- diann_design.tsv: Per-file metadata (tolerances, labels, mods, scan ranges, experimental design)
 """
 
 import logging
@@ -10,7 +10,7 @@ import re
 
 import pandas as pd
 
-from sdrf_pipelines.converters.base import BaseConverter
+from sdrf_pipelines.converters.base import BaseConverter, ConditionBuilder
 from sdrf_pipelines.converters.diann.constants import ENZYME_NAME_MAPPINGS, ENZYME_SPECIFICITY
 from sdrf_pipelines.converters.diann.modifications import DiannModificationConverter
 from sdrf_pipelines.converters.diann.plexdia import (
@@ -18,6 +18,7 @@ from sdrf_pipelines.converters.diann.plexdia import (
     build_fixed_mod_flag,
     detect_plexdia_type,
 )
+from sdrf_pipelines.converters.openms.experimental_design import FractionGroupTracker
 from sdrf_pipelines.converters.openms.utils import parse_tolerance
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class DiaNN(BaseConverter):
 
         Generates:
         - diann_config.cfg: DIA-NN CLI flags
-        - diann_filemap.tsv: Per-file metadata
+        - diann_design.tsv: Per-file metadata
 
         Args:
             sdrf_file: Path to the SDRF file
@@ -98,11 +99,14 @@ class DiaNN(BaseConverter):
         # Compute global scan ranges across all runs
         scan_range_summary = self._compute_global_scan_ranges(file_data)
 
+        # Extract experimental design
+        design_rows = self._extract_experimental_design(sdrf, file_data)
+
         # Write config file
         self._write_config(enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary)
 
         # Write filemap
-        self._write_filemap(file_data, plex_info)
+        self._write_filemap(file_data, plex_info, design_rows)
 
         self.report_warnings()
 
@@ -321,10 +325,13 @@ class DiaNN(BaseConverter):
             mod_str = str(row.get(col, "")).strip()
             if not mod_str or mod_str.lower() in ("nan", "not available", ""):
                 continue
-            if "MT=fixed" in mod_str or "mt=fixed" in mod_str:
-                fixed.append(mod_str)
-            elif "MT=variable" in mod_str or "mt=variable" in mod_str:
-                var.append(mod_str)
+            # Normalize MT key-value to lowercase for consistent comparison
+            normalized = re.sub(r"(?i)\bMT=\w+", lambda m: m.group().lower(), mod_str)
+            mod_lower = normalized.lower()
+            if "mt=fixed" in mod_lower:
+                fixed.append(normalized)
+            elif "mt=variable" in mod_lower:
+                var.append(normalized)
         return fixed, var
 
     def _extract_tolerance(self, row: pd.Series, column: str) -> tuple:
@@ -388,6 +395,11 @@ class DiaNN(BaseConverter):
 
         # Resolve: range takes precedence over discrete
         if range_min is not None and range_max is not None:
+            if range_min >= range_max:
+                raise ValueError(
+                    f"Inverted {ms_level} scan range: min ({range_min}) >= max ({range_max}). "
+                    f"Check your SDRF annotation."
+                )
             if discrete_min is not None or discrete_max is not None:
                 self.add_warning(
                     f"Both interval ('{range_col}') and discrete min/max columns found for {ms_level}. "
@@ -396,7 +408,115 @@ class DiaNN(BaseConverter):
             return range_min, range_max
 
         # Fall back to discrete
-        return discrete_min, discrete_max
+        min_mz, max_mz = discrete_min, discrete_max
+        if min_mz is not None and max_mz is not None and min_mz >= max_mz:
+            raise ValueError(
+                f"Inverted {ms_level} scan range: min ({min_mz}) >= max ({max_mz}). Check your SDRF annotation."
+            )
+        return min_mz, max_mz
+
+    @staticmethod
+    def _extract_acquisition_method(row: pd.Series) -> str:
+        col = "comment[proteomics data acquisition method]"
+        if col in row.index:
+            value = str(row[col]).strip()
+            if value.lower() not in ("", "nan", "not available"):
+                # Extract NT= value if present (e.g. "NT=Data-Independent Acquisition;AC=NCIT:C161786")
+                if "NT=" in value:
+                    nt_match = re.search(r"NT=([^;]+)", value)
+                    if nt_match:
+                        value = nt_match.group(1).strip()
+                return value
+        return ""
+
+    @staticmethod
+    def _extract_dissociation_method(row: pd.Series) -> str:
+        col = "comment[dissociation method]"
+        if col in row.index:
+            value = str(row[col]).strip()
+            if value.lower() not in ("", "nan", "not available"):
+                # Extract NT= value if present (e.g. "NT=HCD;AC=PRIDE:0000590" -> "HCD")
+                if "NT=" in value:
+                    nt_match = re.search(r"NT=([^;]+)", value)
+                    if nt_match:
+                        value = nt_match.group(1).strip()
+                mapping = {
+                    "collision-induced dissociation": "CID",
+                    "beam-type collision-induced dissociation": "HCD",
+                    "higher energy beam-type collision-induced dissociation": "HCD",
+                    "electron transfer dissociation": "ETD",
+                    "electron capture dissociation": "ECD",
+                }
+                return mapping.get(value.lower(), value)
+        return ""
+
+    def _extract_experimental_design(self, sdrf: pd.DataFrame, file_data: dict) -> list[dict]:
+        """Extract experimental design metadata from SDRF.
+
+        Returns a list of dicts, one per SDRF row. For plexDIA, each channel row
+        produces its own entry with its own Condition/BioReplicate.
+        """
+        factor_cols = [c for c in sdrf.columns if c.startswith("factor value[")]
+        condition_builder = ConditionBuilder(factor_cols)
+        fraction_tracker = FractionGroupTracker()
+
+        source_name_list: list[str] = []
+        source_name2n_reps: dict[str, int] = {}
+        for _, row in sdrf.iterrows():
+            sn = str(row["source name"])
+            tech_rep = str(row.get("comment[technical replicate]", "1"))
+            if tech_rep.lower() in ("", "nan", "not available"):
+                tech_rep = "1"
+            if sn not in source_name_list:
+                source_name_list.append(sn)
+                source_name2n_reps[sn] = int(tech_rep)
+            else:
+                source_name2n_reps[sn] = max(source_name2n_reps[sn], int(tech_rep))
+
+        source_to_sample: dict[str, int] = {}
+        source_to_biorep: dict[str, int] = {}
+        for i, sn in enumerate(source_name_list, start=1):
+            source_to_sample[sn] = i
+            source_to_biorep[sn] = i
+
+        design_rows: list[dict] = []
+        seen_files: set[str] = set()
+
+        for _, row in sdrf.iterrows():
+            filename = str(row["comment[data file]"])
+            sn = str(row["source name"])
+            tech_rep = str(row.get("comment[technical replicate]", "1"))
+            if tech_rep.lower() in ("", "nan", "not available"):
+                tech_rep = "1"
+
+            if filename not in seen_files:
+                seen_files.add(filename)
+                fraction = self.get_fraction_identifier(row)
+                source_idx = source_name_list.index(sn)
+                offset = sum(source_name2n_reps[source_name_list[i]] for i in range(source_idx))
+                raw_frac_group = offset + int(tech_rep)
+                frac_group = fraction_tracker.get_fraction_group(filename, raw_frac_group)
+            else:
+                fraction = self.get_fraction_identifier(row)
+                frac_group = fraction_tracker.fraction_groups[filename]
+
+            condition = condition_builder.add_from_row(row, fallback=sn)
+
+            design_rows.append(
+                {
+                    "filename": filename,
+                    "label": self._extract_label(row),
+                    "sample": source_to_sample[sn],
+                    "fraction_group": frac_group,
+                    "fraction": int(fraction),
+                    "condition": condition,
+                    "bioreplicate": source_to_biorep[sn],
+                    "acquisition_method": self._extract_acquisition_method(row),
+                    "dissociation_method": self._extract_dissociation_method(row),
+                }
+            )
+
+        return design_rows
 
     def _write_config(
         self,
@@ -478,34 +598,46 @@ class DiaNN(BaseConverter):
                 if val is not None:
                     parts.append(f"{flag} {val}")
 
-        with open("diann_config.cfg", "w") as f:
+        with open("diann_config.cfg", "w", encoding="utf-8") as f:
             f.write(" ".join(parts))
 
-    def _write_filemap(self, file_data: dict, plex_info: dict | None) -> None:
-        """Write diann_filemap.tsv."""
+    def _write_filemap(self, file_data: dict, plex_info: dict | None, design_rows: list[dict] | None = None) -> None:
+        """Write diann_design.tsv (unified design file)."""
         rows = []
         label_type = plex_info["type"] if plex_info else "label free"
 
+        design_lookup: dict[tuple[str, str], dict] = {}
+        if design_rows:
+            for d in design_rows:
+                design_lookup[(d["filename"], d["label"])] = d
+
         for filename, fd in file_data.items():
             if plex_info is not None:
-                # For plexDIA: one row per channel per file
                 for label in fd["labels"]:
-                    rows.append(self._filemap_row(filename, fd, label, label_type))
+                    design = design_lookup.get((filename, label))
+                    rows.append(self._filemap_row(filename, fd, label, label_type, design))
             else:
-                # Label-free: one row per file
                 label = fd["labels"][0] if fd["labels"] else "label free sample"
-                rows.append(self._filemap_row(filename, fd, label, label_type))
+                design = design_lookup.get((filename, label))
+                rows.append(self._filemap_row(filename, fd, label, label_type, design))
 
         df = pd.DataFrame(rows)
-        df.to_csv("diann_filemap.tsv", sep="\t", index=False)
+        df.to_csv("diann_design.tsv", sep="\t", index=False, encoding="utf-8")
 
-    def _filemap_row(self, filename: str, fd: dict, label: str, label_type: str) -> dict:
-        """Build a single filemap row."""
+    def _filemap_row(self, filename: str, fd: dict, label: str, label_type: str, design: dict | None = None) -> dict:
+        """Build a single design file row."""
         return {
             "Filename": filename,
             "URI": fd.get("uri", ""),
+            "Sample": design["sample"] if design else "",
+            "FractionGroup": design["fraction_group"] if design else "",
+            "Fraction": design["fraction"] if design else 1,
             "Label": label,
             "LabelType": label_type,
+            "AcquisitionMethod": design["acquisition_method"] if design else "",
+            "DissociationMethod": design["dissociation_method"] if design else "",
+            "Condition": design["condition"] if design else "",
+            "BioReplicate": design["bioreplicate"] if design else "",
             "Enzyme": fd["enzyme"],
             "FixedModifications": ";".join(fd["fixed_mods"]),
             "VariableModifications": ";".join(fd["var_mods"]),
