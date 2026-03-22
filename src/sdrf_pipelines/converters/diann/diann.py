@@ -52,7 +52,7 @@ class DiaNN(BaseConverter):
     def convert(self, sdrf_file: str, output_path: str, **kwargs) -> None:
         self.diann_convert(sdrf_file)
 
-    def diann_convert(self, sdrf_file: str) -> None:
+    def diann_convert(self, sdrf_file: str, mod_localization: str | None = None) -> None:
         """Convert SDRF to DIA-NN configuration files.
 
         Generates:
@@ -61,6 +61,8 @@ class DiaNN(BaseConverter):
 
         Args:
             sdrf_file: Path to the SDRF file
+            mod_localization: Comma-separated modifications for PTM site localization,
+                e.g. 'Phospho (S),Phospho (T),Phospho (Y)' or 'UniMod:21'
         """
         sdrf = self.load_sdrf(sdrf_file)
 
@@ -90,13 +92,6 @@ class DiaNN(BaseConverter):
         fixed_mods = list(fixed_mods_set.pop()) if fixed_mods_set else []
         var_mods = list(var_mods_set.pop()) if var_mods_set else []
 
-        # Collect monitor mods (PTMs needing site localization, marked with ML=true)
-        monitor_mods: list[str] = []
-        for fd in file_data.values():
-            for m in fd["monitor_mods"]:
-                if m not in monitor_mods:
-                    monitor_mods.append(m)
-
         # Convert modifications to DIA-NN format
         diann_fixed, diann_var = self._mod_converter.convert_all_modifications(fixed_mods, var_mods)
 
@@ -109,10 +104,11 @@ class DiaNN(BaseConverter):
         # Extract experimental design
         design_rows = self._extract_experimental_design(sdrf, file_data)
 
+        # Resolve mod_localization to UniMod accessions for --monitor-mod
+        monitor_mods = self._resolve_monitor_mods(mod_localization) if mod_localization else []
+
         # Write config file
-        self._write_config(
-            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
-        )
+        self._write_config(enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods)
 
         # Write filemap
         self._write_filemap(file_data, plex_info, design_rows)
@@ -150,7 +146,6 @@ class DiaNN(BaseConverter):
                     "ms1_max_mz": None,
                     "ms2_min_mz": None,
                     "ms2_max_mz": None,
-                    "monitor_mods": [],
                     "uri": "",
                 }
 
@@ -167,10 +162,9 @@ class DiaNN(BaseConverter):
 
             # Modifications (first row wins)
             if not fd["fixed_mods"] and not fd["var_mods"]:
-                fixed, var, monitor = self._extract_modifications(row, mod_cols)
+                fixed, var = self._extract_modifications(row, mod_cols)
                 fd["fixed_mods"] = fixed
                 fd["var_mods"] = var
-                fd["monitor_mods"] = monitor
 
             # Tolerances (first row wins)
             if fd["precursor_tol"] is None:
@@ -328,18 +322,10 @@ class DiaNN(BaseConverter):
         normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
         return normalized
 
-    def _extract_modifications(
-        self, row: pd.Series, mod_cols: list[str]
-    ) -> tuple[list, list, list]:
-        """Extract fixed and variable modifications from SDRF row.
-
-        Returns:
-            Tuple of (fixed_mods, var_mods, monitor_mods).
-            monitor_mods contains UniMod accessions for variable mods with ML=true.
-        """
+    def _extract_modifications(self, row: pd.Series, mod_cols: list[str]) -> tuple[list, list]:
+        """Extract fixed and variable modifications from SDRF row."""
         fixed = []
         var = []
-        monitor = []
         for col in mod_cols:
             mod_str = str(row.get(col, "")).strip()
             if not mod_str or mod_str.lower() in ("nan", "not available", ""):
@@ -351,12 +337,7 @@ class DiaNN(BaseConverter):
                 fixed.append(normalized)
             elif "mt=variable" in mod_lower:
                 var.append(normalized)
-                # Check for ML=true (monitor/localize PTM site)
-                if "ml=true" in mod_lower:
-                    ac_match = re.search(r"(?i)\bAC=(UNIMOD:\d+)", mod_str)
-                    if ac_match:
-                        monitor.append(ac_match.group(1))
-        return fixed, var, monitor
+        return fixed, var
 
     def _extract_tolerance(self, row: pd.Series, column: str) -> tuple:
         """Extract tolerance value and unit from an SDRF column."""
@@ -542,6 +523,40 @@ class DiaNN(BaseConverter):
 
         return design_rows
 
+    def _resolve_monitor_mods(self, mod_localization: str) -> list[str]:
+        """Resolve mod_localization string to unique UniMod accessions for --monitor-mod.
+
+        Accepts comma-separated modification names (e.g. 'Phospho (S),Phospho (T)')
+        or UniMod accessions (e.g. 'UniMod:21'). Names are mapped via the UniMod database.
+        Site annotations in parentheses are stripped before lookup.
+
+        Returns:
+            List of unique UniMod accession strings, e.g. ['UniMod:21', 'UniMod:1']
+        """
+        unimod_ids: list[str] = []
+        for mod in mod_localization.split(","):
+            mod = mod.strip()
+            if not mod:
+                continue
+            # Direct UniMod accession — normalize to uppercase UNIMOD:
+            if mod.lower().startswith("unimod:"):
+                normalized = "UNIMOD:" + mod.split(":", 1)[1]
+                if normalized not in unimod_ids:
+                    unimod_ids.append(normalized)
+                continue
+            # Strip site annotation: "Phospho (S)" -> "Phospho"
+            base_name = re.sub(r"\s*\(.*\)", "", mod).strip()
+            # Look up in the modification converter's UniMod database
+            unimod_id = self._mod_converter.find_unimod_by_name(base_name)
+            if unimod_id and unimod_id not in unimod_ids:
+                unimod_ids.append(unimod_id)
+            elif not unimod_id:
+                self.add_warning(
+                    f"Could not resolve '{mod}' to a UniMod accession for --monitor-mod. "
+                    "Use 'UniMod:XX' format directly if the name is not recognized."
+                )
+        return unimod_ids
+
     def _write_config(
         self,
         enzyme: str,
@@ -623,7 +638,7 @@ class DiaNN(BaseConverter):
                 if val is not None:
                     parts.append(f"{flag} {val}")
 
-        # PTM site localization (--monitor-mod for mods with ML=true)
+        # PTM site localization (--monitor-mod)
         if monitor_mods:
             for mod_ac in monitor_mods:
                 parts.append(f"--monitor-mod {mod_ac}")

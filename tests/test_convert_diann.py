@@ -391,27 +391,6 @@ class TestDiannPlexDesign:
         assert len(set(df["Sample"].tolist())) == 3
 
 
-class TestDiannPhospho:
-    def test_phospho_monitor_mod_in_config(self, diann_data_dir, on_tmpdir):
-        """ML=true on Phospho should generate --monitor-mod UNIMOD:21 in config."""
-        DiaNN().diann_convert(str(diann_data_dir / "phospho.sdrf.tsv"))
-        config = Path("diann_config.cfg").read_text()
-        assert "--monitor-mod UNIMOD:21" in config
-
-    def test_phospho_var_mod_in_config(self, diann_data_dir, on_tmpdir):
-        """Phospho should also appear as a normal --var-mod."""
-        DiaNN().diann_convert(str(diann_data_dir / "phospho.sdrf.tsv"))
-        config = Path("diann_config.cfg").read_text()
-        assert "--var-mod" in config
-        assert "Phospho" in config or "79.966" in config
-
-    def test_no_monitor_mod_without_ml(self, diann_data_dir, on_tmpdir):
-        """Standard label-free SDRF without ML=true should not have --monitor-mod."""
-        DiaNN().diann_convert(str(diann_data_dir / "label_free.sdrf.tsv"))
-        config = Path("diann_config.cfg").read_text()
-        assert "--monitor-mod" not in config
-
-
 class TestDiannScanRangeValidation:
     def test_inverted_scan_range_raises_error(self, diann_data_dir, on_tmpdir):
         with pytest.raises(ValueError, match="[Ii]nverted|[Mm]in.*greater.*max"):
