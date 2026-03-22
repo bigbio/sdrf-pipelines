@@ -90,6 +90,13 @@ class DiaNN(BaseConverter):
         fixed_mods = list(fixed_mods_set.pop()) if fixed_mods_set else []
         var_mods = list(var_mods_set.pop()) if var_mods_set else []
 
+        # Collect monitor mods (PTMs needing site localization, marked with ML=true)
+        monitor_mods: list[str] = []
+        for fd in file_data.values():
+            for m in fd["monitor_mods"]:
+                if m not in monitor_mods:
+                    monitor_mods.append(m)
+
         # Convert modifications to DIA-NN format
         diann_fixed, diann_var = self._mod_converter.convert_all_modifications(fixed_mods, var_mods)
 
@@ -103,7 +110,9 @@ class DiaNN(BaseConverter):
         design_rows = self._extract_experimental_design(sdrf, file_data)
 
         # Write config file
-        self._write_config(enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary)
+        self._write_config(
+            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
+        )
 
         # Write filemap
         self._write_filemap(file_data, plex_info, design_rows)
@@ -141,6 +150,7 @@ class DiaNN(BaseConverter):
                     "ms1_max_mz": None,
                     "ms2_min_mz": None,
                     "ms2_max_mz": None,
+                    "monitor_mods": [],
                     "uri": "",
                 }
 
@@ -157,9 +167,10 @@ class DiaNN(BaseConverter):
 
             # Modifications (first row wins)
             if not fd["fixed_mods"] and not fd["var_mods"]:
-                fixed, var = self._extract_modifications(row, mod_cols)
+                fixed, var, monitor = self._extract_modifications(row, mod_cols)
                 fd["fixed_mods"] = fixed
                 fd["var_mods"] = var
+                fd["monitor_mods"] = monitor
 
             # Tolerances (first row wins)
             if fd["precursor_tol"] is None:
@@ -317,10 +328,18 @@ class DiaNN(BaseConverter):
         normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
         return normalized
 
-    def _extract_modifications(self, row: pd.Series, mod_cols: list[str]) -> tuple[list, list]:
-        """Extract fixed and variable modifications from SDRF row."""
+    def _extract_modifications(
+        self, row: pd.Series, mod_cols: list[str]
+    ) -> tuple[list, list, list]:
+        """Extract fixed and variable modifications from SDRF row.
+
+        Returns:
+            Tuple of (fixed_mods, var_mods, monitor_mods).
+            monitor_mods contains UniMod accessions for variable mods with ML=true.
+        """
         fixed = []
         var = []
+        monitor = []
         for col in mod_cols:
             mod_str = str(row.get(col, "")).strip()
             if not mod_str or mod_str.lower() in ("nan", "not available", ""):
@@ -332,7 +351,12 @@ class DiaNN(BaseConverter):
                 fixed.append(normalized)
             elif "mt=variable" in mod_lower:
                 var.append(normalized)
-        return fixed, var
+                # Check for ML=true (monitor/localize PTM site)
+                if "ml=true" in mod_lower:
+                    ac_match = re.search(r"(?i)\bAC=(UNIMOD:\d+)", mod_str)
+                    if ac_match:
+                        monitor.append(ac_match.group(1))
+        return fixed, var, monitor
 
     def _extract_tolerance(self, row: pd.Series, column: str) -> tuple:
         """Extract tolerance value and unit from an SDRF column."""
@@ -526,6 +550,7 @@ class DiaNN(BaseConverter):
         plex_info: dict | None,
         tolerance_summary: dict | None = None,
         scan_range_summary: dict | None = None,
+        monitor_mods: list[str] | None = None,
     ) -> None:
         """Write diann_config.cfg."""
         parts = []
@@ -597,6 +622,11 @@ class DiaNN(BaseConverter):
                 val = scan_range_summary.get(key)
                 if val is not None:
                     parts.append(f"{flag} {val}")
+
+        # PTM site localization (--monitor-mod for mods with ML=true)
+        if monitor_mods:
+            for mod_ac in monitor_mods:
+                parts.append(f"--monitor-mod {mod_ac}")
 
         with open("diann_config.cfg", "w", encoding="utf-8") as f:
             f.write(" ".join(parts))
