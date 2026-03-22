@@ -425,12 +425,18 @@ def normalyzerde_from_sdrf(
 
 @click.command("convert-diann", short_help="convert sdrf to DIA-NN configuration files")
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
+@click.option(
+    "--mod_localization",
+    help="Comma-separated modifications for PTM site localization, "
+    "e.g. 'Phospho (S),Phospho (T),Phospho (Y)' or 'UniMod:21'",
+    default=None,
+)
 @click.pass_context
-def diann_from_sdrf(ctx, sdrf: str):
+def diann_from_sdrf(ctx, sdrf: str, mod_localization: str | None = None):
     if sdrf is None:
         help()
     try:
-        DiaNN().diann_convert(sdrf)
+        DiaNN().diann_convert(sdrf, mod_localization=mod_localization)
     except Exception as ex:
         msg = "Error: " + str(ex)
         raise ValueError(msg) from ex

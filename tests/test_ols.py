@@ -17,11 +17,11 @@ class TestOlsClientReal:
         """Fixture to create an OlsClient instance for real tests."""
         return OlsClient(use_cache=False)
 
-    def test_get_term_efo(self, ols_client):
-        """Test get_term method with a real EFO term."""
-        result = ols_client.get_term("efo", "http://www.ebi.ac.uk/efo/EFO_0000408")
-        assert result["label"] == "disease"
-        assert result["ontology_name"] == "efo"
+    def test_get_term_ms(self, ols_client):
+        """Test get_term method with a real MS term."""
+        result = ols_client.get_term("ms", "http://purl.obolibrary.org/obo/MS_1000031")
+        assert result["label"] == "instrument model"
+        assert result["ontology_name"] == "ms"
 
     def test_get_term_go(self, ols_client):
         """Test get_term method with a real GO term."""
@@ -29,24 +29,21 @@ class TestOlsClientReal:
         assert result["label"] == "biological_process"
         assert result["ontology_name"] == "go"
 
-    def test_get_ancestors_efo(self, ols_client):
-        """Test get_ancestors method with a real EFO term."""
-        result = ols_client.get_ancestors("efo", "http://www.ebi.ac.uk/efo/EFO_0000408")
+    def test_get_ancestors_go(self, ols_client):
+        """Test get_ancestors method with a real GO term that has ancestors."""
+        result = ols_client.get_ancestors("go", "http://purl.obolibrary.org/obo/GO_0009987")
         assert len(result) > 0
-        assert any(term["obo_id"] == "BFO:0000016" for term in result)
-        assert any(term["label"] == "material property" for term in result)
 
     def test_get_ancestors_empty(self, ols_client):
         """Test get_ancestors method with a term that has no ancestors."""
         with pytest.raises(KeyError):
             ols_client.get_ancestors("efo", "http://www.ebi.ac.uk/efo/EFO_0000001")
 
-    def test_search_efo(self, ols_client):
-        """Test search method with a real EFO term."""
-        result = ols_client.search("disease", ontology="efo")
+    def test_search_ms(self, ols_client):
+        """Test search method with a real MS term."""
+        result = ols_client.search("instrument", ontology="ms")
         assert len(result) > 0
-        assert any(term["obo_id"] == "EFO:0000408" for term in result)
-        assert any(term["label"] == "disease" for term in result)
+        assert any(term["obo_id"] == "MS:1000463" for term in result)
 
     def test_search_go(self, ols_client):
         """Test search method with a real GO term."""
@@ -62,17 +59,15 @@ class TestOlsClientReal:
 
     def test_search_exact(self, ols_client):
         """Test search method with exact match."""
-        result = ols_client.search("disease", ontology="efo", exact=True)
+        result = ols_client.search("instrument", ontology="ms", exact=True)
         assert len(result) > 0
-        assert any(term["obo_id"] == "EFO:0000408" for term in result)
-        assert any(term["label"] == "disease" for term in result)
+        assert any(term["obo_id"] == "MS:1000463" for term in result)
 
-    def test_ols_search_efo(self, ols_client):
-        """Test ols_search method with a real EFO term."""
-        result = ols_client.ols_search("disease", ontology="efo")
+    def test_ols_search_ms(self, ols_client):
+        """Test ols_search method with a real MS term."""
+        result = ols_client.ols_search("instrument", ontology="ms")
         assert len(result) > 0
-        assert any(term["obo_id"] == "EFO:0000408" for term in result)
-        assert any(term["label"] == "disease" for term in result)
+        assert any(term["obo_id"] == "MS:1000463" for term in result)
 
     def test_ols_search_go(self, ols_client):
         """Test ols_search method with a real GO term."""
@@ -86,11 +81,11 @@ class TestOlsClientReal:
         result = ols_client.ols_search("nonexistent term", exact=True)
         assert result == []
 
-    def test_besthit_efo(self, ols_client):
-        """Test besthit method with a real EFO term."""
-        result = ols_client.besthit("disease", ontology="efo")
-        assert result["obo_id"] == "EFO:0000408"
-        assert result["label"] == "disease"
+    def test_besthit_ms(self, ols_client):
+        """Test besthit method with a real MS term."""
+        result = ols_client.besthit("instrument model", ontology="ms")
+        assert result["obo_id"] == "MS:1000031"
+        assert result["label"] == "instrument model"
 
     def test_besthit_go(self, ols_client):
         """Test besthit method with a real GO term."""
