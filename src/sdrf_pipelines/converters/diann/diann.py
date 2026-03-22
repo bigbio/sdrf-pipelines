@@ -108,7 +108,9 @@ class DiaNN(BaseConverter):
         monitor_mods = self._resolve_monitor_mods(mod_localization) if mod_localization else []
 
         # Write config file
-        self._write_config(enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods)
+        self._write_config(
+            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
+        )
 
         # Write filemap
         self._write_filemap(file_data, plex_info, design_rows)
