@@ -118,3 +118,17 @@ class DiannModificationConverter:
         if ptm is None:
             ptm = self._unimod_db.get_by_name(name)
         return ptm._delta_mono_mass
+
+    def find_unimod_by_name(self, name: str) -> str | None:
+        """Look up a modification by name and return its UniMod accession.
+
+        Args:
+            name: Modification name (e.g., 'Phospho', 'Acetyl', 'GlyGly')
+
+        Returns:
+            UniMod accession string (e.g., 'UNIMOD:21') or None if not found
+        """
+        ptm = self._unimod_db.get_by_name(name)
+        if ptm is not None:
+            return ptm.get_accession()
+        return None

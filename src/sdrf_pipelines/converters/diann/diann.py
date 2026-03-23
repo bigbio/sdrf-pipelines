@@ -52,7 +52,9 @@ class DiaNN(BaseConverter):
     def convert(self, sdrf_file: str, output_path: str, **kwargs) -> None:
         self.diann_convert(sdrf_file)
 
-    def diann_convert(self, sdrf_file: str) -> None:
+    def diann_convert(
+        self, sdrf_file: str, mod_localization: str | None = None, diann_version: str | None = None
+    ) -> None:
         """Convert SDRF to DIA-NN configuration files.
 
         Generates:
@@ -61,6 +63,10 @@ class DiaNN(BaseConverter):
 
         Args:
             sdrf_file: Path to the SDRF file
+            mod_localization: Comma-separated modifications for PTM site localization,
+                e.g. 'Phospho (S),Phospho (T),Phospho (Y)' or 'UniMod:21'
+            diann_version: DIA-NN version string (e.g. '1.8.1', '2.0'). Controls whether
+                --monitor-mod flags are emitted. If None, defaults to emitting them.
         """
         sdrf = self.load_sdrf(sdrf_file)
 
@@ -102,8 +108,31 @@ class DiaNN(BaseConverter):
         # Extract experimental design
         design_rows = self._extract_experimental_design(sdrf, file_data)
 
+        # Resolve mod_localization to --monitor-mod flags (version-dependent)
+        # DIA-NN 1.9+ handles localization automatically via --var-mod, no --monitor-mod needed
+        # DIA-NN 1.8.x requires explicit --monitor-mod for PTM site scoring
+        monitor_mods: list[str] = []
+        if mod_localization:
+            needs_monitor_mod = True
+            if diann_version:
+                try:
+                    parts = diann_version.split(".")
+                    major, minor = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+                    if major >= 2 or (major == 1 and minor >= 9):
+                        needs_monitor_mod = False
+                        logger.info(
+                            f"DIA-NN {diann_version}: PTM localization is automatic with --var-mod, "
+                            "skipping --monitor-mod."
+                        )
+                except ValueError:
+                    pass  # Unparseable version, default to emitting --monitor-mod
+            if needs_monitor_mod:
+                monitor_mods = self._resolve_monitor_mods(mod_localization)
+
         # Write config file
-        self._write_config(enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary)
+        self._write_config(
+            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
+        )
 
         # Write filemap
         self._write_filemap(file_data, plex_info, design_rows)
@@ -518,6 +547,40 @@ class DiaNN(BaseConverter):
 
         return design_rows
 
+    def _resolve_monitor_mods(self, mod_localization: str) -> list[str]:
+        """Resolve mod_localization string to unique UniMod accessions for --monitor-mod.
+
+        Accepts comma-separated modification names (e.g. 'Phospho (S),Phospho (T)')
+        or UniMod accessions (e.g. 'UniMod:21'). Names are mapped via the UniMod database.
+        Site annotations in parentheses are stripped before lookup.
+
+        Returns:
+            List of unique UniMod accession strings, e.g. ['UniMod:21', 'UniMod:1']
+        """
+        unimod_ids: list[str] = []
+        for mod in mod_localization.split(","):
+            mod = mod.strip()
+            if not mod:
+                continue
+            # Direct UniMod accession — normalize to uppercase UNIMOD:
+            if mod.lower().startswith("unimod:"):
+                normalized = "UNIMOD:" + mod.split(":", 1)[1]
+                if normalized not in unimod_ids:
+                    unimod_ids.append(normalized)
+                continue
+            # Strip site annotation: "Phospho (S)" -> "Phospho"
+            base_name = re.sub(r"\s*\(.*\)", "", mod).strip()
+            # Look up in the modification converter's UniMod database
+            unimod_id = self._mod_converter.find_unimod_by_name(base_name)
+            if unimod_id and unimod_id not in unimod_ids:
+                unimod_ids.append(unimod_id)
+            elif not unimod_id:
+                self.add_warning(
+                    f"Could not resolve '{mod}' to a UniMod accession for --monitor-mod. "
+                    "Use 'UniMod:XX' format directly if the name is not recognized."
+                )
+        return unimod_ids
+
     def _write_config(
         self,
         enzyme: str,
@@ -526,6 +589,7 @@ class DiaNN(BaseConverter):
         plex_info: dict | None,
         tolerance_summary: dict | None = None,
         scan_range_summary: dict | None = None,
+        monitor_mods: list[str] | None = None,
     ) -> None:
         """Write diann_config.cfg."""
         parts = []
@@ -597,6 +661,11 @@ class DiaNN(BaseConverter):
                 val = scan_range_summary.get(key)
                 if val is not None:
                     parts.append(f"{flag} {val}")
+
+        # PTM site localization (--monitor-mod)
+        if monitor_mods:
+            for mod_ac in monitor_mods:
+                parts.append(f"--monitor-mod {mod_ac}")
 
         with open("diann_config.cfg", "w", encoding="utf-8") as f:
             f.write(" ".join(parts))
