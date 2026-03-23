@@ -109,14 +109,16 @@ class DiaNN(BaseConverter):
         design_rows = self._extract_experimental_design(sdrf, file_data)
 
         # Resolve mod_localization to --monitor-mod flags (version-dependent)
-        # DIA-NN 2.0+ handles localization automatically via --var-mod, no --monitor-mod needed
+        # DIA-NN 1.9+ handles localization automatically via --var-mod, no --monitor-mod needed
+        # DIA-NN 1.8.x requires explicit --monitor-mod for PTM site scoring
         monitor_mods: list[str] = []
         if mod_localization:
             needs_monitor_mod = True
             if diann_version:
                 try:
-                    major = int(diann_version.split(".")[0])
-                    if major >= 2:
+                    parts = diann_version.split(".")
+                    major, minor = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+                    if major >= 2 or (major == 1 and minor >= 9):
                         needs_monitor_mod = False
                         logger.info(
                             f"DIA-NN {diann_version}: PTM localization is automatic with --var-mod, "
