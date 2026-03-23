@@ -431,12 +431,19 @@ def normalyzerde_from_sdrf(
     "e.g. 'Phospho (S),Phospho (T),Phospho (Y)' or 'UniMod:21'",
     default=None,
 )
+@click.option(
+    "--diann_version",
+    help="DIA-NN version (e.g. '1.8.1', '2.0'). Controls how PTM localization flags "
+    "are emitted: 1.8.x uses --monitor-mod, 2.0+ relies on --var-mod alone. "
+    "If not specified, defaults to emitting --monitor-mod (safe for all versions).",
+    default=None,
+)
 @click.pass_context
-def diann_from_sdrf(ctx, sdrf: str, mod_localization: str | None = None):
+def diann_from_sdrf(ctx, sdrf: str, mod_localization: str | None = None, diann_version: str | None = None):
     if sdrf is None:
         help()
     try:
-        DiaNN().diann_convert(sdrf, mod_localization=mod_localization)
+        DiaNN().diann_convert(sdrf, mod_localization=mod_localization, diann_version=diann_version)
     except Exception as ex:
         msg = "Error: " + str(ex)
         raise ValueError(msg) from ex

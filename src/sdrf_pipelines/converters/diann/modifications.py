@@ -126,7 +126,7 @@ class DiannModificationConverter:
             name: Modification name (e.g., 'Phospho', 'Acetyl', 'GlyGly')
 
         Returns:
-            UniMod accession string (e.g., 'UniMod:21') or None if not found
+            UniMod accession string (e.g., 'UNIMOD:21') or None if not found
         """
         ptm = self._unimod_db.get_by_name(name)
         if ptm is not None:

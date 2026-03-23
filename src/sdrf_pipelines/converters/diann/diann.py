@@ -52,7 +52,9 @@ class DiaNN(BaseConverter):
     def convert(self, sdrf_file: str, output_path: str, **kwargs) -> None:
         self.diann_convert(sdrf_file)
 
-    def diann_convert(self, sdrf_file: str, mod_localization: str | None = None) -> None:
+    def diann_convert(
+        self, sdrf_file: str, mod_localization: str | None = None, diann_version: str | None = None
+    ) -> None:
         """Convert SDRF to DIA-NN configuration files.
 
         Generates:
@@ -63,6 +65,8 @@ class DiaNN(BaseConverter):
             sdrf_file: Path to the SDRF file
             mod_localization: Comma-separated modifications for PTM site localization,
                 e.g. 'Phospho (S),Phospho (T),Phospho (Y)' or 'UniMod:21'
+            diann_version: DIA-NN version string (e.g. '1.8.1', '2.0'). Controls whether
+                --monitor-mod flags are emitted. If None, defaults to emitting them.
         """
         sdrf = self.load_sdrf(sdrf_file)
 
@@ -104,8 +108,26 @@ class DiaNN(BaseConverter):
         # Extract experimental design
         design_rows = self._extract_experimental_design(sdrf, file_data)
 
-        # Resolve mod_localization to UniMod accessions for --monitor-mod
-        monitor_mods = self._resolve_monitor_mods(mod_localization) if mod_localization else []
+        # Resolve mod_localization to --monitor-mod flags (version-dependent)
+        # DIA-NN 1.9+ handles localization automatically via --var-mod, no --monitor-mod needed
+        # DIA-NN 1.8.x requires explicit --monitor-mod for PTM site scoring
+        monitor_mods: list[str] = []
+        if mod_localization:
+            needs_monitor_mod = True
+            if diann_version:
+                try:
+                    parts = diann_version.split(".")
+                    major, minor = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+                    if major >= 2 or (major == 1 and minor >= 9):
+                        needs_monitor_mod = False
+                        logger.info(
+                            f"DIA-NN {diann_version}: PTM localization is automatic with --var-mod, "
+                            "skipping --monitor-mod."
+                        )
+                except ValueError:
+                    pass  # Unparseable version, default to emitting --monitor-mod
+            if needs_monitor_mod:
+                monitor_mods = self._resolve_monitor_mods(mod_localization)
 
         # Write config file
         self._write_config(
