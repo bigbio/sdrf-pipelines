@@ -142,6 +142,7 @@ class Relink(BaseConverter):
                 "sample_id": row.get("source name", ""),
                 "fraction": row.get("comment[fraction identifier]", "1"),
                 "technical_replicate": row.get("comment[technical replicate]", "1"),
+                "uri": row.get("comment[associated file uri]", ""),
             }
             rows.append(entry)
         return rows
