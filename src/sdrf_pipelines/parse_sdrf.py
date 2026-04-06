@@ -750,10 +750,16 @@ cli.add_command(list_templates)
 
 @click.command("convert-relink", short_help="convert sdrf to relink XL-MS pipeline config")
 @click.option("--sdrf", "-s", help="SDRF file", required=True)
-@click.option("--outpath", "-o", help="Output config TSV path", default="relink_config.tsv")
+@click.option(
+    "--engine",
+    "-e",
+    help="Search engine to generate configs for",
+    type=click.Choice(["xisearch", "scout"]),
+    default="xisearch",
+)
 @click.pass_context
-def relink_from_sdrf(ctx, sdrf, outpath):
-    Relink().convert_relink_config(sdrf, outpath)
+def relink_from_sdrf(ctx, sdrf, engine):
+    Relink().relink_convert(sdrf, engine=engine)
 
 
 cli.add_command(relink_from_sdrf)
