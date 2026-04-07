@@ -1,0 +1,40 @@
+# Crosslinker definitions for relink pipeline config generation.
+#
+# Each entry maps an SDRF crosslinker name (NT= value) to its properties.
+# To add a new crosslinker, add a new entry following the same structure.
+#
+# Fields:
+#   mass:              Total crosslinker mass (Da)
+#   light_fragment:    Light cleavable fragment mass (Da)
+#   heavy_fragment:    Heavy cleavable fragment mass (Da)
+#   linked_aa_default: Default linked amino acids with penalty weights (xiSEARCH format)
+#   xisearch_class:    xiSEARCH crosslinker Java class name
+#   stubs:             xiSEARCH stub definition string (tag,mass pairs)
+#   scout_name:        Scout crosslinker preset name
+#   scout_alpha_targets: Scout alpha chain target residues
+#   scout_beta_targets:  Scout beta chain target residues
+#   scout_target_nterm:  Whether Scout should target N-terminus
+
+DSSO:
+  mass: 158.0037648
+  light_fragment: 54.0105647
+  heavy_fragment: 85.9826354
+  linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
+  xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
+  stubs: "A,54.0105647,S,103.9932001,T,85.9826354"
+  scout_name: DSSO_KSYT
+  scout_alpha_targets: KSYT
+  scout_beta_targets: KSYT
+  scout_target_nterm: true
+
+DSBU:
+  mass: 196.0848
+  light_fragment: 85.0528
+  heavy_fragment: 111.0320
+  linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
+  xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
+  stubs: "A,85.0528,S,111.0320,T,196.0848"
+  scout_name: DSBU_KSYT
+  scout_alpha_targets: KSYT
+  scout_beta_targets: KSYT
+  scout_target_nterm: true

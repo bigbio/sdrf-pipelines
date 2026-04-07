@@ -1,0 +1,25 @@
+# Modification definitions for relink pipeline config generation.
+#
+# unimod_masses: UNIMOD accession to delta mass (Da) mapping.
+# mod_symbols:   Modification name to short symbol for xiSEARCH config.
+#
+# To add a new modification, add entries to both sections.
+
+unimod_masses:
+  "UNIMOD:4": 57.021464        # Carbamidomethyl
+  "UNIMOD:35": 15.99491463     # Oxidation
+  "UNIMOD:1": 42.010565        # Acetyl
+  "UNIMOD:21": 79.966331       # Phospho
+  "UNIMOD:7": 0.984016         # Deamidated
+  "UNIMOD:28": -17.026549      # Glu->pyro-Glu
+  "UNIMOD:27": -18.010565      # Dehydrated
+  "UNIMOD:34": 14.015650       # Methyl
+  "UNIMOD:36": 28.031300       # Dimethyl
+
+mod_symbols:
+  Carbamidomethyl: cm
+  Oxidation: ox
+  Acetyl: ac
+  Phospho: ph
+  Deamidated: de
+  Methyl: me

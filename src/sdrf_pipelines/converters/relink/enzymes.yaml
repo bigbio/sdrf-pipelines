@@ -1,0 +1,52 @@
+# Enzyme definitions for relink pipeline config generation.
+#
+# Each entry maps an SDRF enzyme name to engine-specific definitions.
+# To add a new enzyme, add a new entry following the same structure.
+#
+# Fields:
+#   xisearch: xiSEARCH digestion string (PostAAConstrainedDigestion format)
+#   scout:
+#     Name:       Enzyme display name
+#     CTerminus:  Whether cleavage occurs at C-terminus of target residue
+#     Sites:      Target residue(s) for cleavage
+#     BlockedBy:  Residue(s) that block cleavage (proline rule, etc.)
+
+Trypsin:
+  xisearch: "PostAAConstrainedDigestion:DIGESTED:K,R;ConstrainingAminoAcids:P;NAME=Trypsin"
+  scout:
+    Name: Trypsin
+    CTerminus: true
+    Sites: KR
+    BlockedBy: P
+
+Lys-C:
+  xisearch: "PostAAConstrainedDigestion:DIGESTED:K;ConstrainingAminoAcids:P;NAME=Lys-C"
+  scout:
+    Name: Lys-C
+    CTerminus: true
+    Sites: K
+    BlockedBy: P
+
+Asp-N:
+  xisearch: "PostAAConstrainedDigestion:DIGESTED:D;ConstrainingAminoAcids:;NAME=Asp-N"
+  scout:
+    Name: Asp-N
+    CTerminus: false
+    Sites: D
+    BlockedBy: ""
+
+Chymotrypsin:
+  xisearch: "PostAAConstrainedDigestion:DIGESTED:F,W,Y,L;ConstrainingAminoAcids:P;NAME=Chymotrypsin"
+  scout:
+    Name: Chymotrypsin
+    CTerminus: true
+    Sites: FWYL
+    BlockedBy: P
+
+Arg-C:
+  xisearch: "PostAAConstrainedDigestion:DIGESTED:R;ConstrainingAminoAcids:P;NAME=Arg-C"
+  scout:
+    Name: Arg-C
+    CTerminus: true
+    Sites: R
+    BlockedBy: P

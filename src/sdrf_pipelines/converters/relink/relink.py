@@ -10,9 +10,11 @@ Converts SDRF files to relink pipeline configuration:
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import yaml
 
 from sdrf_pipelines.converters.base import BaseConverter
 from sdrf_pipelines.converters.openms.utils import parse_tolerance
@@ -22,74 +24,28 @@ logger = logging.getLogger(__name__)
 # Regex for parsing key=value pairs in SDRF cells (e.g., NT=DSSO;AC=XLMOD:02010)
 _KV_PATTERN = re.compile(r"(\w+)=([^;]+)")
 
-# UNIMOD accession to delta mass mapping (common modifications)
-UNIMOD_MASSES = {
-    "UNIMOD:4": 57.021464,  # Carbamidomethyl
-    "UNIMOD:35": 15.99491463,  # Oxidation
-    "UNIMOD:1": 42.010565,  # Acetyl
-    "UNIMOD:21": 79.966331,  # Phospho
-    "UNIMOD:7": 0.984016,  # Deamidated
-    "UNIMOD:28": -17.026549,  # Glu->pyro-Glu
-    "UNIMOD:27": -18.010565,  # Dehydrated
-    "UNIMOD:34": 14.015650,  # Methyl
-    "UNIMOD:36": 28.031300,  # Dimethyl
-}
+# Load YAML data files from the same directory as this module
+_DATA_DIR = Path(__file__).parent
 
-# Modification name to symbol extension for xiSEARCH
-MOD_SYMBOLS = {
-    "Carbamidomethyl": "cm",
-    "Oxidation": "ox",
-    "Acetyl": "ac",
-    "Phospho": "ph",
-    "Deamidated": "de",
-    "Methyl": "me",
-}
 
-# Enzyme name to xiSEARCH digestion format
-ENZYME_XISEARCH = {
-    "Trypsin": "PostAAConstrainedDigestion:DIGESTED:K,R;ConstrainingAminoAcids:P;NAME=Trypsin",
-    "Lys-C": "PostAAConstrainedDigestion:DIGESTED:K;ConstrainingAminoAcids:P;NAME=Lys-C",
-    "Asp-N": "PostAAConstrainedDigestion:DIGESTED:D;ConstrainingAminoAcids:;NAME=Asp-N",
-    "Chymotrypsin": "PostAAConstrainedDigestion:DIGESTED:F,W,Y,L;ConstrainingAminoAcids:P;NAME=Chymotrypsin",
-    "Arg-C": "PostAAConstrainedDigestion:DIGESTED:R;ConstrainingAminoAcids:P;NAME=Arg-C",
-}
+def _load_yaml(filename: str) -> dict[str, Any]:
+    """Load a YAML data file from the relink converter package directory."""
+    with open(_DATA_DIR / filename) as f:
+        return yaml.safe_load(f)
 
-# Enzyme name to Scout enzyme object
-ENZYME_SCOUT = {
-    "Trypsin": {"Name": "Trypsin", "CTerminus": True, "Sites": "KR", "BlockedBy": "P"},
-    "Lys-C": {"Name": "Lys-C", "CTerminus": True, "Sites": "K", "BlockedBy": "P"},
-    "Asp-N": {"Name": "Asp-N", "CTerminus": False, "Sites": "D", "BlockedBy": ""},
-    "Chymotrypsin": {"Name": "Chymotrypsin", "CTerminus": True, "Sites": "FWYL", "BlockedBy": "P"},
-    "Arg-C": {"Name": "Arg-C", "CTerminus": True, "Sites": "R", "BlockedBy": "P"},
-}
 
-# Known crosslinker properties (full mass + stub masses)
-CROSSLINKER_DB: dict[str, dict[str, Any]] = {
-    "DSSO": {
-        "xisearch_class": "SymetricSingleAminoAcidRestrictedCrossLinker",
-        "mass": 158.0037648,
-        "light_fragment": 54.0105647,
-        "heavy_fragment": 85.9826354,
-        "stubs": "A,54.0105647,S,103.9932001,T,85.9826354",
-        "linked_aa_default": "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)",
-        "scout_name": "DSSO_KSYT",
-        "scout_alpha_targets": "KSYT",
-        "scout_beta_targets": "KSYT",
-        "scout_target_nterm": True,
-    },
-    "DSBU": {
-        "xisearch_class": "SymetricSingleAminoAcidRestrictedCrossLinker",
-        "mass": 196.0848,
-        "light_fragment": 85.0528,
-        "heavy_fragment": 111.0320,
-        "stubs": "A,85.0528,S,111.0320,T,196.0848",
-        "linked_aa_default": "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)",
-        "scout_name": "DSBU_KSYT",
-        "scout_alpha_targets": "KSYT",
-        "scout_beta_targets": "KSYT",
-        "scout_target_nterm": True,
-    },
-}
+# Modifications: UNIMOD masses and xiSEARCH symbols
+_mod_data = _load_yaml("modifications.yaml")
+UNIMOD_MASSES: dict[str, float] = _mod_data["unimod_masses"]
+MOD_SYMBOLS: dict[str, str] = _mod_data["mod_symbols"]
+
+# Enzymes: engine-specific definitions
+_enzyme_data = _load_yaml("enzymes.yaml")
+ENZYME_XISEARCH: dict[str, str] = {name: e["xisearch"] for name, e in _enzyme_data.items()}
+ENZYME_SCOUT: dict[str, dict[str, Any]] = {name: e["scout"] for name, e in _enzyme_data.items()}
+
+# Crosslinkers: mass properties and engine-specific definitions
+CROSSLINKER_DB: dict[str, dict[str, Any]] = _load_yaml("crosslinkers.yaml")
 
 
 def _parse_sdrf_cell(cell: str) -> dict[str, str]:
