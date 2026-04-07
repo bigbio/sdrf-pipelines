@@ -32,7 +32,7 @@ _DATA_DIR = Path(__file__).parent
 
 def _load_yaml(filename: str) -> dict[str, Any]:
     """Load a YAML data file from the relink converter package directory."""
-    with open(_DATA_DIR / filename) as f:
+    with open(_DATA_DIR / filename, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -325,25 +325,30 @@ class Relink(BaseConverter):
         crosslink_lines.append("#################")
         crosslink_lines.append("## Cross Linker + associated modifications")
         if cl_info:
-            # Use default linked amino acids with penalty weights from CROSSLINKER_DB
             linked_aa = cl_info["linked_aa_default"]
-
-            crosslink_lines.append(
+            xl_line = (
                 f"crosslinker:{cl_info['xisearch_class']}:Name:{cl_name};"
-                f"MASS:{cl_info['mass']};LINKEDAMINOACIDS:{linked_aa};"
-                f"STUBS:{cl_info['stubs']}"
+                f"MASS:{cl_info['mass']};LINKEDAMINOACIDS:{linked_aa}"
             )
+            # Cleavable crosslinkers include stub masses
+            if cl_info.get("stubs"):
+                xl_line += f";STUBS:{cl_info['stubs']}"
+            crosslink_lines.append(xl_line)
         else:
             self.add_warning(f"Unknown crosslinker: {cl_name}. Add it to CROSSLINKER_DB.")
             crosslink_lines.append(f"## WARNING: unknown crosslinker {cl_name} - configure manually")
         crosslink_lines.append("crosslinker:NonCovalentBound:Name:NonCovalent")
         crosslink_lines.append("")
 
-        # Add DSSO-specific variable mods (Tris quenching)
-        if cl_name == "DSSO":
-            crosslink_lines.append("## DSSO quenching modifications")
-            crosslink_lines.append("modification:variable::SYMBOLEXT:dsso_tris;MODIFIED:K,nterm;DELTAMASS:279.077658")
-            crosslink_lines.append("modification:variable::SYMBOLEXT:dsso_tris;MODIFIED:S,T,Y;DELTAMASS:279.077658")
+        # Add quenching modifications from crosslinker definition
+        quench_mods = cl_info.get("quench_mods", []) if cl_info else []
+        if quench_mods:
+            crosslink_lines.append(f"## {cl_name} quenching modifications")
+            for qm in quench_mods:
+                crosslink_lines.append(
+                    f"modification:variable::SYMBOLEXT:{qm['symbol']};"
+                    f"MODIFIED:{qm['sites']};DELTAMASS:{qm['delta_mass']}"
+                )
             crosslink_lines.append("")
 
         crosslink_lines.extend(scoring_lines)
@@ -399,8 +404,8 @@ class Relink(BaseConverter):
                 }
             )
 
-        # Build crosslinker reagent
-        if cl_info:
+        # Build crosslinker reagent (Scout only supports cleavable crosslinkers)
+        if cl_info and cl_info.get("cleavable", False):
             cxl_reagent = {
                 "Name": cl_info["scout_name"],
                 "LightTag": "Light",
@@ -414,6 +419,12 @@ class Relink(BaseConverter):
                 "BetaTargets": cl_info["scout_beta_targets"],
                 "TargetNTerm": cl_info["scout_target_nterm"],
             }
+        elif cl_info and not cl_info.get("cleavable", False):
+            self.add_warning(
+                f"Crosslinker {cl_name} is non-cleavable and not supported by Scout. "
+                "Scout requires MS-cleavable crosslinkers (e.g. DSSO, DSBU)."
+            )
+            cxl_reagent = {"Name": cl_name}
         else:
             self.add_warning(f"Unknown crosslinker for Scout: {cl_name}")
             cxl_reagent = {"Name": cl_name}

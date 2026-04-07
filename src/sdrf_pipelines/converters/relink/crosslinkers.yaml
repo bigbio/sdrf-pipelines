@@ -3,25 +3,47 @@
 # Each entry maps an SDRF crosslinker name (NT= value) to its properties.
 # To add a new crosslinker, add a new entry following the same structure.
 #
-# Fields:
-#   mass:              Total crosslinker mass (Da)
+# Fields — general:
+#   mass:              Total crosslinker mass (Da, monoisotopic)
+#   cleavable:         Whether the crosslinker is MS-cleavable
+#   linked_aa_default: Default linked amino acids with penalty weights (xiSEARCH format)
+#
+# Fields — cleavable crosslinkers:
 #   light_fragment:    Light cleavable fragment mass (Da)
 #   heavy_fragment:    Heavy cleavable fragment mass (Da)
-#   linked_aa_default: Default linked amino acids with penalty weights (xiSEARCH format)
+#
+# Fields — xiSEARCH:
 #   xisearch_class:    xiSEARCH crosslinker Java class name
-#   stubs:             xiSEARCH stub definition string (tag,mass pairs)
-#   scout_name:        Scout crosslinker preset name
+#   stubs:             xiSEARCH stub definition string (tag,mass pairs; omit for non-cleavable)
+#   quench_mods:       Optional list of quenching variable modifications
+#     - symbol:        xiSEARCH SYMBOLEXT for the modification
+#       sites:         Comma-separated target residues
+#       delta_mass:    Mass shift (Da)
+#
+# Fields — Scout (cleavable crosslinkers only):
+#   scout_name:          Scout crosslinker preset name
 #   scout_alpha_targets: Scout alpha chain target residues
 #   scout_beta_targets:  Scout beta chain target residues
 #   scout_target_nterm:  Whether Scout should target N-terminus
+#
+# Sources:
+#   DSSO masses: XLMOD:02010, Kao et al. 2011 (Mol Cell Proteomics)
+#   DSBU masses: XLMOD:02001, Iacobucci et al. 2018 (Anal Chem)
+#   DSS/BS3 mass: XLMOD:02000/02008, xiSEARCH issue #48
+#   Tris quench: NHS ester + Tris(hydroxymethyl)aminomethane (121.0739 Da shift)
 
 DSSO:
   mass: 158.0037648
-  light_fragment: 54.0105647
-  heavy_fragment: 85.9826354
+  cleavable: true
+  light_fragment: 54.0105647     # alkene (C3H2O)
+  heavy_fragment: 85.9826354     # sulfenic acid (C3H2OS)
   linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
   xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
   stubs: "A,54.0105647,S,103.9932001,T,85.9826354"
+  quench_mods:
+    - symbol: dsso_tris
+      sites: "K,S,T,Y,nterm"
+      delta_mass: 279.077658
   scout_name: DSSO_KSYT
   scout_alpha_targets: KSYT
   scout_beta_targets: KSYT
@@ -29,12 +51,37 @@ DSSO:
 
 DSBU:
   mass: 196.0848
-  light_fragment: 85.0528
-  heavy_fragment: 111.0320
+  cleavable: true
+  light_fragment: 85.0528        # BuUrBu light fragment (C4H7NO)
+  heavy_fragment: 111.0320       # BuUrBu heavy fragment (C5H5NO2)
   linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
   xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
   stubs: "A,85.0528,S,111.0320,T,196.0848"
+  quench_mods:
+    - symbol: dsbu_tris
+      sites: "K,S,T,Y,nterm"
+      delta_mass: 317.1587
   scout_name: DSBU_KSYT
   scout_alpha_targets: KSYT
   scout_beta_targets: KSYT
   scout_target_nterm: true
+
+DSS:
+  mass: 138.0680796
+  cleavable: false
+  linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
+  xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
+  quench_mods:
+    - symbol: dss_tris
+      sites: "K,S,T,Y,nterm"
+      delta_mass: 259.141973
+
+BS3:
+  mass: 138.0680796
+  cleavable: false
+  linked_aa_default: "K(0),S(0.2),T(0.2),Y(0.2),nterm(0)"
+  xisearch_class: SymetricSingleAminoAcidRestrictedCrossLinker
+  quench_mods:
+    - symbol: bs3_tris
+      sites: "K,S,T,Y,nterm"
+      delta_mass: 259.141973
