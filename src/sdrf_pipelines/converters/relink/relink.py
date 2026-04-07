@@ -64,7 +64,7 @@ ENZYME_SCOUT = {
 }
 
 # Known crosslinker properties (full mass + stub masses)
-CROSSLINKER_DB = {
+CROSSLINKER_DB: dict[str, dict[str, Any]] = {
     "DSSO": {
         "xisearch_class": "SymetricSingleAminoAcidRestrictedCrossLinker",
         "mass": 158.0037648,
@@ -411,7 +411,7 @@ class Relink(BaseConverter):
                 "HeavyFragment": cl_info["heavy_fragment"],
                 "WholeTag": "Full",
                 "WholeMass": cl_info["mass"],
-                "DeltaShift": float(cl_info["heavy_fragment"]) - float(cl_info["light_fragment"]),
+                "DeltaShift": cl_info["heavy_fragment"] - cl_info["light_fragment"],
                 "AlphaTargets": cl_info["scout_alpha_targets"],
                 "BetaTargets": cl_info["scout_beta_targets"],
                 "TargetNTerm": cl_info["scout_target_nterm"],
