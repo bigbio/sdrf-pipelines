@@ -15,8 +15,10 @@ from typing import Any
 
 import pandas as pd
 import yaml
+from pyopenms import ModificationsDB
 
 from sdrf_pipelines.converters.base import BaseConverter
+from sdrf_pipelines.converters.openms.constants import ENZYME_MAPPINGS
 from sdrf_pipelines.converters.openms.utils import parse_tolerance
 
 logger = logging.getLogger(__name__)
@@ -34,17 +36,54 @@ def _load_yaml(filename: str) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-# Modifications: UNIMOD masses and xiSEARCH symbols
-_mod_data = _load_yaml("modifications.yaml")
-UNIMOD_MASSES: dict[str, float] = _mod_data["unimod_masses"]
-MOD_SYMBOLS: dict[str, str] = _mod_data["mod_symbols"]
+def _get_unimod_mass(accession: str) -> float:
+    """Look up a UNIMOD modification mass using pyopenms.
 
-# Enzymes: engine-specific definitions
-_enzyme_data = _load_yaml("enzymes.yaml")
-ENZYME_XISEARCH: dict[str, str] = {name: e["xisearch"] for name, e in _enzyme_data.items()}
-ENZYME_SCOUT: dict[str, dict[str, Any]] = {name: e["scout"] for name, e in _enzyme_data.items()}
+    Args:
+        accession: UNIMOD accession (e.g. "UNIMOD:4" or "UniMod:4")
 
-# Crosslinkers: mass properties and engine-specific definitions
+    Returns:
+        Monoisotopic delta mass, or 0.0 if not found.
+    """
+    try:
+        # Normalize to pyopenms format (UniMod:N)
+        acc_num = accession.split(":")[-1]
+        mod = ModificationsDB().getModification(f"UniMod:{acc_num}")
+        return mod.getDiffMonoMass()
+    except Exception:
+        logger.warning(f"Could not find UNIMOD mass for {accession}")
+        return 0.0
+
+
+# Modification name to short symbol for xiSEARCH config
+MOD_SYMBOLS: dict[str, str] = {
+    "Carbamidomethyl": "cm",
+    "Oxidation": "ox",
+    "Acetyl": "ac",
+    "Phospho": "ph",
+    "Deamidated": "de",
+    "Methyl": "me",
+}
+
+# Enzyme definitions for xiSEARCH config format (digestion strings)
+ENZYME_XISEARCH: dict[str, str] = {
+    "Trypsin": "PostAAConstrainedDigestion:DIGESTED:K,R;ConstrainingAminoAcids:P;NAME=Trypsin",
+    "Lys-C": "PostAAConstrainedDigestion:DIGESTED:K;ConstrainingAminoAcids:P;NAME=Lys-C",
+    "Asp-N": "PostAAConstrainedDigestion:DIGESTED:D;ConstrainingAminoAcids:;NAME=Asp-N",
+    "Chymotrypsin": "PostAAConstrainedDigestion:DIGESTED:F,W,Y,L;ConstrainingAminoAcids:P;NAME=Chymotrypsin",
+    "Arg-C": "PostAAConstrainedDigestion:DIGESTED:R;ConstrainingAminoAcids:P;NAME=Arg-C",
+}
+
+# Enzyme definitions for Scout JSON config
+ENZYME_SCOUT: dict[str, dict[str, Any]] = {
+    "Trypsin": {"Name": "Trypsin", "CTerminus": True, "Sites": "KR", "BlockedBy": "P"},
+    "Lys-C": {"Name": "Lys-C", "CTerminus": True, "Sites": "K", "BlockedBy": "P"},
+    "Asp-N": {"Name": "Asp-N", "CTerminus": False, "Sites": "D", "BlockedBy": ""},
+    "Chymotrypsin": {"Name": "Chymotrypsin", "CTerminus": True, "Sites": "FWYL", "BlockedBy": "P"},
+    "Arg-C": {"Name": "Arg-C", "CTerminus": True, "Sites": "R", "BlockedBy": "P"},
+}
+
+# Crosslinkers: mass properties and engine-specific definitions (from YAML)
 CROSSLINKER_DB: dict[str, dict[str, Any]] = _load_yaml("crosslinkers.yaml")
 
 
@@ -108,13 +147,16 @@ class Relink(BaseConverter):
         row = sdrf.iloc[0]
         params: dict[str, Any] = {}
 
-        # Enzymes
+        # Enzymes (normalize names via openms ENZYME_MAPPINGS)
         enzyme_cols = [c for c in sdrf.columns if c.startswith("comment[cleavage agent details]")]
         enzymes = []
         for ec in enzyme_cols:
             parsed = _parse_sdrf_cell(row.get(ec, ""))
             if "NT" in parsed:
-                enzymes.append(parsed["NT"])
+                name = parsed["NT"]
+                # Normalize via openms mapping (e.g. "Lys-c" -> "Lys-C")
+                name = ENZYME_MAPPINGS.get(name.capitalize(), name)
+                enzymes.append(name)
         params["enzymes"] = enzymes if enzymes else ["Trypsin"]
 
         # Modifications
@@ -130,7 +172,7 @@ class Relink(BaseConverter):
             ac = parsed.get("AC", "")
             if not name:
                 continue
-            delta_mass = UNIMOD_MASSES.get(ac, 0.0)
+            delta_mass = _get_unimod_mass(ac) if ac else 0.0
             mod_entry = {"name": name, "site": site, "accession": ac, "delta_mass": delta_mass}
             if mt == "fixed":
                 fixed_mods.append(mod_entry)
