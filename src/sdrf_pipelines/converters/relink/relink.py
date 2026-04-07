@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import re
+from typing import Any
 
 import pandas as pd
 
@@ -147,10 +148,10 @@ class Relink(BaseConverter):
             rows.append(entry)
         return rows
 
-    def _extract_global_params(self, sdrf: pd.DataFrame) -> dict:
+    def _extract_global_params(self, sdrf: pd.DataFrame) -> dict[str, Any]:
         """Extract global search parameters from the SDRF (first row)."""
         row = sdrf.iloc[0]
-        params = {}
+        params: dict[str, Any] = {}
 
         # Enzymes
         enzyme_cols = [c for c in sdrf.columns if c.startswith("comment[cleavage agent details]")]
@@ -407,7 +408,7 @@ class Relink(BaseConverter):
                 "HeavyFragment": cl_info["heavy_fragment"],
                 "WholeTag": "Full",
                 "WholeMass": cl_info["mass"],
-                "DeltaShift": cl_info["heavy_fragment"] - cl_info["light_fragment"],
+                "DeltaShift": float(cl_info["heavy_fragment"]) - float(cl_info["light_fragment"]),
                 "AlphaTargets": cl_info["scout_alpha_targets"],
                 "BetaTargets": cl_info["scout_beta_targets"],
                 "TargetNTerm": cl_info["scout_target_nterm"],
