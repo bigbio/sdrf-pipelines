@@ -15,7 +15,6 @@ from typing import Any
 
 import pandas as pd
 import yaml
-from pyopenms import ModificationsDB
 
 from sdrf_pipelines.converters.base import BaseConverter
 from sdrf_pipelines.converters.openms.constants import ENZYME_MAPPINGS
@@ -29,6 +28,19 @@ _KV_PATTERN = re.compile(r"(\w+)=([^;]+)")
 # Load YAML data files from the same directory as this module
 _DATA_DIR = Path(__file__).parent
 
+# Common UNIMOD masses as fallback when pyopenms is not available
+_UNIMOD_FALLBACK: dict[str, float] = {
+    "4": 57.021464,  # Carbamidomethyl
+    "35": 15.994915,  # Oxidation
+    "1": 42.010565,  # Acetyl
+    "21": 79.966331,  # Phospho
+    "7": 0.984016,  # Deamidated
+    "28": -17.026549,  # Glu->pyro-Glu
+    "27": -18.010565,  # Dehydrated
+    "34": 14.015650,  # Methyl
+    "36": 28.031300,  # Dimethyl
+}
+
 
 def _load_yaml(filename: str) -> dict[str, Any]:
     """Load a YAML data file from the relink converter package directory."""
@@ -37,7 +49,7 @@ def _load_yaml(filename: str) -> dict[str, Any]:
 
 
 def _get_unimod_mass(accession: str) -> float:
-    """Look up a UNIMOD modification mass using pyopenms.
+    """Look up a UNIMOD modification mass, using pyopenms if available.
 
     Args:
         accession: UNIMOD accession (e.g. "UNIMOD:4" or "UniMod:4")
@@ -45,11 +57,18 @@ def _get_unimod_mass(accession: str) -> float:
     Returns:
         Monoisotopic delta mass, or 0.0 if not found.
     """
+    acc_num = accession.split(":")[-1]
     try:
-        # Normalize to pyopenms format (UniMod:N)
-        acc_num = accession.split(":")[-1]
+        from pyopenms import ModificationsDB
+
         mod = ModificationsDB().getModification(f"UniMod:{acc_num}")
         return mod.getDiffMonoMass()
+    except ImportError:
+        mass = _UNIMOD_FALLBACK.get(acc_num)
+        if mass is not None:
+            return mass
+        logger.warning(f"pyopenms not available and no fallback mass for {accession}")
+        return 0.0
     except Exception:
         logger.warning(f"Could not find UNIMOD mass for {accession}")
         return 0.0
