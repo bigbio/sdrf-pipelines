@@ -9,7 +9,6 @@ Converts SDRF files to relink pipeline configuration:
 
 import json
 import logging
-import os
 import re
 from typing import Any
 
@@ -25,15 +24,15 @@ _KV_PATTERN = re.compile(r"(\w+)=([^;]+)")
 
 # UNIMOD accession to delta mass mapping (common modifications)
 UNIMOD_MASSES = {
-    "UNIMOD:4": 57.021464,     # Carbamidomethyl
+    "UNIMOD:4": 57.021464,  # Carbamidomethyl
     "UNIMOD:35": 15.99491463,  # Oxidation
-    "UNIMOD:1": 42.010565,     # Acetyl
-    "UNIMOD:21": 79.966331,    # Phospho
-    "UNIMOD:7": 0.984016,      # Deamidated
-    "UNIMOD:28": -17.026549,   # Glu->pyro-Glu
-    "UNIMOD:27": -18.010565,   # Dehydrated
-    "UNIMOD:34": 14.015650,    # Methyl
-    "UNIMOD:36": 28.031300,    # Dimethyl
+    "UNIMOD:1": 42.010565,  # Acetyl
+    "UNIMOD:21": 79.966331,  # Phospho
+    "UNIMOD:7": 0.984016,  # Deamidated
+    "UNIMOD:28": -17.026549,  # Glu->pyro-Glu
+    "UNIMOD:27": -18.010565,  # Dehydrated
+    "UNIMOD:34": 14.015650,  # Methyl
+    "UNIMOD:36": 28.031300,  # Dimethyl
 }
 
 # Modification name to symbol extension for xiSEARCH
@@ -375,28 +374,32 @@ class Relink(BaseConverter):
         # Build static modifications
         static_mods = []
         for i, mod in enumerate(params["fixed_modifications"]):
-            static_mods.append({
-                "MassShift": mod["delta_mass"],
-                "Name": mod["name"],
-                "IsCTerm": False,
-                "IsNTerm": False,
-                "IsVariable": False,
-                "TargetResidues": mod["site"],
-                "ModIndex": i + 1,
-            })
+            static_mods.append(
+                {
+                    "MassShift": mod["delta_mass"],
+                    "Name": mod["name"],
+                    "IsCTerm": False,
+                    "IsNTerm": False,
+                    "IsVariable": False,
+                    "TargetResidues": mod["site"],
+                    "ModIndex": i + 1,
+                }
+            )
 
         # Build variable modifications
         variable_mods = []
         for i, mod in enumerate(params["variable_modifications"]):
-            variable_mods.append({
-                "MassShift": mod["delta_mass"],
-                "Name": mod["name"],
-                "IsCTerm": False,
-                "IsNTerm": False,
-                "IsVariable": True,
-                "TargetResidues": mod["site"],
-                "ModIndex": len(static_mods) + i + 1,
-            })
+            variable_mods.append(
+                {
+                    "MassShift": mod["delta_mass"],
+                    "Name": mod["name"],
+                    "IsCTerm": False,
+                    "IsNTerm": False,
+                    "IsVariable": True,
+                    "TargetResidues": mod["site"],
+                    "ModIndex": len(static_mods) + i + 1,
+                }
+            )
 
         # Build crosslinker reagent
         if cl_info:
