@@ -102,6 +102,9 @@ ENZYME_SCOUT: dict[str, dict[str, Any]] = {
     "Arg-C": {"Name": "Arg-C", "CTerminus": True, "Sites": "R", "BlockedBy": "P"},
 }
 
+# Case-insensitive enzyme name lookup (handles "LYS-C", "lys-c", etc.)
+_ENZYME_MAPPINGS_LOWER: dict[str, str] = {k.lower(): v for k, v in ENZYME_MAPPINGS.items()}
+
 # Crosslinkers: mass properties and engine-specific definitions (from YAML)
 CROSSLINKER_DB: dict[str, dict[str, Any]] = _load_yaml("crosslinkers.yaml")
 
@@ -173,8 +176,9 @@ class Relink(BaseConverter):
             parsed = _parse_sdrf_cell(row.get(ec, ""))
             if "NT" in parsed:
                 name = parsed["NT"]
-                # Normalize via openms mapping (e.g. "Lys-c" -> "Lys-C")
-                name = ENZYME_MAPPINGS.get(name.capitalize(), name)
+                # Normalize via openms mapping (case-insensitive)
+                name_key = name.strip().lower()
+                name = _ENZYME_MAPPINGS_LOWER.get(name_key, name)
                 enzymes.append(name)
         params["enzymes"] = enzymes if enzymes else ["Trypsin"]
 
