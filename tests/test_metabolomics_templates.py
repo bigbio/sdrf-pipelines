@@ -32,8 +32,7 @@ CASES = [
 def _load_sdrf(path: Path) -> pd.DataFrame:
     """Load an SDRF TSV and strip pandas '.N' duplicate-column suffixes."""
     df = pd.read_csv(path, sep="\t", dtype=str)
-    df.columns = [re.sub(r"\]\.\d+$", "]", c) for c in df.columns]
-    return df
+    return df.rename(columns=lambda c: re.sub(r"\]\.\d+$", "]", c))
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +46,11 @@ def test_metabolomics_example_validates(filename: str, schema_name: str, validat
     df = _load_sdrf(path)
 
     errors = validator.validate(df, schema_name, skip_ontology=True)
-    blocking = [e for e in errors if getattr(e, "error_type", logging.ERROR) == logging.ERROR]
+    blocking = [
+        e
+        for e in errors
+        if (error_type := getattr(e, "error_type", None)) is None or error_type >= logging.ERROR
+    ]
 
     assert not blocking, f"{filename} produced {len(blocking)} blocking errors against {schema_name}: " + "; ".join(
         str(e)[:150] for e in blocking[:5]
