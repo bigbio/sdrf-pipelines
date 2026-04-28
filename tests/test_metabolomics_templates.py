@@ -47,9 +47,7 @@ def test_metabolomics_example_validates(filename: str, schema_name: str, validat
 
     errors = validator.validate(df, schema_name, skip_ontology=True)
     blocking = [
-        e
-        for e in errors
-        if (error_type := getattr(e, "error_type", None)) is None or error_type >= logging.ERROR
+        e for e in errors if (error_type := getattr(e, "error_type", None)) is None or error_type >= logging.ERROR
     ]
 
     assert not blocking, f"{filename} produced {len(blocking)} blocking errors against {schema_name}: " + "; ".join(
