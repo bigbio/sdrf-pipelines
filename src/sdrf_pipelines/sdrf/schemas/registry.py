@@ -149,9 +149,22 @@ class SchemaRegistry:
         """Load a schema file and return the raw data."""
         with open(schema_path, encoding="utf-8") as f:
             if schema_path.endswith(".json"):
-                return json.load(f)
+                data = json.load(f)
             else:
-                return yaml.safe_load(f)
+                data = yaml.safe_load(f)
+        self._normalize_validator_params(data)
+        return data
+
+    def _normalize_validator_params(self, obj: Any) -> None:
+        """Normalize validators with null params to use an empty dict."""
+        if isinstance(obj, dict):
+            if "validator_name" in obj and obj.get("params") is None:
+                obj["params"] = {}
+            for value in obj.values():
+                self._normalize_validator_params(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                self._normalize_validator_params(item)
 
     def _load_manifest(self) -> dict[str, Any]:
         """Load the templates.yaml manifest file."""
