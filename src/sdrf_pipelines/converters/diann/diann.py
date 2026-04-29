@@ -624,7 +624,8 @@ class DiaNN(BaseConverter):
             mod_name = PLEXDIA_REGISTRY[plex_info["type"]]["fixed_mod"]["name"]
 
             # Note that: According to DIA-NN:
-            # --lib-fixed-mod is no longer necessary as the library generated in Step 1 already contains (mTRAQ) at the N-terminus and lysines of each peptide.
+            # --lib-fixed-mod is no longer necessary as the library generated in Step 1
+            # already contains (mTRAQ) at the N-terminus and lysines of each peptide.
             if mod_name != "mTRAQ":
                 parts.append(f"--lib-fixed-mod {mod_name}")
             parts.append("--original-mods")
