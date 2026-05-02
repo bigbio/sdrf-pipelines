@@ -622,7 +622,12 @@ class DiaNN(BaseConverter):
             from sdrf_pipelines.converters.diann.constants import PLEXDIA_REGISTRY
 
             mod_name = PLEXDIA_REGISTRY[plex_info["type"]]["fixed_mod"]["name"]
-            parts.append(f"--lib-fixed-mod {mod_name}")
+
+            # Note that: According to DIA-NN:
+            # --lib-fixed-mod is no longer necessary as the library generated in Step 1
+            # already contains (mTRAQ) at the N-terminus and lysines of each peptide.
+            if mod_name != "mTRAQ":
+                parts.append(f"--lib-fixed-mod {mod_name}")
             parts.append("--original-mods")
 
         # Global mass accuracy tolerances (max across all runs for in-silico library generation)
