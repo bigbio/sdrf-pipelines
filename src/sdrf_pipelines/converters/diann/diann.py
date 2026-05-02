@@ -155,6 +155,7 @@ class DiaNN(BaseConverter):
             raw = str(row.get("comment[data file]", "")).strip()
             if not raw:
                 continue
+            is_wiff = raw.lower().endswith(".wiff")
 
             if raw not in file_data:
                 file_data[raw] = {
@@ -171,6 +172,8 @@ class DiaNN(BaseConverter):
                     "ms2_min_mz": None,
                     "ms2_max_mz": None,
                     "uri": "",
+                    "associated_uri": "",
+                    "is_wiff": is_wiff,
                 }
 
             fd = file_data[raw]
@@ -215,6 +218,10 @@ class DiaNN(BaseConverter):
                 uri_col = "comment[file uri]" if "comment[file uri]" in row.index else None
                 if uri_col:
                     fd["uri"] = str(row[uri_col]).strip()
+
+            # associated file URI
+            if is_wiff:
+                self._validate_wiff_associated_uri(row, raw, fd)
 
         return file_data
 
@@ -703,6 +710,8 @@ class DiaNN(BaseConverter):
         return {
             "Filename": filename,
             "URI": fd.get("uri", ""),
+            "Associated_URI": fd.get("associated_uri", ""),
+            "IsWiff": str(fd.get("is_wiff", False)).lower(),
             "Sample": design["sample"] if design else "",
             "FractionGroup": design["fraction_group"] if design else "",
             "Fraction": design["fraction"] if design else 1,
@@ -724,3 +733,17 @@ class DiaNN(BaseConverter):
             "MS2MinMz": fd.get("ms2_min_mz") if fd.get("ms2_min_mz") is not None else "",
             "MS2MaxMz": fd.get("ms2_max_mz") if fd.get("ms2_max_mz") is not None else "",
         }
+
+    def _validate_wiff_associated_uri(self, row, raw, fd):
+        """Helper method to extract and validate wiff.scan URI."""
+        if fd["associated_uri"]:
+            return
+
+        associated_uri_col = "comment[associated file uri]" if "comment[associated file uri]" in row.index else None
+        if associated_uri_col:
+            fd["associated_uri"] = str(row[associated_uri_col]).strip()
+        else:
+            raise ValueError(
+                f"SDRF Parsing Error: The file {raw} is a .wiff file, "
+                f"but no 'comment[associated file uri]' was found in the SDRF."
+            )
