@@ -221,7 +221,9 @@ class DiaNN(BaseConverter):
 
             # associated file URI
             if is_wiff and not fd["associated_uri"]:
-                associated_uri_col = "comment[associated file uri]" if "comment[associated file uri]" in row.index else None
+                associated_uri_col = (
+                    "comment[associated file uri]" if "comment[associated file uri]" in row.index else None
+                )
                 if associated_uri_col:
                     fd["associated_uri"] = str(row[associated_uri_col]).strip()
                 else:
