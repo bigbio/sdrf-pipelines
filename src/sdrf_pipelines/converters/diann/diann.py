@@ -735,7 +735,7 @@ class DiaNN(BaseConverter):
         }
 
     def _validate_wiff_associated_uri(self, row, raw, fd):
-        """Helper method to extract and validate wiff.scan URI"""
+        """Helper method to extract and validate wiff.scan URI."""
         if fd["associated_uri"]:
             return
 
