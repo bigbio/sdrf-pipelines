@@ -220,17 +220,8 @@ class DiaNN(BaseConverter):
                     fd["uri"] = str(row[uri_col]).strip()
 
             # associated file URI
-            if is_wiff and not fd["associated_uri"]:
-                associated_uri_col = (
-                    "comment[associated file uri]" if "comment[associated file uri]" in row.index else None
-                )
-                if associated_uri_col:
-                    fd["associated_uri"] = str(row[associated_uri_col]).strip()
-                else:
-                    raise ValueError(
-                        f"SDRF Parsing Error: The file {raw} is a .wiff file, "
-                        f"but no 'comment[associated file uri]' was found in the SDRF."
-                    )
+            if is_wiff:
+                self._validate_wiff_associated_uri(row, raw, fd)
 
         return file_data
 
@@ -742,3 +733,17 @@ class DiaNN(BaseConverter):
             "MS2MinMz": fd.get("ms2_min_mz") if fd.get("ms2_min_mz") is not None else "",
             "MS2MaxMz": fd.get("ms2_max_mz") if fd.get("ms2_max_mz") is not None else "",
         }
+
+    def _validate_wiff_associated_uri(self, row, raw, fd):
+        """Helper method to extract and validate wiff.scan URI"""
+        if fd["associated_uri"]:
+            return
+
+        associated_uri_col = "comment[associated file uri]" if "comment[associated file uri]" in row.index else None
+        if associated_uri_col:
+            fd["associated_uri"] = str(row[associated_uri_col]).strip()
+        else:
+            raise ValueError(
+                f"SDRF Parsing Error: The file {raw} is a .wiff file, "
+                f"but no 'comment[associated file uri]' was found in the SDRF."
+            )
