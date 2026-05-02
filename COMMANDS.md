@@ -25,6 +25,7 @@ Commands:
   convert-msstats       convert sdrf to msstats annotation file
   convert-normalyzerde  convert sdrf to NormalyzerDE design file
   convert-openms        convert sdrf to openms file output
+  convert-relink        convert sdrf to relink XL-MS pipeline config
   download-cache        Download ontology cache files from GitHub
   list-templates        List all available SDRF templates with their versions
   split-sdrf            Command to split the sdrf file

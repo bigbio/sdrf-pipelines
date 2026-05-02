@@ -19,6 +19,7 @@ from sdrf_pipelines.converters.mhcquant.mhcquant import MHCquant
 from sdrf_pipelines.converters.msstats.msstats import Msstats
 from sdrf_pipelines.converters.normalyzerde.normalyzerde import NormalyzerDE
 from sdrf_pipelines.converters.openms.openms import OpenMS
+from sdrf_pipelines.converters.relink.relink import Relink
 from sdrf_pipelines.ols.ols import (
     OLS_AVAILABLE,
     ONTOLOGY_FILES,
@@ -745,6 +746,23 @@ cli.add_command(mhcquant_from_sdrf)
 cli.add_command(download_cache)
 cli.add_command(validate_sdrf_simple)
 cli.add_command(list_templates)
+
+
+@click.command("convert-relink", short_help="convert sdrf to relink XL-MS pipeline config")
+@click.option("--sdrf", "-s", help="SDRF file", required=True)
+@click.option(
+    "--engine",
+    "-e",
+    help="Search engine to generate configs for",
+    type=click.Choice(["xisearch", "scout"]),
+    default="xisearch",
+)
+@click.pass_context
+def relink_from_sdrf(ctx, sdrf, engine):
+    Relink().relink_convert(sdrf, engine=engine)
+
+
+cli.add_command(relink_from_sdrf)
 
 
 def main():

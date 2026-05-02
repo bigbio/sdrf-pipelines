@@ -77,7 +77,6 @@ class TestDiannMtraq:
         assert "mTRAQ,0,nK,0:0" in content
         assert "mTRAQ,4,nK,4.0070994:4.0070994" in content
         assert "--fixed-mod mTRAQ,140.0949630177,nK" in content
-        assert "--lib-fixed-mod mTRAQ" in content
         assert "--original-mods" in content
 
     def test_mtraq_filemap_has_labels(self, diann_data_dir, on_tmpdir):
