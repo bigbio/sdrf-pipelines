@@ -686,9 +686,7 @@ class DiaNN(BaseConverter):
             combined = self._combine_cut_rules(enzymes)
             if combined:
                 parts.append(f"--cut {combined}")
-                self.add_warning(
-                    f"Combined {len(enzymes)} cleavage agents {list(enzymes)} into --cut {combined}"
-                )
+                self.add_warning(f"Combined {len(enzymes)} cleavage agents {list(enzymes)} into --cut {combined}")
             else:
                 self.add_warning(f"All enzymes {list(enzymes)} unknown, no --cut rule generated")
 
