@@ -139,6 +139,17 @@ class DiaNN(BaseConverter):
 
         self.report_warnings()
 
+    @staticmethod
+    def _find_enzyme_columns(sdrf: pd.DataFrame) -> list[str]:
+        """Return all `comment[cleavage agent details]` columns, including
+        pandas-renamed duplicates (e.g. `…].1`, `…].2`).
+        """
+        return [
+            c
+            for c in sdrf.columns
+            if c == "comment[cleavage agent details]" or c.startswith("comment[cleavage agent details].")
+        ]
+
     def _extract_file_data(self, sdrf: pd.DataFrame) -> dict:
         """Extract per-file metadata from SDRF rows.
 
