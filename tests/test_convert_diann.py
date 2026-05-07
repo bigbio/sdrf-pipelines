@@ -442,3 +442,15 @@ class TestDiannMultiEnzyme:
         converter = DiaNN()
         with pytest.raises(ValueError, match="Inconsistent enzyme sets"):
             converter.diann_convert(sdrf_file)
+
+    def test_same_enzyme_twice_dedups(self, diann_data_dir, on_tmpdir):
+        """Two columns declaring Trypsin must collapse to a single-enzyme run."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_same.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Trypsin")
