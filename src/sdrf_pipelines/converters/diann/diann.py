@@ -141,8 +141,9 @@ class DiaNN(BaseConverter):
 
     @staticmethod
     def _find_enzyme_columns(sdrf: pd.DataFrame) -> list[str]:
-        """Return all `comment[cleavage agent details]` columns, including
-        pandas-renamed duplicates (e.g. `…].1`, `…].2`).
+        """Return all `comment[cleavage agent details]` columns.
+
+        Includes pandas-renamed duplicates (e.g. `…].1`, `…].2`).
         """
         return [
             c
