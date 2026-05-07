@@ -421,3 +421,17 @@ class TestDiannMultiEnzyme:
 
         df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         assert all(df["Enzyme"] == "Lys-C+Trypsin/P")
+
+    def test_unknown_enzyme_warns_and_proceeds(self, diann_data_dir, on_tmpdir):
+        """Unknown enzyme alongside a known one: warn, drop unknown, keep going."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_unknown.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        assert any("BogusProtease" in msg for msg in converter.warnings)
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "BogusProtease+Trypsin")
