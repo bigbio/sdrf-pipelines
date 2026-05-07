@@ -435,3 +435,10 @@ class TestDiannMultiEnzyme:
 
         df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         assert all(df["Enzyme"] == "BogusProtease+Trypsin")
+
+    def test_inconsistent_enzyme_sets_raises(self, diann_data_dir, on_tmpdir):
+        """Different enzyme tuples per file must raise ValueError."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_inconsistent.sdrf.tsv")
+        converter = DiaNN()
+        with pytest.raises(ValueError, match="Inconsistent enzyme sets"):
+            converter.diann_convert(sdrf_file)
