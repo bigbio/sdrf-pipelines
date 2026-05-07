@@ -798,7 +798,7 @@ class DiaNN(BaseConverter):
             "DissociationMethod": design["dissociation_method"] if design else "",
             "Condition": design["condition"] if design else "",
             "BioReplicate": design["bioreplicate"] if design else "",
-            "Enzyme": fd["enzyme"],
+            "Enzyme": "+".join(fd["enzyme"]),
             "FixedModifications": ";".join(fd["fixed_mods"]),
             "VariableModifications": ";".join(fd["var_mods"]),
             "PrecursorMassTolerance": fd["precursor_tol"] or "",
