@@ -408,3 +408,16 @@ class TestDiannMultiEnzyme:
 
         df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         assert all(df["Enzyme"] == "Lys-C+Trypsin")
+
+    def test_lys_c_trypsin_p_drops_negation(self, diann_data_dir, on_tmpdir):
+        """Trypsin/P has no !*P; intersection must drop the negation."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_lys_c_trypsin_p.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        cut_section = config.split("--cut ", 1)[1].split(" --", 1)[0]
+        assert cut_section == "K*,R*"
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Lys-C+Trypsin/P")
