@@ -141,8 +141,7 @@ class DiaNN(BaseConverter):
 
     @staticmethod
     def _find_enzyme_columns(sdrf: pd.DataFrame) -> list[str]:
-        """
-        Return all `comment[cleavage agent details]` columns.
+        """Return all `comment[cleavage agent details]` columns.
 
         Includes pandas-renamed duplicates (e.g. `…].1`, `…].2`).
         """
@@ -348,8 +347,7 @@ class DiaNN(BaseConverter):
         return label_str
 
     def _extract_enzymes(self, row: pd.Series, enzyme_cols: list[str]) -> tuple[str, ...]:
-        """
-        Extract all declared enzymes for a row, in column order, deduplicated.
+        """Extract all declared enzymes for a row, in column order, deduplicated.
 
         Skips empty / "not available" cells. Normalizes via ENZYME_NAME_MAPPINGS.
         Returns a tuple of normalized enzyme names. Raises ValueError if no
@@ -611,8 +609,7 @@ class DiaNN(BaseConverter):
         return unimod_ids
 
     def _combine_cut_rules(self, enzymes: tuple[str, ...]) -> str | None:
-        """
-        Combine DIA-NN --cut rules across multiple enzymes.
+        """Combine DIA-NN --cut rules across multiple enzymes.
 
         - Positives (cleavage tokens) are unioned across enzymes (first-seen order).
         - Negations (e.g. !*P) are intersected: a "do not cleave" constraint
