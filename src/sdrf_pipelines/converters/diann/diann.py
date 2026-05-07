@@ -607,6 +607,59 @@ class DiaNN(BaseConverter):
                 )
         return unimod_ids
 
+    def _combine_cut_rules(self, enzymes: tuple[str, ...]) -> str | None:
+        """Combine DIA-NN --cut rules across multiple enzymes.
+
+        - Positives (cleavage tokens) are unioned across enzymes (first-seen order).
+        - Negations (e.g. !*P) are intersected: a "do not cleave" constraint
+          only survives if EVERY contributing enzyme imposes it. This makes
+          /P variants (which lack !*P) correctly relax the proline restriction.
+        - Unknown enzymes (not in ENZYME_SPECIFICITY) are warned about and
+          skipped. Returns None if every enzyme is unknown.
+        """
+        rules: list[str] = []
+        unknown: list[str] = []
+        for e in enzymes:
+            rule = ENZYME_SPECIFICITY.get(e)
+            if rule is None:
+                unknown.append(e)
+            else:
+                rules.append(rule)
+
+        if unknown and rules:
+            known = [e for e in enzymes if e not in unknown]
+            self.add_warning(
+                f"Unknown enzyme(s) {unknown} in multi-enzyme SDRF — no --cut rule "
+                f"available for them. Proceeding with known enzymes only: {known}."
+            )
+
+        if not rules:
+            return None
+
+        positive_lists: list[list[str]] = []
+        negative_sets: list[set[str]] = []
+        for rule in rules:
+            positives: list[str] = []
+            negatives: set[str] = set()
+            for tok in (t.strip() for t in rule.split(",")):
+                if not tok:
+                    continue
+                if tok.startswith("!"):
+                    negatives.add(tok)
+                elif tok not in positives:
+                    positives.append(tok)
+            positive_lists.append(positives)
+            negative_sets.append(negatives)
+
+        merged_positives: list[str] = []
+        for pos in positive_lists:
+            for tok in pos:
+                if tok not in merged_positives:
+                    merged_positives.append(tok)
+
+        merged_negatives = set.intersection(*negative_sets) if negative_sets else set()
+        return ",".join(merged_positives + sorted(merged_negatives))
+
     def _write_config(
         self,
         enzymes: tuple[str, ...],
@@ -620,12 +673,24 @@ class DiaNN(BaseConverter):
         """Write diann_config.cfg."""
         parts = []
 
-        # Enzyme cut rule
-        cut_rule = ENZYME_SPECIFICITY.get(enzyme)
-        if cut_rule:
-            parts.append(f"--cut {cut_rule}")
+        # Enzyme cut rule. Single-enzyme path preserves the existing
+        # "Unknown enzyme" warning; multi-enzyme path delegates to combiner.
+        if len(enzymes) == 1:
+            single = enzymes[0]
+            cut_rule = ENZYME_SPECIFICITY.get(single)
+            if cut_rule:
+                parts.append(f"--cut {cut_rule}")
+            else:
+                self.add_warning(f"Unknown enzyme '{single}', no --cut rule generated")
         else:
-            self.add_warning(f"Unknown enzyme '{enzyme}', no --cut rule generated")
+            combined = self._combine_cut_rules(enzymes)
+            if combined:
+                parts.append(f"--cut {combined}")
+                self.add_warning(
+                    f"Combined {len(enzymes)} cleavage agents {list(enzymes)} into --cut {combined}"
+                )
+            else:
+                self.add_warning(f"All enzymes {list(enzymes)} unknown, no --cut rule generated")
 
         # Standard fixed modifications
         for mod in fixed_mods:
