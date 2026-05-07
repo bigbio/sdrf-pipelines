@@ -395,3 +395,16 @@ class TestDiannScanRangeValidation:
     def test_inverted_scan_range_raises_error(self, diann_data_dir, on_tmpdir):
         with pytest.raises(ValueError, match="[Ii]nverted|[Mm]in.*greater.*max"):
             DiaNN().diann_convert(str(diann_data_dir / "scan_range_inverted.sdrf.tsv"))
+
+
+class TestDiannMultiEnzyme:
+    def test_lys_c_trypsin_combined_cut_rule(self, diann_data_dir, on_tmpdir):
+        sdrf_file = str(diann_data_dir / "multi_enzyme_lys_c_trypsin.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Lys-C+Trypsin")
