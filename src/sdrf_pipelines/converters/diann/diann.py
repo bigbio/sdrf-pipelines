@@ -79,11 +79,11 @@ class DiaNN(BaseConverter):
             all_labels.update(fd["labels"])
         plex_info = detect_plexdia_type(all_labels)
 
-        # Get enzyme (must be consistent across experiment)
-        enzymes = {fd["enzyme"] for fd in file_data.values()}
-        if len(enzymes) > 1:
-            raise ValueError(f"Multiple enzymes not supported: {enzymes}")
-        enzyme = enzymes.pop()
+        # Enzyme set (tuple of normalized names) must be consistent across files.
+        enzyme_sets = {fd["enzyme"] for fd in file_data.values()}
+        if len(enzyme_sets) > 1:
+            raise ValueError(f"Inconsistent enzyme sets across files: {enzyme_sets}")
+        enzymes = enzyme_sets.pop()  # tuple[str, ...]
 
         # Get modifications (must be consistent across experiment)
         fixed_mods_set = {tuple(fd["fixed_mods"]) for fd in file_data.values()}
@@ -131,13 +131,25 @@ class DiaNN(BaseConverter):
 
         # Write config file
         self._write_config(
-            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
+            enzymes, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
         )
 
         # Write filemap
         self._write_filemap(file_data, plex_info, design_rows)
 
         self.report_warnings()
+
+    @staticmethod
+    def _find_enzyme_columns(sdrf: pd.DataFrame) -> list[str]:
+        """Return all `comment[cleavage agent details]` columns.
+
+        Includes pandas-renamed duplicates (e.g. `…].1`, `…].2`).
+        """
+        return [
+            c
+            for c in sdrf.columns
+            if c == "comment[cleavage agent details]" or c.startswith("comment[cleavage agent details].")
+        ]
 
     def _extract_file_data(self, sdrf: pd.DataFrame) -> dict:
         """Extract per-file metadata from SDRF rows.
@@ -150,6 +162,9 @@ class DiaNN(BaseConverter):
 
         # Find modification columns
         mod_cols = [c for c in sdrf.columns if c.startswith("comment[modification parameters")]
+
+        # Find enzyme columns (handles pandas-renamed duplicates).
+        enzyme_cols = self._find_enzyme_columns(sdrf)
 
         for _, row in sdrf.iterrows():
             raw = str(row.get("comment[data file]", "")).strip()
@@ -183,9 +198,10 @@ class DiaNN(BaseConverter):
             if label and label not in fd["labels"]:
                 fd["labels"].append(label)
 
-            # Enzyme (first row wins)
+            # Enzymes (first row wins). May be a tuple of multiple enzymes
+            # when the SDRF declares more than one cleavage-agent column.
             if fd["enzyme"] is None:
-                fd["enzyme"] = self._extract_enzyme(row)
+                fd["enzyme"] = self._extract_enzymes(row, enzyme_cols)
 
             # Modifications (first row wins)
             if not fd["fixed_mods"] and not fd["var_mods"]:
@@ -337,21 +353,32 @@ class DiaNN(BaseConverter):
 
         return label_str
 
-    def _extract_enzyme(self, row: pd.Series) -> str:
-        """Extract enzyme from comment[cleavage agent details]."""
-        if "comment[cleavage agent details]" not in row.index:
+    def _extract_enzymes(self, row: pd.Series, enzyme_cols: list[str]) -> tuple[str, ...]:
+        """Extract all declared enzymes for a row, in column order, deduplicated.
+
+        Skips empty / "not available" cells. Normalizes via ENZYME_NAME_MAPPINGS.
+        Returns a tuple of normalized enzyme names. Raises ValueError if no
+        cleavage agent column is provided, or if every cell is empty (preserves
+        the prior single-column strictness).
+        """
+        if not enzyme_cols:
             raise ValueError("Missing comment[cleavage agent details] column")
 
-        enzyme_str = str(row["comment[cleavage agent details]"]).strip()
-        nt_match = re.search(r"NT=(.+?)(;|$)", enzyme_str)
-        if nt_match:
-            enzyme_name = nt_match.group(1).strip()
-        else:
-            enzyme_name = enzyme_str
+        names: list[str] = []
+        for col in enzyme_cols:
+            raw_val = str(row.get(col, "")).strip()
+            if not raw_val or raw_val.lower() in ("nan", "not available"):
+                continue
+            nt_match = re.search(r"NT=(.+?)(;|$)", raw_val)
+            enzyme_name = nt_match.group(1).strip() if nt_match else raw_val
+            normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
+            if normalized not in names:
+                names.append(normalized)
 
-        # Normalize
-        normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
-        return normalized
+        if not names:
+            raise ValueError("Row has no usable cleavage agent value")
+
+        return tuple(names)
 
     def _extract_modifications(self, row: pd.Series, mod_cols: list[str]) -> tuple[list, list]:
         """Extract fixed and variable modifications from SDRF row."""
@@ -588,9 +615,62 @@ class DiaNN(BaseConverter):
                 )
         return unimod_ids
 
+    def _combine_cut_rules(self, enzymes: tuple[str, ...]) -> str | None:
+        """Combine DIA-NN --cut rules across multiple enzymes.
+
+        - Positives (cleavage tokens) are unioned across enzymes (first-seen order).
+        - Negations (e.g. !*P) are intersected: a "do not cleave" constraint
+          only survives if EVERY contributing enzyme imposes it. This makes
+          /P variants (which lack !*P) correctly relax the proline restriction.
+        - Unknown enzymes (not in ENZYME_SPECIFICITY) are warned about and
+          skipped. Returns None if every enzyme is unknown.
+        """
+        rules: list[str] = []
+        unknown: list[str] = []
+        for e in enzymes:
+            rule = ENZYME_SPECIFICITY.get(e)
+            if rule is None:
+                unknown.append(e)
+            else:
+                rules.append(rule)
+
+        if unknown and rules:
+            known = [e for e in enzymes if e not in unknown]
+            self.add_warning(
+                f"Unknown enzyme(s) {unknown} in multi-enzyme SDRF — no --cut rule "
+                f"available for them. Proceeding with known enzymes only: {known}."
+            )
+
+        if not rules:
+            return None
+
+        positive_lists: list[list[str]] = []
+        negative_sets: list[set[str]] = []
+        for rule in rules:
+            positives: list[str] = []
+            negatives: set[str] = set()
+            for tok in (t.strip() for t in rule.split(",")):
+                if not tok:
+                    continue
+                if tok.startswith("!"):
+                    negatives.add(tok)
+                elif tok not in positives:
+                    positives.append(tok)
+            positive_lists.append(positives)
+            negative_sets.append(negatives)
+
+        merged_positives: list[str] = []
+        for pos in positive_lists:
+            for tok in pos:
+                if tok not in merged_positives:
+                    merged_positives.append(tok)
+
+        merged_negatives = set.intersection(*negative_sets) if negative_sets else set()
+        return ",".join(merged_positives + sorted(merged_negatives))
+
     def _write_config(
         self,
-        enzyme: str,
+        enzymes: tuple[str, ...],
         fixed_mods: list[str],
         var_mods: list[str],
         plex_info: dict | None,
@@ -601,12 +681,22 @@ class DiaNN(BaseConverter):
         """Write diann_config.cfg."""
         parts = []
 
-        # Enzyme cut rule
-        cut_rule = ENZYME_SPECIFICITY.get(enzyme)
-        if cut_rule:
-            parts.append(f"--cut {cut_rule}")
+        # Enzyme cut rule. Single-enzyme path preserves the existing
+        # "Unknown enzyme" warning; multi-enzyme path delegates to combiner.
+        if len(enzymes) == 1:
+            single = enzymes[0]
+            cut_rule = ENZYME_SPECIFICITY.get(single)
+            if cut_rule:
+                parts.append(f"--cut {cut_rule}")
+            else:
+                self.add_warning(f"Unknown enzyme '{single}', no --cut rule generated")
         else:
-            self.add_warning(f"Unknown enzyme '{enzyme}', no --cut rule generated")
+            combined = self._combine_cut_rules(enzymes)
+            if combined:
+                parts.append(f"--cut {combined}")
+                self.add_warning(f"Combined {len(enzymes)} cleavage agents {list(enzymes)} into --cut {combined}")
+            else:
+                self.add_warning(f"All enzymes {list(enzymes)} unknown, no --cut rule generated")
 
         # Standard fixed modifications
         for mod in fixed_mods:
@@ -721,7 +811,7 @@ class DiaNN(BaseConverter):
             "DissociationMethod": design["dissociation_method"] if design else "",
             "Condition": design["condition"] if design else "",
             "BioReplicate": design["bioreplicate"] if design else "",
-            "Enzyme": fd["enzyme"],
+            "Enzyme": "+".join(fd["enzyme"]),
             "FixedModifications": ";".join(fd["fixed_mods"]),
             "VariableModifications": ";".join(fd["var_mods"]),
             "PrecursorMassTolerance": fd["precursor_tol"] or "",
