@@ -79,11 +79,11 @@ class DiaNN(BaseConverter):
             all_labels.update(fd["labels"])
         plex_info = detect_plexdia_type(all_labels)
 
-        # Get enzyme (must be consistent across experiment)
-        enzymes = {fd["enzyme"] for fd in file_data.values()}
-        if len(enzymes) > 1:
-            raise ValueError(f"Multiple enzymes not supported: {enzymes}")
-        enzyme = enzymes.pop()
+        # Enzyme set (tuple of normalized names) must be consistent across files.
+        enzyme_sets = {fd["enzyme"] for fd in file_data.values()}
+        if len(enzyme_sets) > 1:
+            raise ValueError(f"Inconsistent enzyme sets across files: {enzyme_sets}")
+        enzymes = enzyme_sets.pop()  # tuple[str, ...]
 
         # Get modifications (must be consistent across experiment)
         fixed_mods_set = {tuple(fd["fixed_mods"]) for fd in file_data.values()}
@@ -131,7 +131,7 @@ class DiaNN(BaseConverter):
 
         # Write config file
         self._write_config(
-            enzyme, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
+            enzymes, diann_fixed, diann_var, plex_info, tolerance_summary, scan_range_summary, monitor_mods
         )
 
         # Write filemap
@@ -609,7 +609,7 @@ class DiaNN(BaseConverter):
 
     def _write_config(
         self,
-        enzyme: str,
+        enzymes: tuple[str, ...],
         fixed_mods: list[str],
         var_mods: list[str],
         plex_info: dict | None,
