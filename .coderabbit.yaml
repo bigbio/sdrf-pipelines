@@ -1,4 +1,7 @@
 reviews:
-  tools:
-    pydocstyle:
+  pre_merge_checks:
+    docstrings:
+      mode: off
+  finishing_touches:
+    docstrings:
       enabled: false
