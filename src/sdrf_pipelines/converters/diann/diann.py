@@ -341,21 +341,32 @@ class DiaNN(BaseConverter):
 
         return label_str
 
-    def _extract_enzyme(self, row: pd.Series) -> str:
-        """Extract enzyme from comment[cleavage agent details]."""
-        if "comment[cleavage agent details]" not in row.index:
+    def _extract_enzymes(self, row: pd.Series, enzyme_cols: list[str]) -> tuple[str, ...]:
+        """Extract all declared enzymes for a row, in column order, deduplicated.
+
+        Skips empty / "not available" cells. Normalizes via ENZYME_NAME_MAPPINGS.
+        Returns a tuple of normalized enzyme names. Raises ValueError if no
+        cleavage agent column is provided, or if every cell is empty (preserves
+        the prior single-column strictness).
+        """
+        if not enzyme_cols:
             raise ValueError("Missing comment[cleavage agent details] column")
 
-        enzyme_str = str(row["comment[cleavage agent details]"]).strip()
-        nt_match = re.search(r"NT=(.+?)(;|$)", enzyme_str)
-        if nt_match:
-            enzyme_name = nt_match.group(1).strip()
-        else:
-            enzyme_name = enzyme_str
+        names: list[str] = []
+        for col in enzyme_cols:
+            raw_val = str(row.get(col, "")).strip()
+            if not raw_val or raw_val.lower() in ("nan", "not available"):
+                continue
+            nt_match = re.search(r"NT=(.+?)(;|$)", raw_val)
+            enzyme_name = nt_match.group(1).strip() if nt_match else raw_val
+            normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
+            if normalized not in names:
+                names.append(normalized)
 
-        # Normalize
-        normalized = ENZYME_NAME_MAPPINGS.get(enzyme_name.lower(), enzyme_name)
-        return normalized
+        if not names:
+            raise ValueError("Row has no usable cleavage agent value")
+
+        return tuple(names)
 
     def _extract_modifications(self, row: pd.Series, mod_cols: list[str]) -> tuple[list, list]:
         """Extract fixed and variable modifications from SDRF row."""
