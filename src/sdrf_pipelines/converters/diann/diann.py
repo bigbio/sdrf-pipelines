@@ -162,6 +162,9 @@ class DiaNN(BaseConverter):
         # Find modification columns
         mod_cols = [c for c in sdrf.columns if c.startswith("comment[modification parameters")]
 
+        # Find enzyme columns (handles pandas-renamed duplicates).
+        enzyme_cols = self._find_enzyme_columns(sdrf)
+
         for _, row in sdrf.iterrows():
             raw = str(row.get("comment[data file]", "")).strip()
             if not raw:
@@ -191,9 +194,10 @@ class DiaNN(BaseConverter):
             if label and label not in fd["labels"]:
                 fd["labels"].append(label)
 
-            # Enzyme (first row wins)
+            # Enzymes (first row wins). May be a tuple of multiple enzymes
+            # when the SDRF declares more than one cleavage-agent column.
             if fd["enzyme"] is None:
-                fd["enzyme"] = self._extract_enzyme(row)
+                fd["enzyme"] = self._extract_enzymes(row, enzyme_cols)
 
             # Modifications (first row wins)
             if not fd["fixed_mods"] and not fd["var_mods"]:
