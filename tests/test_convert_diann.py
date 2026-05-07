@@ -394,3 +394,62 @@ class TestDiannScanRangeValidation:
     def test_inverted_scan_range_raises_error(self, diann_data_dir, on_tmpdir):
         with pytest.raises(ValueError, match="[Ii]nverted|[Mm]in.*greater.*max"):
             DiaNN().diann_convert(str(diann_data_dir / "scan_range_inverted.sdrf.tsv"))
+
+
+class TestDiannMultiEnzyme:
+    def test_lys_c_trypsin_combined_cut_rule(self, diann_data_dir, on_tmpdir):
+        sdrf_file = str(diann_data_dir / "multi_enzyme_lys_c_trypsin.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Lys-C+Trypsin")
+
+    def test_lys_c_trypsin_p_drops_negation(self, diann_data_dir, on_tmpdir):
+        """Trypsin/P has no !*P; intersection must drop the negation."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_lys_c_trypsin_p.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        cut_section = config.split("--cut ", 1)[1].split(" --", 1)[0]
+        assert cut_section == "K*,R*"
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Lys-C+Trypsin/P")
+
+    def test_unknown_enzyme_warns_and_proceeds(self, diann_data_dir, on_tmpdir):
+        """Unknown enzyme alongside a known one: warn, drop unknown, keep going."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_unknown.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        assert any("BogusProtease" in msg for msg in converter.warnings)
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "BogusProtease+Trypsin")
+
+    def test_inconsistent_enzyme_sets_raises(self, diann_data_dir, on_tmpdir):
+        """Different enzyme tuples per file must raise ValueError."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_inconsistent.sdrf.tsv")
+        converter = DiaNN()
+        with pytest.raises(ValueError, match="Inconsistent enzyme sets"):
+            converter.diann_convert(sdrf_file)
+
+    def test_same_enzyme_twice_dedups(self, diann_data_dir, on_tmpdir):
+        """Two columns declaring Trypsin must collapse to a single-enzyme run."""
+        sdrf_file = str(diann_data_dir / "multi_enzyme_same.sdrf.tsv")
+        converter = DiaNN()
+        converter.diann_convert(sdrf_file)
+
+        config = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--cut K*,R*,!*P" in config
+
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert all(df["Enzyme"] == "Trypsin")
