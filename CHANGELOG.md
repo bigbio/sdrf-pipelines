@@ -1,5 +1,23 @@
 # History of changes for sdrf-pipelines
 
+## Version 0.1.5
+
+### Bug Fixes
+- DIA-NN converter (`converters/diann/modifications.py`): correctly handle modifications that target
+  multiple residues. DIA-NN keeps only the first residue of a comma-separated site list and
+  de-duplicates `--var-mod`/`--fixed-mod` entries by name, so the previous output silently dropped
+  every residue except the first (e.g. all hydroxyproline `Oxidation` on `P`, and all `pT`/`pY`
+  phosphosites). Sites declared in a single SDRF cell (`TA=S,T,Y`) are now concatenated into one
+  DIA-NN site string (`Phospho,79.966331,STY`), and the same modification (same name + mass)
+  declared across several SDRF cells (`Oxidation` on `M` and on `P`) is merged into a single entry
+  (`Oxidation,15.994915,MP`).
+
+### Chores
+- Bump `idna` to 3.18 in `uv.lock` (supersedes Dependabot #304, which targeted 3.15).
+- CI: fix the Conda Build workflow — install `conda-build`/`conda-verify` into the `base` env and invoke
+  via `conda run -n base`, so the `conda build` subcommand is registered (was failing with
+  `conda: error: argument COMMAND: invalid choice: 'build'`).
+
 ## Version 1.0.0 From 0.0.32
 
 ### Development

@@ -52,3 +52,64 @@ class TestDiannModificationConverter:
         assert fixed_result[0] == "Carbamidomethyl,57.021464,C"
         assert len(var_result) == 1
         assert var_result[0] == "Oxidation,15.994915,M"
+
+    # --- multi-residue sites in a single SDRF cell (TA=S,T,Y) -----------------
+    # DIA-NN keeps only the first residue of a comma-separated site list, so the
+    # converter must concatenate the residues into one site string.
+
+    def test_var_mod_multi_site_single_cell_phospho(self):
+        converter = DiannModificationConverter()
+        result = converter.convert_modification("NT=Phospho;MT=variable;TA=S,T,Y;AC=UNIMOD:21", is_fixed=False)
+        assert result == "Phospho,79.966331,STY"
+
+    def test_var_mod_multi_site_single_cell_oxidation_mp(self):
+        converter = DiannModificationConverter()
+        result = converter.convert_modification("NT=Oxidation;MT=variable;TA=M,P;AC=UNIMOD:35", is_fixed=False)
+        assert result == "Oxidation,15.994915,MP"
+
+    def test_var_mod_multi_site_with_spaces(self):
+        converter = DiannModificationConverter()
+        result = converter.convert_modification("NT=Phospho;MT=variable;TA=S, T, Y;AC=UNIMOD:21", is_fixed=False)
+        assert result == "Phospho,79.966331,STY"
+
+    # --- same modification declared across several SDRF cells ------------------
+    # DIA-NN de-duplicates entries by name and would keep only the first cell,
+    # so same-(name, mass) modifications must be merged into one entry.
+
+    def test_merge_oxidation_m_and_p_across_cells(self):
+        converter = DiannModificationConverter()
+        var_mods = [
+            "NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35",
+            "NT=Oxidation;MT=variable;TA=P;AC=UNIMOD:35",
+        ]
+        _, var_result = converter.convert_all_modifications([], var_mods)
+        assert var_result == ["Oxidation,15.994915,MP"]
+
+    def test_merge_phospho_across_three_cells(self):
+        converter = DiannModificationConverter()
+        var_mods = [
+            "NT=Phospho;MT=variable;TA=S;AC=UNIMOD:21",
+            "NT=Phospho;MT=variable;TA=T;AC=UNIMOD:21",
+            "NT=Phospho;MT=variable;TA=Y;AC=UNIMOD:21",
+        ]
+        _, var_result = converter.convert_all_modifications([], var_mods)
+        assert var_result == ["Phospho,79.966331,STY"]
+
+    def test_merge_preserves_distinct_modifications(self):
+        converter = DiannModificationConverter()
+        var_mods = [
+            "NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35",
+            "NT=Oxidation;MT=variable;TA=P;AC=UNIMOD:35",
+            "NT=Acetyl;MT=variable;PP=Protein N-term;AC=UNIMOD:1",
+        ]
+        _, var_result = converter.convert_all_modifications([], var_mods)
+        assert var_result == ["Oxidation,15.994915,MP", "Acetyl,42.010565,*n"]
+
+    def test_merge_deduplicates_repeated_site(self):
+        converter = DiannModificationConverter()
+        var_mods = [
+            "NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35",
+            "NT=Oxidation;MT=variable;TA=M;AC=UNIMOD:35",
+        ]
+        _, var_result = converter.convert_all_modifications([], var_mods)
+        assert var_result == ["Oxidation,15.994915,M"]
