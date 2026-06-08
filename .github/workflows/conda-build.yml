@@ -44,15 +44,17 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          conda install -n sdrf-pipelines-build conda-build conda-verify anaconda-client
+          # conda-build registers the `conda build` subcommand on the conda it is
+          # installed into; the running CLI is base conda, so install into base.
+          conda install -n base -c conda-forge conda-build conda-verify anaconda-client
 
       - name: Verify conda recipe
         run: |
-          conda-verify .
+          conda run -n base conda-verify .
 
       - name: Build and test the sdrf-pipelines package
         run: |
           # conda build automatically runs the tests defined in meta.yaml test section
-          conda build --package-format .tar.bz2 recipe
+          conda run -n base conda build --package-format .tar.bz2 recipe
         env:
           SETUPTOOLS_SCM_PRETEND_VERSION: ${{ env.SETUPTOOLS_SCM_PRETEND_VERSION }}
