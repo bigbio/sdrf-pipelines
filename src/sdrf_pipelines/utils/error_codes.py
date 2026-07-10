@@ -35,6 +35,7 @@ class ErrorCode(str, Enum):
     COMMENT_BEFORE_ASSAY = "COMMENT_BEFORE_ASSAY"
     TECHNOLOGY_TYPE_MISPLACED = "TECHNOLOGY_TYPE_MISPLACED"
     FACTOR_COLUMN_NOT_LAST = "FACTOR_COLUMN_NOT_LAST"
+    MALFORMED_COLUMN_NAME = "MALFORMED_COLUMN_NAME"
 
     # Format errors
     TRAILING_WHITESPACE = "TRAILING_WHITESPACE"
@@ -80,6 +81,7 @@ _ERROR_CATEGORY_MAP = {
     ErrorCode.COMMENT_BEFORE_ASSAY: ErrorCategory.STRUCTURE,
     ErrorCode.TECHNOLOGY_TYPE_MISPLACED: ErrorCategory.STRUCTURE,
     ErrorCode.FACTOR_COLUMN_NOT_LAST: ErrorCategory.STRUCTURE,
+    ErrorCode.MALFORMED_COLUMN_NAME: ErrorCategory.STRUCTURE,
     # Format
     ErrorCode.TRAILING_WHITESPACE: ErrorCategory.FORMAT,
     ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME: ErrorCategory.FORMAT,
@@ -118,6 +120,10 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
     ErrorCode.COMMENT_BEFORE_ASSAY: "The column '{column}' cannot be before the assay name",
     ErrorCode.TECHNOLOGY_TYPE_MISPLACED: "The column '{column}' must be immediately after the assay name",
     ErrorCode.FACTOR_COLUMN_NOT_LAST: "The following factor column should be last: {columns}",
+    ErrorCode.MALFORMED_COLUMN_NAME: (
+        "Column name '{value}' is malformed: SDRF column names are space-sensitive - "
+        "there must be no space before '[' or inside the brackets"
+    ),
     # Format
     ErrorCode.TRAILING_WHITESPACE: "Trailing whitespace detected",
     ErrorCode.TRAILING_WHITESPACE_COLUMN_NAME: "Trailing whitespace detected in column name",
