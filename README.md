@@ -15,7 +15,7 @@ uv:
 
 ```bash
 # Install
-uv tool install sdrf-pipelines[all]
+uv tool install "sdrf-pipelines[all]"
 
 # Validate your SDRF file
 parse_sdrf validate-sdrf --sdrf_file your_file.sdrf.tsv
@@ -25,7 +25,7 @@ pipx:
 
 ```bash
 # Install
-pipx install sdrf-pipelines[all]
+pipx install "sdrf-pipelines[all]"
 
 # Validate your SDRF file
 parse_sdrf validate-sdrf --sdrf_file your_file.sdrf.tsv

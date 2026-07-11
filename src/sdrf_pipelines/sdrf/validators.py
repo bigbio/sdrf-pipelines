@@ -307,6 +307,55 @@ class TrailingWhitespaceValidator(SDRFValidator):
                 return []
 
 
+@register_validator(validator_name="column_name_validator")
+class ColumnNameValidator(SDRFValidator):
+    """Validate SDRF column-name syntax: no stray whitespace around the brackets.
+
+    SDRF column names are space-sensitive, so ``characteristics [organism]`` (space before the
+    bracket) and ``characteristics[organism ]`` (space inside the brackets) are *different*,
+    unrecognised columns whose data is silently ignored downstream while the file still validates.
+    This flags a space immediately before ``[`` or on either inside edge of the brackets. Leading/
+    trailing whitespace on the whole name is handled by :class:`TrailingWhitespaceValidator`.
+    """
+
+    # space before '[', space just after '[', or space just before ']'
+    _BRACKET_WHITESPACE: ClassVar[re.Pattern] = re.compile(r"\s\[|\[\s|\s\]")
+
+    def _check_name(self, name: str) -> LogicError | None:
+        if isinstance(name, str) and self._BRACKET_WHITESPACE.search(name):
+            return LogicError.from_code(
+                ErrorCode.MALFORMED_COLUMN_NAME,
+                value=name,
+                row=-1,
+                column=name,
+                error_type=logging.ERROR,
+                suggestion=(
+                    "SDRF column names are space-sensitive. Use e.g. 'characteristics[organism]' - "
+                    "no space before '[' and none inside the brackets."
+                ),
+            )
+        return None
+
+    def _column_names(self, value: Any) -> list[str]:
+        match value:
+            case SDRFDataFrame():
+                return list(value.get_original_columns())
+            case pd.DataFrame():
+                return [str(c) for c in value.columns]
+            case list():
+                return [str(c) for c in value]
+            case str():
+                return [value]
+            case _:
+                return []
+
+    def validate(  # type: ignore[override]
+        self, value: SDRFDataFrame | pd.DataFrame | list[str] | str, column_name: str | None = None
+    ) -> list[LogicError]:
+        """Return a MALFORMED_COLUMN_NAME error for every column name with whitespace around its brackets."""
+        return [err for name in self._column_names(value) if (err := self._check_name(name)) is not None]
+
+
 @register_validator(validator_name="min_columns")
 class MinimumColumns(SDRFValidator):
     minimum_columns: int = config.validation.minimum_columns
