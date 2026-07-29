@@ -81,51 +81,51 @@ def test_tmt_label_inference_from_incomplete_plexes(plex_name):
     ],
 )
 def test_channel_map_uses_contiguous_one_based_ordinals(plex_name, channel_count):
-    assert list(CHANNEL_MAP[plex_name]) == list(range(1, channel_count + 1))
+    assert sorted(CHANNEL_MAP[plex_name].values()) == list(range(1, channel_count + 1))
 
 
 def test_channel_map_uses_canonical_labels():
-    assert CHANNEL_MAP["tmt10plex"][10] == "TMT131"
+    assert CHANNEL_MAP["tmt10plex"]["TMT131"] == 10
     assert CHANNEL_MAP["itraq4plex"] == {
-        1: "ITRAQ114",
-        2: "ITRAQ115",
-        3: "ITRAQ116",
-        4: "ITRAQ117",
+        "ITRAQ114": 1,
+        "ITRAQ115": 2,
+        "ITRAQ116": 3,
+        "ITRAQ117": 4,
     }
-    assert CHANNEL_MAP["itraq8plex"][8] == "ITRAQ121"
+    assert CHANNEL_MAP["itraq8plex"]["ITRAQ121"] == 8
     assert CHANNEL_MAP["silac3plex"] == {
-        1: "SILAC light",
-        2: "SILAC medium",
-        3: "SILAC heavy",
+        "SILAC light": 1,
+        "SILAC medium": 2,
+        "SILAC heavy": 3,
     }
-    assert CHANNEL_MAP["lfq"] == {1: "LFQ"}
+    assert CHANNEL_MAP["lfq"] == {"LFQ": 1}
 
 
 def test_tmt32_and_tmt35_follow_openms_channel_order():
-    assert CHANNEL_MAP["tmt32plex"][4] == "TMT127D"
-    assert CHANNEL_MAP["tmt32plex"][32] == "TMT135ND"
-    assert CHANNEL_MAP["tmt35plex"][30] == "TMT134C"
-    assert CHANNEL_MAP["tmt35plex"][35] == "TMT135CD"
+    assert CHANNEL_MAP["tmt32plex"]["TMT127D"] == 4
+    assert CHANNEL_MAP["tmt32plex"]["TMT135ND"] == 32
+    assert CHANNEL_MAP["tmt35plex"]["TMT134C"] == 30
+    assert CHANNEL_MAP["tmt35plex"]["TMT135CD"] == 35
 
     tmt35_only = {"TMT134C", "TMT135N", "TMT135CD"}
-    assert list(CHANNEL_MAP["tmt32plex"].values()) == [
-        label for label in CHANNEL_MAP["tmt35plex"].values() if label not in tmt35_only
-    ]
+    tmt32_labels = [label for label, _ in sorted(CHANNEL_MAP["tmt32plex"].items(), key=lambda item: item[1])]
+    tmt35_labels = [label for label, _ in sorted(CHANNEL_MAP["tmt35plex"].items(), key=lambda item: item[1])]
+    assert tmt32_labels == [label for label in tmt35_labels if label not in tmt35_only]
 
 
 def test_compatibility_maps_are_derived_from_canonical_channel_map():
-    for plex_name, label_to_ordinal in TMT_PLEXES.items():
-        assert label_to_ordinal == {label: ordinal for ordinal, label in CHANNEL_MAP[plex_name].items()}
+    for plex_name, label_to_channel_id in TMT_PLEXES.items():
+        assert label_to_channel_id == CHANNEL_MAP[plex_name]
 
-    assert ITRAQ_4PLEX == {label.lower(): ordinal for ordinal, label in CHANNEL_MAP["itraq4plex"].items()}
-    assert ITRAQ_8PLEX == {label.lower(): ordinal for ordinal, label in CHANNEL_MAP["itraq8plex"].items()}
-    assert SILAC_2PLEX == {label.lower(): ordinal for ordinal, label in CHANNEL_MAP["silac2plex"].items()}
-    assert SILAC_3PLEX == {label.lower(): ordinal for ordinal, label in CHANNEL_MAP["silac3plex"].items()}
+    assert ITRAQ_4PLEX == {label.lower(): channel_id for label, channel_id in CHANNEL_MAP["itraq4plex"].items()}
+    assert ITRAQ_8PLEX == {label.lower(): channel_id for label, channel_id in CHANNEL_MAP["itraq8plex"].items()}
+    assert SILAC_2PLEX == {label.lower(): channel_id for label, channel_id in CHANNEL_MAP["silac2plex"].items()}
+    assert SILAC_3PLEX == {label.lower(): channel_id for label, channel_id in CHANNEL_MAP["silac3plex"].items()}
 
 
 @pytest.mark.parametrize("plex_name", ["itraq4plex", "itraq8plex"])
 def test_itraq_label_inference(plex_name):
-    assert infer_itraqplex(CHANNEL_MAP[plex_name].values()) == plex_name
+    assert infer_itraqplex(CHANNEL_MAP[plex_name]) == plex_name
 
 
 def test_extended_tmt_label_inference():

@@ -10,9 +10,11 @@ logger = logging.getLogger(__name__)
 
 def _infer_plex(label_set: Collection[str], plex_prefix: str) -> str:
     """Return the smallest plex whose canonical labels contain ``label_set``."""
-    labels = set(label_set)
+    labels = {label.casefold() for label in label_set}
     plexes: list[tuple[str, set[str]]] = [
-        (plex, set(channels.values())) for plex, channels in CHANNEL_MAP.items() if plex.startswith(plex_prefix)
+        (plex, {label.casefold() for label in channels})
+        for plex, channels in CHANNEL_MAP.items()
+        if plex.startswith(plex_prefix)
     ]
     for plex, channels in sorted(plexes, key=lambda item: len(item[1])):
         if labels.issubset(channels):
