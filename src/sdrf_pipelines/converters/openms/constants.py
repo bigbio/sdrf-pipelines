@@ -1,171 +1,72 @@
 """Constants for OpenMS conversion including label plexes and enzyme mappings."""
 
-# Canonical SDRF/QPX label -> 1-based OpenMS channel ID. Labels are join keys,
-# so their spelling and capitalization are part of the public API.
-CHANNEL_MAP: dict[str, dict[str, int]] = {
-    "tmt6plex": {
-        "TMT126": 1,
-        "TMT127": 2,
-        "TMT128": 3,
-        "TMT129": 4,
-        "TMT130": 5,
-        "TMT131": 6,
-    },
-    "tmt10plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT128N": 4,
-        "TMT128C": 5,
-        "TMT129N": 6,
-        "TMT129C": 7,
-        "TMT130N": 8,
-        "TMT130C": 9,
-        "TMT131": 10,
-    },
-    "tmt11plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT128N": 4,
-        "TMT128C": 5,
-        "TMT129N": 6,
-        "TMT129C": 7,
-        "TMT130N": 8,
-        "TMT130C": 9,
-        "TMT131N": 10,
-        "TMT131C": 11,
-    },
-    "tmt16plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT128N": 4,
-        "TMT128C": 5,
-        "TMT129N": 6,
-        "TMT129C": 7,
-        "TMT130N": 8,
-        "TMT130C": 9,
-        "TMT131N": 10,
-        "TMT131C": 11,
-        "TMT132N": 12,
-        "TMT132C": 13,
-        "TMT133N": 14,
-        "TMT133C": 15,
-        "TMT134N": 16,
-    },
-    "tmt18plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT128N": 4,
-        "TMT128C": 5,
-        "TMT129N": 6,
-        "TMT129C": 7,
-        "TMT130N": 8,
-        "TMT130C": 9,
-        "TMT131N": 10,
-        "TMT131C": 11,
-        "TMT132N": 12,
-        "TMT132C": 13,
-        "TMT133N": 14,
-        "TMT133C": 15,
-        "TMT134N": 16,
-        "TMT134C": 17,
-        "TMT135N": 18,
-    },
-    # High-plex IDs follow OpenMS's mass-interleaved channel_names_ order.
-    "tmt32plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT127D": 4,
-        "TMT128N": 5,
-        "TMT128C": 6,
-        "TMT128ND": 7,
-        "TMT128CD": 8,
-        "TMT129N": 9,
-        "TMT129C": 10,
-        "TMT129ND": 11,
-        "TMT129CD": 12,
-        "TMT130N": 13,
-        "TMT130C": 14,
-        "TMT130ND": 15,
-        "TMT130CD": 16,
-        "TMT131N": 17,
-        "TMT131C": 18,
-        "TMT131ND": 19,
-        "TMT131CD": 20,
-        "TMT132N": 21,
-        "TMT132C": 22,
-        "TMT132ND": 23,
-        "TMT132CD": 24,
-        "TMT133N": 25,
-        "TMT133C": 26,
-        "TMT133ND": 27,
-        "TMT133CD": 28,
-        "TMT134N": 29,
-        "TMT134ND": 30,
-        "TMT134CD": 31,
-        "TMT135ND": 32,
-    },
-    "tmt35plex": {
-        "TMT126": 1,
-        "TMT127N": 2,
-        "TMT127C": 3,
-        "TMT127D": 4,
-        "TMT128N": 5,
-        "TMT128C": 6,
-        "TMT128ND": 7,
-        "TMT128CD": 8,
-        "TMT129N": 9,
-        "TMT129C": 10,
-        "TMT129ND": 11,
-        "TMT129CD": 12,
-        "TMT130N": 13,
-        "TMT130C": 14,
-        "TMT130ND": 15,
-        "TMT130CD": 16,
-        "TMT131N": 17,
-        "TMT131C": 18,
-        "TMT131ND": 19,
-        "TMT131CD": 20,
-        "TMT132N": 21,
-        "TMT132C": 22,
-        "TMT132ND": 23,
-        "TMT132CD": 24,
-        "TMT133N": 25,
-        "TMT133C": 26,
-        "TMT133ND": 27,
-        "TMT133CD": 28,
-        "TMT134N": 29,
-        "TMT134C": 30,
-        "TMT134ND": 31,
-        "TMT134CD": 32,
-        "TMT135N": 33,
-        "TMT135ND": 34,
-        "TMT135CD": 35,
-    },
-    "itraq4plex": {
-        "ITRAQ114": 1,
-        "ITRAQ115": 2,
-        "ITRAQ116": 3,
-        "ITRAQ117": 4,
-    },
-    "itraq8plex": {
-        "ITRAQ113": 1,
-        "ITRAQ114": 2,
-        "ITRAQ115": 3,
-        "ITRAQ116": 4,
-        "ITRAQ117": 5,
-        "ITRAQ118": 6,
-        "ITRAQ119": 7,
-        "ITRAQ121": 8,
-    },
-    "silac2plex": {"SILAC light": 1, "SILAC heavy": 2},
-    "silac3plex": {"SILAC light": 1, "SILAC medium": 2, "SILAC heavy": 3},
-    "lfq": {"LFQ": 1},
-}
+from importlib.resources import files
+from typing import Any
+
+import yaml
+from yaml.nodes import MappingNode
+
+_CHANNEL_MAP_RESOURCE = "channel_map.yaml"
+_CHANNEL_MAP_SCHEMA_VERSION = 1
+
+
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """Safe YAML loader that rejects silently overwritten mapping entries."""
+
+    def construct_mapping(self, node: MappingNode, deep: bool = False) -> dict[Any, Any]:
+        self.flatten_mapping(node)
+        mapping: dict[Any, Any] = {}
+        for key_node, value_node in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in mapping:
+                raise ValueError(f"Duplicate key {key!r} in {_CHANNEL_MAP_RESOURCE}")
+            mapping[key] = self.construct_object(value_node, deep=deep)
+        return mapping
+
+
+def _validate_channel_map(document: object) -> dict[str, dict[str, int]]:
+    """Validate and type the channel map document loaded from YAML."""
+    if not isinstance(document, dict):
+        raise ValueError(f"{_CHANNEL_MAP_RESOURCE} must contain a YAML mapping")
+    if document.get("schema_version") != _CHANNEL_MAP_SCHEMA_VERSION:
+        raise ValueError(f"{_CHANNEL_MAP_RESOURCE} must use schema_version {_CHANNEL_MAP_SCHEMA_VERSION}")
+
+    raw_channel_map = document.get("channel_map")
+    if not isinstance(raw_channel_map, dict):
+        raise ValueError(f"{_CHANNEL_MAP_RESOURCE} must define a channel_map mapping")
+
+    channel_map: dict[str, dict[str, int]] = {}
+    for plex, raw_channels in raw_channel_map.items():
+        if not isinstance(plex, str) or not plex:
+            raise ValueError(f"{_CHANNEL_MAP_RESOURCE} plex names must be non-empty strings")
+        if not isinstance(raw_channels, dict) or not raw_channels:
+            raise ValueError(f"{_CHANNEL_MAP_RESOURCE} entry {plex!r} must be a non-empty mapping")
+
+        channels: dict[str, int] = {}
+        for label, channel_id in raw_channels.items():
+            if not isinstance(label, str) or not label:
+                raise ValueError(f"{_CHANNEL_MAP_RESOURCE} labels in {plex!r} must be non-empty strings")
+            if not isinstance(channel_id, int) or isinstance(channel_id, bool):
+                raise ValueError(f"Channel ID for {plex!r}/{label!r} must be an integer")
+            channels[label] = channel_id
+
+        expected_ids = list(range(1, len(channels) + 1))
+        if sorted(channels.values()) != expected_ids:
+            raise ValueError(f"Channel IDs for {plex!r} must be unique and contiguous from 1")
+        channel_map[plex] = channels
+
+    return channel_map
+
+
+def _load_channel_map() -> dict[str, dict[str, int]]:
+    """Load the canonical label-to-channel-ID mapping from the package data."""
+    resource = files("sdrf_pipelines.converters.openms").joinpath(_CHANNEL_MAP_RESOURCE)
+    document: object = yaml.load(resource.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader)
+    return _validate_channel_map(document)
+
+
+# Labels are join keys, so their spelling and capitalization are public API.
+CHANNEL_MAP: dict[str, dict[str, int]] = _load_channel_map()
 
 # Backwards-compatible lookup names used by the OpenMS converter.
 TMT_PLEXES: dict[str, dict[str, int]] = {
