@@ -1,8 +1,12 @@
 # Increment only when the structure of this file changes. Vocabulary updates
 # within channel_map do not require a schema-version change.
-schema_version: 1
+schema_version: 2
 
-# Canonical SDRF/QPX label -> 1-based OpenMS channel ID.
+# Canonical SDRF/QPX label -> 1-based channel index, per plex. Shared by the
+# OpenMS (isobaric: TMT/iTRAQ) and DIA-NN (plexDIA: mTRAQ/Dimethyl/SILAC)
+# converters. Reagent-specific quantitative data (channel masses, fixed mods)
+# lives in the individual converters; only the label<->index vocabulary and
+# plex membership are shared here.
 channel_map:
   tmt6plex:
     TMT126: 1
@@ -172,5 +176,38 @@ channel_map:
     SILAC medium: 2
     SILAC heavy: 3
 
+  # plexDIA reagents (DIA-NN). Index = order of increasing label mass.
+  mtraq3plex:
+    MTRAQ0: 1
+    MTRAQ4: 2
+    MTRAQ8: 3
+
+  dimethyl2plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+
+  dimethyl3plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+    DIMETHYL4: 3
+
+  dimethyl5plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+    DIMETHYL4: 3
+    DIMETHYL6: 4
+    DIMETHYL8: 5
+
   lfq:
     LFQ: 1
+
+# Alternate spellings that appear in SDRF comment[label] (e.g. the PRIDE
+# ontology name) mapped to their canonical label. Converters normalize an
+# incoming label through this table before any channel_map lookup, so the same
+# vocabulary works regardless of how the SDRF spelled it. Matching is
+# case-insensitive. Labels not listed here pass through unchanged.
+synonyms:
+  LFQ:
+    - label free sample
+    - label free
+    - label-free
