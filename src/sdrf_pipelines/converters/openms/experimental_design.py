@@ -12,14 +12,11 @@ from sdrf_pipelines.converters.openms.constants import (
     SILAC_3PLEX,
     TMT_PLEXES,
 )
-from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_tmtplex
+from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_itraqplex, infer_tmtplex
 from sdrf_pipelines.utils.utils import tsv_line
 
 # Pattern to extract sample number from source name
 SAMPLE_IDENTIFIER_RE = re.compile(r"sample (\d+)$", re.IGNORECASE)
-
-# iTRAQ 8-plex specific labels
-ITRAQ_8PLEX_LABELS = {"ITRAQ113", "ITRAQ118", "ITRAQ119", "ITRAQ121"}
 
 
 @dataclass
@@ -168,8 +165,7 @@ class ExperimentalDesignWriter:
 
     def _get_itraq_label(self, labels: list[str], label_set: set, label_index: dict, raw: str) -> str:
         """Get iTRAQ label identifier."""
-        is_8plex = len(label_set) > 4 or bool(label_set & ITRAQ_8PLEX_LABELS)
-        plex_map = self.itraq8plex if is_8plex else self.itraq4plex
+        plex_map = self.itraq8plex if infer_itraqplex(label_set) == "itraq8plex" else self.itraq4plex
         label = str(plex_map[labels[label_index[raw]].lower()])
         label_index[raw] += 1
         return label

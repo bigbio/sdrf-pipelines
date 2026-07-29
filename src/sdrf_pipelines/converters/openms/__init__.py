@@ -1,6 +1,7 @@
 """OpenMS SDRF conversion module."""
 
 from sdrf_pipelines.converters.openms.constants import (
+    CHANNEL_MAP,
     ENZYME_MAPPINGS,
     ITRAQ_4PLEX,
     ITRAQ_8PLEX,
@@ -16,6 +17,7 @@ from sdrf_pipelines.converters.openms.openms import OpenMS
 from sdrf_pipelines.converters.openms.utils import (
     FileToColumnEntries,
     get_openms_file_name,
+    infer_itraqplex,
     infer_tmtplex,
     parse_tolerance,
 )
@@ -28,6 +30,7 @@ __all__ = [
     "ModificationConverter",
     "FileToColumnEntries",
     # Constants
+    "CHANNEL_MAP",
     "ENZYME_MAPPINGS",
     "ITRAQ_4PLEX",
     "ITRAQ_8PLEX",
@@ -38,6 +41,7 @@ __all__ = [
     "TMT_PLEXES",
     # Utility functions
     "get_openms_file_name",
+    "infer_itraqplex",
     "infer_tmtplex",
     "parse_tolerance",
 ]
