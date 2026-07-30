@@ -98,7 +98,12 @@ def _validate_synonyms(raw_synonyms: object, known_labels: set[str]) -> dict[str
 
 def _load() -> tuple[dict[str, dict[str, int]], dict[str, list[str]]]:
     resource = files("sdrf_pipelines.converters").joinpath(_CHANNEL_MAP_RESOURCE)
-    document: object = yaml.load(resource.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader)
+    # _UniqueKeyLoader subclasses yaml.SafeLoader, so this is a safe load; a
+    # custom loader is required (rejects duplicate keys) and yaml.safe_load()
+    # cannot take one. B506 is a false positive here.
+    document: object = yaml.load(  # nosec B506
+        resource.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader
+    )
     if not isinstance(document, dict):
         raise ValueError(f"{_CHANNEL_MAP_RESOURCE} must contain a YAML mapping")
     if document.get("schema_version") != _CHANNEL_MAP_SCHEMA_VERSION:
