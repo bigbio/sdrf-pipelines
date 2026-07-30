@@ -1,0 +1,211 @@
+# Increment only when the structure of this file changes. Vocabulary updates
+# within channel_map do not require a schema-version change.
+schema_version: 2
+
+# Canonical SDRF/QPX label -> 1-based channel index, per plex. Shared by the
+# OpenMS (isobaric: TMT/iTRAQ) and DIA-NN (plexDIA: mTRAQ/Dimethyl/SILAC)
+# converters. Reagent-specific quantitative data (channel masses, fixed mods)
+# lives in the individual converters; only the label<->index vocabulary and
+# plex membership are shared here.
+channel_map:
+  tmt6plex:
+    TMT126: 1
+    TMT127: 2
+    TMT128: 3
+    TMT129: 4
+    TMT130: 5
+    TMT131: 6
+
+  tmt10plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT128N: 4
+    TMT128C: 5
+    TMT129N: 6
+    TMT129C: 7
+    TMT130N: 8
+    TMT130C: 9
+    TMT131: 10
+
+  tmt11plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT128N: 4
+    TMT128C: 5
+    TMT129N: 6
+    TMT129C: 7
+    TMT130N: 8
+    TMT130C: 9
+    TMT131N: 10
+    TMT131C: 11
+
+  tmt16plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT128N: 4
+    TMT128C: 5
+    TMT129N: 6
+    TMT129C: 7
+    TMT130N: 8
+    TMT130C: 9
+    TMT131N: 10
+    TMT131C: 11
+    TMT132N: 12
+    TMT132C: 13
+    TMT133N: 14
+    TMT133C: 15
+    TMT134N: 16
+
+  tmt18plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT128N: 4
+    TMT128C: 5
+    TMT129N: 6
+    TMT129C: 7
+    TMT130N: 8
+    TMT130C: 9
+    TMT131N: 10
+    TMT131C: 11
+    TMT132N: 12
+    TMT132C: 13
+    TMT133N: 14
+    TMT133C: 15
+    TMT134N: 16
+    TMT134C: 17
+    TMT135N: 18
+
+  # High-plex IDs follow OpenMS's mass-interleaved channel_names_ order.
+  tmt32plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT127D: 4
+    TMT128N: 5
+    TMT128C: 6
+    TMT128ND: 7
+    TMT128CD: 8
+    TMT129N: 9
+    TMT129C: 10
+    TMT129ND: 11
+    TMT129CD: 12
+    TMT130N: 13
+    TMT130C: 14
+    TMT130ND: 15
+    TMT130CD: 16
+    TMT131N: 17
+    TMT131C: 18
+    TMT131ND: 19
+    TMT131CD: 20
+    TMT132N: 21
+    TMT132C: 22
+    TMT132ND: 23
+    TMT132CD: 24
+    TMT133N: 25
+    TMT133C: 26
+    TMT133ND: 27
+    TMT133CD: 28
+    TMT134N: 29
+    TMT134ND: 30
+    TMT134CD: 31
+    TMT135ND: 32
+
+  tmt35plex:
+    TMT126: 1
+    TMT127N: 2
+    TMT127C: 3
+    TMT127D: 4
+    TMT128N: 5
+    TMT128C: 6
+    TMT128ND: 7
+    TMT128CD: 8
+    TMT129N: 9
+    TMT129C: 10
+    TMT129ND: 11
+    TMT129CD: 12
+    TMT130N: 13
+    TMT130C: 14
+    TMT130ND: 15
+    TMT130CD: 16
+    TMT131N: 17
+    TMT131C: 18
+    TMT131ND: 19
+    TMT131CD: 20
+    TMT132N: 21
+    TMT132C: 22
+    TMT132ND: 23
+    TMT132CD: 24
+    TMT133N: 25
+    TMT133C: 26
+    TMT133ND: 27
+    TMT133CD: 28
+    TMT134N: 29
+    TMT134C: 30
+    TMT134ND: 31
+    TMT134CD: 32
+    TMT135N: 33
+    TMT135ND: 34
+    TMT135CD: 35
+
+  itraq4plex:
+    ITRAQ114: 1
+    ITRAQ115: 2
+    ITRAQ116: 3
+    ITRAQ117: 4
+
+  itraq8plex:
+    ITRAQ113: 1
+    ITRAQ114: 2
+    ITRAQ115: 3
+    ITRAQ116: 4
+    ITRAQ117: 5
+    ITRAQ118: 6
+    ITRAQ119: 7
+    ITRAQ121: 8
+
+  silac2plex:
+    SILAC light: 1
+    SILAC heavy: 2
+
+  silac3plex:
+    SILAC light: 1
+    SILAC medium: 2
+    SILAC heavy: 3
+
+  # plexDIA reagents (DIA-NN). Index = order of increasing label mass.
+  mtraq3plex:
+    MTRAQ0: 1
+    MTRAQ4: 2
+    MTRAQ8: 3
+
+  dimethyl2plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+
+  dimethyl3plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+    DIMETHYL4: 3
+
+  dimethyl5plex:
+    DIMETHYL0: 1
+    DIMETHYL2: 2
+    DIMETHYL4: 3
+    DIMETHYL6: 4
+    DIMETHYL8: 5
+
+  lfq:
+    LFQ: 1
+
+# Alternate spellings that appear in SDRF comment[label] (e.g. the PRIDE
+# ontology name) mapped to their canonical label. Converters normalize an
+# incoming label through this table before any channel_map lookup, so the same
+# vocabulary works regardless of how the SDRF spelled it. Matching is
+# case-insensitive. Labels not listed here pass through unchanged.
+synonyms:
+  LFQ:
+    - label free sample

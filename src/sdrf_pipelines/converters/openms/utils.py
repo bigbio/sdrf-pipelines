@@ -1,36 +1,42 @@
 """Utility functions for OpenMS conversion."""
 
 import logging
+from collections.abc import Collection
+
+from sdrf_pipelines.converters.openms.constants import CHANNEL_MAP
 
 logger = logging.getLogger(__name__)
 
 
-def infer_tmtplex(label_set: set) -> str:
+def _infer_plex(label_set: Collection[str], plex_prefix: str) -> str:
+    """Return the smallest plex whose canonical labels contain ``label_set``."""
+    labels = {label.casefold() for label in label_set}
+    plexes: list[tuple[str, set[str]]] = [
+        (plex, {label.casefold() for label in channels})
+        for plex, channels in CHANNEL_MAP.items()
+        if plex.startswith(plex_prefix)
+    ]
+    for plex, channels in sorted(plexes, key=lambda item: len(item[1])):
+        if labels.issubset(channels):
+            return plex
+    raise ValueError(f"Cannot infer {plex_prefix.upper()} plex from labels: {sorted(labels)}")
+
+
+def infer_tmtplex(label_set: Collection[str]) -> str:
     """Infer the TMT plex type from a set of labels.
 
     Args:
-        label_set: Set of label strings (e.g., {"TMT126", "TMT127N"})
+        label_set: Collection of canonical label strings (e.g., {"TMT126", "TMT127N"})
 
     Returns:
-        TMT plex type string (e.g., "tmt18plex", "tmt10plex")
+        Smallest compatible TMT plex type string (e.g., "tmt18plex", "tmt10plex")
     """
-    if len(label_set) > 16 or "TMT134C" in label_set or "TMT135N" in label_set:
-        return "tmt18plex"
-    elif (
-        len(label_set) > 11
-        or "TMT134N" in label_set
-        or "TMT133C" in label_set
-        or "TMT133N" in label_set
-        or "TMT132C" in label_set
-        or "TMT132N" in label_set
-    ):
-        return "tmt16plex"
-    elif len(label_set) == 11 or "TMT131C" in label_set:
-        return "tmt11plex"
-    elif len(label_set) > 6:
-        return "tmt10plex"
-    else:
-        return "tmt6plex"
+    return _infer_plex(label_set, "tmt")
+
+
+def infer_itraqplex(label_set: Collection[str]) -> str:
+    """Infer the smallest compatible iTRAQ plex from canonical label strings."""
+    return _infer_plex(label_set, "itraq")
 
 
 def get_openms_file_name(raw: str, extension_convert: str | None = None) -> str:
