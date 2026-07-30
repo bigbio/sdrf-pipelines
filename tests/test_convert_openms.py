@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from sdrf_pipelines.parse_sdrf import cli
@@ -53,6 +54,34 @@ def test_convert_openms(shared_datadir, on_tmpdir):
     result = run_and_check_status_code(cli, ["convert-openms", "-t2", "-s", test_sdrf])
     assert "ERROR" not in result.output.upper(), result.output
     _check_output_existance(on_tmpdir)
+
+
+def test_convert_openms_without_file_uri(shared_datadir, on_tmpdir):
+    """Regression test for issue #313.
+
+    ``comment[file uri]`` is optional in SDRF-Proteomics. ``convert-openms`` used to
+    read it unconditionally and crash with ``KeyError: 'comment[file uri]'`` on SDRFs
+    that do not have that column. Ensure conversion succeeds and the URI falls back to
+    the (required) data file name.
+    """
+    src_sdrf = shared_datadir / "PXD001819/PXD001819.sdrf.tsv"
+    df = pd.read_csv(src_sdrf, sep="\t", dtype=str)
+    assert "comment[file uri]" in df.columns, "fixture expected to have comment[file uri]"
+    df = df.drop(columns=["comment[file uri]"])
+
+    test_sdrf = shared_datadir / "PXD001819/PXD001819.no_file_uri.sdrf.tsv"
+    df.to_csv(test_sdrf, sep="\t", index=False)
+
+    result = run_and_check_status_code(cli, ["convert-openms", "-t2", "-s", test_sdrf])
+    assert "ERROR" not in result.output.upper(), result.output
+    _check_output_existance(on_tmpdir)
+
+    # URI (column 0) must fall back to the data file name (column 1).
+    with open(on_tmpdir / "openms.tsv", "r") as f:
+        rows = [line.rstrip("\n").split("\t") for line in f.readlines()[1:]]
+    assert rows, "openms.tsv has no data rows"
+    for row in rows:
+        assert row[0] == row[1], f"URI did not fall back to data file name: {row[0]!r} != {row[1]!r}"
 
 
 @pytest.mark.parametrize("change_extension", [True, False])
