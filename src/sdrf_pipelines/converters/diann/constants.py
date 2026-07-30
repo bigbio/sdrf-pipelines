@@ -2,6 +2,11 @@
 
 from typing import Any
 
+# Plex membership + label ordering come from the shared channel vocabulary
+# (sdrf_pipelines.converters.channel_map); only the DIA-NN-specific quantitative
+# data (channel masses, fixed mods) is defined locally, keyed by those labels.
+from sdrf_pipelines.converters.channel_map import CHANNEL_MAP, labels_for_plex, normalize_label  # noqa: F401
+
 # DIA-NN enzyme cut rules
 # Format: cleavage_rule where K* = cleave after K, !*P = don't cleave before P
 ENZYME_SPECIFICITY = {
@@ -43,9 +48,9 @@ MTRAQ_CHANNELS = {
 }
 MTRAQ_FIXED_MOD = {"name": "mTRAQ", "mass": 140.0949630177, "sites": "nK", "is_isotopic": False}
 
-MTRAQ_PLEXES = {
-    "mtraq3plex": ["MTRAQ0", "MTRAQ4", "MTRAQ8"],
-}
+# Plex membership (ordered by ascending channel mass) is sourced from the shared
+# channel_map so it can't drift from the OpenMS/qpx vocabulary.
+MTRAQ_PLEXES = {plex: labels_for_plex(plex) for plex in CHANNEL_MAP if plex.startswith("mtraq")}
 
 DIMETHYL_CHANNELS = {
     "DIMETHYL0": {"channel_name": "0", "sites": "nK", "masses": [0.0, 0.0]},
@@ -56,11 +61,7 @@ DIMETHYL_CHANNELS = {
 }
 DIMETHYL_FIXED_MOD = {"name": "Dimethyl", "mass": 28.0313, "sites": "nK", "is_isotopic": False}
 
-DIMETHYL_PLEXES = {
-    "dimethyl2plex": ["DIMETHYL0", "DIMETHYL2"],
-    "dimethyl3plex": ["DIMETHYL0", "DIMETHYL2", "DIMETHYL4"],
-    "dimethyl5plex": ["DIMETHYL0", "DIMETHYL2", "DIMETHYL4", "DIMETHYL6", "DIMETHYL8"],
-}
+DIMETHYL_PLEXES = {plex: labels_for_plex(plex) for plex in CHANNEL_MAP if plex.startswith("dimethyl")}
 
 # SILAC uses existing SDRF terms: "SILAC light", "SILAC heavy", "SILAC medium"
 SILAC_CHANNELS = {
@@ -70,10 +71,7 @@ SILAC_CHANNELS = {
 }
 SILAC_FIXED_MOD = {"name": "SILAC", "mass": 0.0, "sites": "KR", "is_isotopic": True}
 
-SILAC_PLEXES = {
-    "silac2plex": ["SILAC light", "SILAC heavy"],
-    "silac3plex": ["SILAC light", "SILAC medium", "SILAC heavy"],
-}
+SILAC_PLEXES = {plex: labels_for_plex(plex) for plex in CHANNEL_MAP if plex.startswith("silac")}
 
 # Map of all plexDIA types to their channel dicts and fixed mod info
 PLEXDIA_REGISTRY: dict[str, Any] = {

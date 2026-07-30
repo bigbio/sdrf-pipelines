@@ -1,5 +1,6 @@
 """plexDIA label detection and DIA-NN channel flag generation."""
 
+from sdrf_pipelines.converters.channel_map import normalize_label
 from sdrf_pipelines.converters.diann.constants import PLEXDIA_REGISTRY
 
 
@@ -24,7 +25,9 @@ def detect_plexdia_type(label_set: set[str]) -> dict | None:
     """
     normalized = {lbl.strip() for lbl in label_set}
 
-    if all(lbl.lower() == "label free sample" for lbl in normalized):
+    # Label-free: every label normalizes to the canonical LFQ (covers the SDRF
+    # ontology spellings "label free sample" / "label free" via channel_map synonyms).
+    if all(normalize_label(lbl) == "LFQ" for lbl in normalized):
         return None
 
     for plex_type, registry in PLEXDIA_REGISTRY.items():

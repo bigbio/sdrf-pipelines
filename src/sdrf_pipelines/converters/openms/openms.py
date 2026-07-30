@@ -25,6 +25,7 @@ from sdrf_pipelines.converters.openms.experimental_design import ExperimentalDes
 from sdrf_pipelines.converters.openms.modifications import ModificationConverter
 from sdrf_pipelines.converters.openms.utils import (
     FileToColumnEntries,
+    infer_itraqplex,
     infer_tmtplex,
     parse_tolerance,
 )
@@ -468,15 +469,7 @@ class OpenMS:
 
     def _get_itraq_plex(self, label_set: set) -> str:
         """Determine iTRAQ plex from label set."""
-        if (
-            len(label_set) > 4
-            or "ITRAQ113" in label_set
-            or "ITRAQ118" in label_set
-            or "ITRAQ119" in label_set
-            or "ITRAQ121" in label_set
-        ):
-            return "itraq8plex"
-        return "itraq4plex"
+        return infer_itraqplex(label_set)
 
     def _add_default_tmt_mods(self, f2c: FileToColumnEntries, raw: str, label: str):
         """Add default TMT modifications if not present."""
