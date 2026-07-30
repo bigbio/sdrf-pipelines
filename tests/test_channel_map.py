@@ -70,4 +70,5 @@ def test_plexdia_detects_label_free_via_synonym() -> None:
     # Both the SDRF ontology spelling and the canonical LFQ resolve to label-free.
     assert plexdia.detect_plexdia_type({"label free sample"}) is None
     assert plexdia.detect_plexdia_type({"LFQ"}) is None
-    assert plexdia.detect_plexdia_type({"MTRAQ0", "MTRAQ4", "MTRAQ8"})["type"] == "mtraq"
+    mtraq = plexdia.detect_plexdia_type({"MTRAQ0", "MTRAQ4", "MTRAQ8"})
+    assert mtraq is not None and mtraq["type"] == "mtraq"
