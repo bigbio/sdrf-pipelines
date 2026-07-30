@@ -69,7 +69,9 @@ def test_convert_openms_without_file_uri(shared_datadir, on_tmpdir):
     assert "comment[file uri]" in df.columns, "fixture expected to have comment[file uri]"
     df = df.drop(columns=["comment[file uri]"])
 
-    test_sdrf = shared_datadir / "PXD001819/PXD001819.no_file_uri.sdrf.tsv"
+    # Write the modified SDRF to the isolated tmp dir, not shared_datadir (which
+    # pytest-datadir shares across the session).
+    test_sdrf = on_tmpdir / "PXD001819.no_file_uri.sdrf.tsv"
     df.to_csv(test_sdrf, sep="\t", index=False)
 
     result = run_and_check_status_code(cli, ["convert-openms", "-t2", "-s", test_sdrf])
