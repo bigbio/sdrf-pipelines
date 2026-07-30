@@ -268,6 +268,10 @@ def validate_sdrf(
 
     if not templates:
         templates = ("ms-proteomics",)
+    # Normalize to a unique, deterministic order so repeating or reordering
+    # --template flags neither re-validates the same schema nor changes the
+    # order-independent proof hash (#317 review).
+    templates = tuple(sorted(set(templates)))
 
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)

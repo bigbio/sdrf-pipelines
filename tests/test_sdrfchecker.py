@@ -145,6 +145,10 @@ def test_validate_sdrf_honors_multiple_templates(tmp_path):
         catch_exceptions=False,
         standalone_mode=False,
     )
+    # cell-lines alone does not require the ms-proteomics column, so it must not
+    # report it (the minimal synthetic SDRF may still fail cell-lines for other
+    # baseline reasons, so the targeted absence check — not exit code — is the
+    # reliable signal here).
     assert _MS_PROTEOMICS_ONLY_COLUMN not in single.output, single.output
 
     # With both templates, the ms-proteomics rule must be enforced even though
@@ -165,3 +169,6 @@ def test_validate_sdrf_honors_multiple_templates(tmp_path):
         standalone_mode=False,
     )
     assert _MS_PROTEOMICS_ONLY_COLUMN in multi.output, multi.output
+    # the missing ms-proteomics required column is a hard error, so the command
+    # must exit non-zero (sys.exit(bool(errors_not_warnings))).
+    assert multi.exit_code != 0, multi.output
