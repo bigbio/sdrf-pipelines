@@ -62,12 +62,7 @@ def test_diann_plex_membership_is_sourced_from_shared_map():
         ("dimethyl", diann_constants.DIMETHYL_CHANNELS),
         ("silac", diann_constants.SILAC_CHANNELS),
     ]:
-        shared_labels = {
-            label
-            for plex in cm.CHANNEL_MAP
-            if plex.startswith(reagent)
-            for label in cm.CHANNEL_MAP[plex]
-        }
+        shared_labels = {label for plex in cm.CHANNEL_MAP if plex.startswith(reagent) for label in cm.CHANNEL_MAP[plex]}
         assert set(channels) == shared_labels
 
 
