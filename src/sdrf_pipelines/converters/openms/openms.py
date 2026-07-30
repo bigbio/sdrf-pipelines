@@ -410,7 +410,9 @@ class OpenMS:
         raws = []
 
         for _, row in sdrf.iterrows():
-            URI = row["comment[file uri]"]
+            # comment[file uri] is optional in SDRF-Proteomics; fall back to the
+            # (required) data file name when the column is absent (see issue #313).
+            URI = row.get("comment[file uri]", row["comment[data file]"])
             raw = row["comment[data file]"]
 
             if "comment[proteomics data acquisition method]" not in row:
