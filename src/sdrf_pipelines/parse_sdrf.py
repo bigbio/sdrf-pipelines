@@ -28,7 +28,7 @@ from sdrf_pipelines.ols.ols import (
 )
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import read_sdrf
-from sdrf_pipelines.utils.exceptions import AppConfigException
+from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
 from sdrf_pipelines.utils.utils import ValidationProof
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
@@ -183,8 +183,14 @@ def maxquant_from_sdrf(
 @click.option(
     "--template",
     "-t",
-    help="select the template that will be use to validate the file (default: ms-proteomics)",
-    default="ms-proteomics",
+    "templates",
+    help=(
+        "Template(s) to validate the SDRF against (default: ms-proteomics). "
+        "May be given multiple times; the SDRF is then validated against the union of all "
+        "templates and every template's required columns and value patterns are enforced."
+    ),
+    default=(),
+    multiple=True,
     required=False,
 )
 @click.option(
@@ -223,7 +229,7 @@ def maxquant_from_sdrf(
 def validate_sdrf(
     ctx,
     sdrf_file: str,
-    template: str,
+    templates: tuple[str, ...],
     use_ols_cache_only: bool,
     skip_ontology: bool,
     out: Optional[str] = None,
@@ -233,12 +239,14 @@ def validate_sdrf(
 ):
     """
     Command to validate the SDRF file. The validation is based on the template provided by the user.
-    User can select the template to be used for validation. If no template is provided, the default template will
+    User can select one or more templates to be used for validation. When several ``--template`` values are
+    provided, the SDRF is validated against the union of all of them, so every template's required columns and
+    value patterns are enforced in a single run. If no template is provided, the default template will
     be used. Additionally, the mass spectrometry fields and factor values can be validated separately. However, if
     the mass spectrometry validation or factor value validation is skipped, the user will be warned about it.
 
     @param sdrf_file: SDRF file to be validated
-    @param template: template to be used for a validation
+    @param templates: one or more templates to be used for validation
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
     @param skip_ontology: flag to skip ontology term validation
     @param out: Output file to write the validation results to (default: stdout)
@@ -258,8 +266,8 @@ def validate_sdrf(
         logging.error(msg)
         raise AppConfigException(msg)
 
-    if template is None:
-        template = "ms-proteomics"
+    if not templates:
+        templates = ("ms-proteomics",)
 
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
@@ -267,19 +275,27 @@ def validate_sdrf(
     validation_proof = ValidationProof()
     template_content = ""
     if generate_proof:
-        try:
-            if hasattr(registry, "raw_schema_data") and template in registry.raw_schema_data:
-                template_content = yaml.dump(registry.raw_schema_data[template], sort_keys=True)
-            else:
-                schema_dir = os.path.join(os.path.dirname(__file__), "sdrf", "schemas")
-                template_file = os.path.join(schema_dir, f"{template}.yaml")
-                if os.path.exists(template_file):
-                    with open(template_file, "r", encoding="utf-8") as f:
-                        template_content = f.read()
-        except Exception as e:
-            logging.warning("Could not load template content for proof generation: %s", e)
+        contents = []
+        for template in templates:
+            try:
+                if hasattr(registry, "raw_schema_data") and template in registry.raw_schema_data:
+                    contents.append(yaml.dump(registry.raw_schema_data[template], sort_keys=True))
+                else:
+                    schema_dir = os.path.join(os.path.dirname(__file__), "sdrf", "schemas")
+                    template_file = os.path.join(schema_dir, f"{template}.yaml")
+                    if os.path.exists(template_file):
+                        with open(template_file, "r", encoding="utf-8") as f:
+                            contents.append(f.read())
+            except Exception as e:
+                logging.warning("Could not load template content for proof generation: %s", e)
+        template_content = "\n".join(contents)
 
-    errors = validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology)
+    # Validate against every requested template and aggregate the errors so that all
+    # declared templates' rules are enforced (see issue #312). Duplicate errors shared
+    # across templates are removed later via the error DataFrame de-duplication.
+    errors: list[LogicError] = []
+    for template in templates:
+        errors.extend(validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology))
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
     error_list = []
     for error in errors:

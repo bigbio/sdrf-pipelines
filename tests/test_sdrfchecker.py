@@ -83,3 +83,85 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
         or "Everything seems to be fine. Well done." in result.output
         or "Most seems to be fine. There were only warnings." in result.output
     )
+
+
+# ``comment[cleavage agent details]`` is required by ``ms-proteomics`` but not by
+# ``cell-lines`` (the two templates are siblings that both extend ``sample-metadata``).
+_SDRF_MISSING_MS_PROTEOMICS_COLUMN = (
+    "\t".join(
+        [
+            "source name",
+            "characteristics[organism]",
+            "characteristics[cell line]",
+            "characteristics[disease]",
+            "characteristics[cellosaurus accession]",
+            "assay name",
+            "comment[instrument]",
+            "comment[label]",
+            "comment[fraction identifier]",
+            "comment[proteomics data acquisition method]",
+        ]
+    )
+    + "\n"
+    + "\t".join(
+        [
+            "sample 1",
+            "Homo sapiens",
+            "HeLa",
+            "cervical cancer",
+            "CVCL_0030",
+            "run 1",
+            "NT=Orbitrap Fusion;AC=MS:1002416",
+            "label free sample",
+            "1",
+            "NT=Data-Dependent Acquisition;AC=NCIT:C161785",
+        ]
+    )
+    + "\n"
+)
+
+_MS_PROTEOMICS_ONLY_COLUMN = "Required column 'comment[cleavage agent details]'"
+
+
+def test_validate_sdrf_honors_multiple_templates(tmp_path):
+    """Regression test for issue #312.
+
+    Passing several ``--template`` flags used to silently drop all but the last value,
+    so a rule that only belongs to an earlier template was never enforced. With the
+    fix, the SDRF is validated against the union of every ``--template`` given, so the
+    ms-proteomics-only required column is reported even though it is not the last
+    template on the command line.
+    """
+    sdrf_file = tmp_path / "cell_lines_missing_ms_proteomics_column.sdrf.tsv"
+    sdrf_file.write_text(_SDRF_MISSING_MS_PROTEOMICS_COLUMN)
+
+    runner = CliRunner()
+
+    # Only the "last" template used to win: cell-lines does not require the column,
+    # so on its own it must not report it.
+    single = runner.invoke(
+        cli,
+        ["validate-sdrf", "--sdrf_file", str(sdrf_file), "-t", "cell-lines", "--skip-ontology"],
+        catch_exceptions=False,
+        standalone_mode=False,
+    )
+    assert _MS_PROTEOMICS_ONLY_COLUMN not in single.output, single.output
+
+    # With both templates, the ms-proteomics rule must be enforced even though
+    # cell-lines is given last.
+    multi = runner.invoke(
+        cli,
+        [
+            "validate-sdrf",
+            "--sdrf_file",
+            str(sdrf_file),
+            "-t",
+            "ms-proteomics",
+            "-t",
+            "cell-lines",
+            "--skip-ontology",
+        ],
+        catch_exceptions=False,
+        standalone_mode=False,
+    )
+    assert _MS_PROTEOMICS_ONLY_COLUMN in multi.output, multi.output
