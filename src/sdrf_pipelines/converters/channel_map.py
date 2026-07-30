@@ -74,12 +74,25 @@ def _validate_synonyms(raw_synonyms: object, known_labels: set[str]) -> dict[str
         raise ValueError(f"{_CHANNEL_MAP_RESOURCE} synonyms must be a mapping")
 
     synonyms: dict[str, list[str]] = {}
+    # Track each alternate (case-insensitive, stripped) so an alias can't map to
+    # two different canonical labels — that would make normalization ambiguous.
+    seen: dict[str, str] = {}
     for canonical, alternates in raw_synonyms.items():
         if not isinstance(canonical, str) or canonical not in known_labels:
             raise ValueError(f"{_CHANNEL_MAP_RESOURCE} synonym key {canonical!r} is not a known channel label")
-        if not isinstance(alternates, list) or not all(isinstance(a, str) and a for a in alternates):
+        if not isinstance(alternates, list) or not all(isinstance(a, str) and a.strip() for a in alternates):
             raise ValueError(f"{_CHANNEL_MAP_RESOURCE} synonyms for {canonical!r} must be a list of non-empty strings")
-        synonyms[canonical] = list(alternates)
+        cleaned: list[str] = []
+        for alt in alternates:
+            alt = alt.strip()
+            key = alt.lower()
+            if key in seen and seen[key] != canonical:
+                raise ValueError(
+                    f"{_CHANNEL_MAP_RESOURCE} synonym {alt!r} maps to both {seen[key]!r} and {canonical!r}"
+                )
+            seen[key] = canonical
+            cleaned.append(alt)
+        synonyms[canonical] = cleaned
     return synonyms
 
 
