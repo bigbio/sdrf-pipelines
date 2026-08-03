@@ -552,31 +552,42 @@ if OLS_AVAILABLE:
                         )
                     )
 
-            # Accession existence + label<->accession agreement (issue #321 A1).
-            # A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
-            # value carries both NT= and AC=, and its label validated above, require the accession to
-            # be one OLS actually returns for that label. Additive: a value with no AC=, or whose
-            # label already failed, is untouched here.
+            errors.extend(self._accession_agreement_errors(value, labels, label_accessions, column_name))
+            return errors
+
+        def _accession_agreement_errors(
+            self,
+            value: pd.Series,
+            labels: list,
+            label_accessions: dict,
+            column_name: str | None,
+        ) -> list[LogicError]:
+            """Accession existence + label<->accession agreement (issue #321 A1).
+
+            A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
+            value carries both NT= and AC= and its label validated, require the accession to be one
+            OLS actually returns for that label. Additive: a value with no AC=, or whose label already
+            failed (ONTOLOGY_TERM_NOT_FOUND), is left untouched here.
+            """
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
+            errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
                 if not cell_value or str(cell_value).strip() == "":
                     continue
                 try:
                     parsed = self.ontology_term_parser(str(cell_value).lower())
                 except ValueError:
-                    continue  # malformed format already reported above
+                    continue  # malformed format already reported by the label pass
                 label = parsed.get(self.term_name)
                 accession = parsed.get("AC")
-                if not label or not accession or label in sentinels:
+                if not label or not accession or label in sentinels or label not in labels:
                     continue
-                if label not in labels:
-                    continue  # label itself is invalid — ONTOLOGY_TERM_NOT_FOUND already covers it
                 expected = label_accessions.get(label, set())
                 if accession not in expected:
                     errors.append(
                         LogicError.from_code(
                             ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
-                            accession=parsed["AC"],
+                            accession=accession,
                             label=label,
                             column=column_name,
                             expected=", ".join(sorted(expected)) or "none found",
