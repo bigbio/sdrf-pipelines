@@ -1,6 +1,5 @@
 """Experimental design file writers for OpenMS conversion."""
 
-import re
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -14,12 +13,6 @@ from sdrf_pipelines.converters.openms.constants import (
 )
 from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_itraqplex, infer_tmtplex
 from sdrf_pipelines.utils.utils import tsv_line
-
-# Pattern for a source name that is *exactly* "sample N" (the canonical corpus).
-# Matched with fullmatch, not search: a suffix match (`.search` + `$`) would let two
-# different names ending in the same "sample N" — e.g. "Tumor sample 1" and
-# "Normal sample 1" — collapse into one Sample/BioReplicate (issue #320).
-SAMPLE_IDENTIFIER_RE = re.compile(r"sample (\d+)", re.IGNORECASE)
 
 
 @dataclass
@@ -63,19 +56,14 @@ class SampleIdTracker:
     warnings: dict[str, int] = field(default_factory=dict)
 
     def get_sample_info(self, source_name: str) -> tuple[str | int, str]:
-        """Get sample ID and bio replicate string for a source name."""
-        sample_match = SAMPLE_IDENTIFIER_RE.fullmatch(source_name.strip())
-
-        if sample_match is not None:
-            sample: str | int = sample_match.group(1)
-            self._track_bio_replicate(sample)
-            bio_replicate = str(sample)
-        else:
-            self._add_warning("No sample number identifier")
-            sample = self._get_or_assign_id(source_name)
-            self._track_bio_replicate(sample)
-            bio_replicate = str(self.bio_replicates.index(sample) + 1)
-
+        """Assign a sample ID + bio replicate keyed on the source name."""
+        # `source name` is the SDRF column that is mandatory and unique per biological sample, so it
+        # *is* the sample identity: each distinct source name gets its own running id. This replaces
+        # the earlier "sample N" suffix heuristic, which both ignored the authoritative column and
+        # collapsed distinct names that merely ended in the same number (issue #320).
+        sample = self._get_or_assign_id(source_name)
+        self._track_bio_replicate(sample)
+        bio_replicate = str(self.bio_replicates.index(sample) + 1)
         return sample, bio_replicate
 
     def _get_or_assign_id(self, source_name: str) -> int:
