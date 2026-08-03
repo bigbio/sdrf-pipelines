@@ -562,14 +562,11 @@ if OLS_AVAILABLE:
             label_accessions: dict,
             column_name: str | None,
         ) -> list[LogicError]:
-            """
-            Accession existence + label<->accession agreement (issue #321 A1).
-
-            A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
-            value carries both NT= and AC= and its label validated, require the accession to be one
-            OLS actually returns for that label. Additive: a value with no AC=, or whose label already
-            failed (ONTOLOGY_TERM_NOT_FOUND), is left untouched here.
-            """
+            """Accession existence + label<->accession agreement (issue #321 A1)."""
+            # A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
+            # value carries both NT= and AC= and its label validated, require the accession to be one
+            # OLS actually returns for that label. Additive: a value with no AC=, or whose label
+            # already failed (ONTOLOGY_TERM_NOT_FOUND), is left untouched here.
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):

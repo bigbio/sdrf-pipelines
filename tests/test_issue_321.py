@@ -1,11 +1,8 @@
-"""
-Tests for issue #321 — a clean parse_sdrf pass validates syntax, not truth.
-
-A1: the ontology validator must check that an ``AC=`` accession exists and agrees
-    with its ``NT=`` label, not just that the label resolves.
-A3: OLS exact search is case-sensitive server-side, so a lower-cased query
-    (``t cell``) must still resolve a capitalised label (``T cell``).
-"""
+# Tests for issue #321 — a clean parse_sdrf pass validates syntax, not truth.
+#   A1: the ontology validator must check that an AC= accession exists and agrees with its NT= label,
+#       not just that the label resolves.
+#   A3: OLS exact search is case-sensitive server-side, so a lower-cased query (t cell) must still
+#       resolve a capitalised label (T cell).
 
 import pandas as pd
 import pytest
