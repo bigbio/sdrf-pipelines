@@ -53,11 +53,14 @@ def test_correct_label_and_accession_pass():
     assert errors == []
 
 
-def test_bogus_accession_with_valid_label_is_flagged():
-    """The historical silent-corruption case: real label, nonexistent accession."""
+def test_bogus_accession_with_valid_label_is_flagged_as_warning():
+    """Real label, nonexistent accession → flagged, but as a WARNING (never fails validation)."""
+    import logging
+
     v = _make_validator()
     errors = v.validate(pd.Series(["NT=Homo sapiens;AC=NCBITaxon:99999999"]), column_name="characteristics[organism]")
     assert _codes(errors) == ["ONTOLOGY_ACCESSION_MISMATCH"]
+    assert all(e.error_type == logging.WARNING for e in errors)
 
 
 def test_plain_label_without_accession_is_untouched():

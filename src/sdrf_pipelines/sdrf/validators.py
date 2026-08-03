@@ -562,11 +562,16 @@ if OLS_AVAILABLE:
             label_accessions: dict,
             column_name: str | None,
         ) -> list[LogicError]:
-            """Accession existence + label<->accession agreement (issue #321 A1)."""
-            # A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
-            # value carries both NT= and AC= and its label validated, require the accession to be one
-            # OLS actually returns for that label. Additive: a value with no AC=, or whose label
-            # already failed (ONTOLOGY_TERM_NOT_FOUND), is left untouched here.
+            """Flag a likely label<->accession mismatch as a WARNING (issue #321 A1)."""
+            # The label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a value
+            # carries both NT= and AC=, we surface accessions OLS does not return for that label.
+            #
+            # This is a WARNING, never an error: a single label legitimately maps to several valid
+            # accessions (across ontologies, or synonymous terms) that a single exact label search
+            # does not all surface — e.g. `data-dependent acquisition` is both PRIDE:0000449 and
+            # PRIDE:0000627, DIA is NCIT:C161786 and PRIDE:0000450 — so a strict error here produces
+            # false positives on valid files. Confirming true nonexistence needs a by-accession
+            # lookup (follow-up). Additive: no AC=, or an already-invalid label, is left untouched.
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
@@ -590,7 +595,7 @@ if OLS_AVAILABLE:
                             column=column_name,
                             expected=", ".join(sorted(expected)) or "none found",
                             row=idx,
-                            error_type=self.error_level,
+                            error_type=logging.WARNING,
                         )
                     )
             return errors
