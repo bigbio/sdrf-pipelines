@@ -137,9 +137,9 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
     ),
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: "Term: {value} in column '{column}', is not a valid ontology term",
     ErrorCode.ONTOLOGY_ACCESSION_MISMATCH: (
-        "Accession '{accession}' in column '{column}' was not among the ontology entries returned for "
-        "label '{label}' (found: {expected}). The label is valid; verify the AC= accession is the "
-        "intended term (a label can map to several valid accessions)."
+        "Accession '{accession}' in column '{column}' does not correspond to label '{label}' "
+        "(the accession resolves to: {expected}). The label is valid, but the AC= accession is "
+        "wrong — use the accession of the intended term."
     ),
     # Content
     ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}, Source: {source_name}",
