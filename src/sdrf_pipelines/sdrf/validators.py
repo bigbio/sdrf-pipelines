@@ -477,6 +477,9 @@ if OLS_AVAILABLE:
                     continue
 
             labels = []
+            # label (lowercased) -> set of accessions (obo_id, lowercased) whose label matches it.
+            # Reuses the same OLS hits as the label check, so no extra queries are issued.
+            label_accessions: dict[str, set[str]] = {}
             for term in terms:
                 if self.term_name not in term:
                     ontology_terms = None
@@ -501,6 +504,13 @@ if OLS_AVAILABLE:
                     query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
                     if term[self.term_name] in query_labels:
                         labels.append(term[self.term_name])
+                        # Record the accessions OLS returns for this exact label, so a value that
+                        # carries AC=... can be checked for label<->accession agreement (issue #321 A1).
+                        label_accessions.setdefault(term[self.term_name], set()).update(
+                            o["obo_id"].lower()
+                            for o in ontology_terms
+                            if o.get("obo_id") and o.get("label", "").lower() == term[self.term_name]
+                        )
             # Only allow sentinel values when the column definition permits them
             if self.allow_not_available:
                 labels.append(NOT_AVAILABLE)
@@ -539,6 +549,53 @@ if OLS_AVAILABLE:
                             row=idx,
                             error_type=self.error_level,
                             suggestion=suggestion,
+                        )
+                    )
+
+            errors.extend(self._accession_agreement_errors(value, labels, label_accessions, column_name))
+            return errors
+
+        def _accession_agreement_errors(
+            self,
+            value: pd.Series,
+            labels: list,
+            label_accessions: dict,
+            column_name: str | None,
+        ) -> list[LogicError]:
+            """Flag a likely label<->accession mismatch as a WARNING (issue #321 A1)."""
+            # The label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a value
+            # carries both NT= and AC=, we surface accessions OLS does not return for that label.
+            #
+            # This is a WARNING, never an error: a single label legitimately maps to several valid
+            # accessions (across ontologies, or synonymous terms) that a single exact label search
+            # does not all surface — e.g. `data-dependent acquisition` is both PRIDE:0000449 and
+            # PRIDE:0000627, DIA is NCIT:C161786 and PRIDE:0000450 — so a strict error here produces
+            # false positives on valid files. Confirming true nonexistence needs a by-accession
+            # lookup (follow-up). Additive: no AC=, or an already-invalid label, is left untouched.
+            sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
+            errors: list[LogicError] = []
+            for idx, cell_value in enumerate(value):
+                if not cell_value or str(cell_value).strip() == "":
+                    continue
+                try:
+                    parsed = self.ontology_term_parser(str(cell_value).lower())
+                except ValueError:
+                    continue  # malformed format already reported by the label pass
+                label = parsed.get(self.term_name)
+                accession = parsed.get("AC")
+                if not label or not accession or label in sentinels or label not in labels:
+                    continue
+                expected = label_accessions.get(label, set())
+                if accession not in expected:
+                    errors.append(
+                        LogicError.from_code(
+                            ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
+                            accession=accession,
+                            label=label,
+                            column=column_name,
+                            expected=", ".join(sorted(expected)) or "none found",
+                            row=idx,
+                            error_type=logging.WARNING,
                         )
                     )
             return errors
