@@ -723,8 +723,13 @@ class OlsClient:
                 # 1. First try normal exact query (hoping OLS will fix the bug someday)
                 terms = self.ols_search(term, ontology=ontology, exact=exact, **kwargs)
 
-                # 2. If empty and term has special chars, retry with normalized fuzzy query
-                if (terms is None or len(terms) == 0) and _SPECIAL_CHARS_PATTERN.search(term):
+                # 2. If exact returned nothing, retry with a fuzzy query and keep only
+                #    case-insensitive exact-label matches. This recovers two failure modes:
+                #      - special characters that break OLS exact search (SILAC heavy L:13C(6)), and
+                #      - case mismatches: callers lower-case the term, but OLS exact match is
+                #        case-sensitive, so `t cell` misses the CL label `T cell` (issue #321 A3).
+                #    The label filter below guarantees we never keep a non-exact match.
+                if (terms is None or len(terms) == 0) and exact:
                     normalized = self._normalize_term_for_fuzzy_query(term)
                     fuzzy_results = self.ols_search(normalized, ontology=ontology, exact=False, **kwargs)
                     if fuzzy_results:
@@ -733,7 +738,7 @@ class OlsClient:
                         if exact_matches:
                             terms = exact_matches
                             logger.debug(
-                                "Found term via normalized fuzzy query + exact filter: %s",
+                                "Found term via fuzzy query + case-insensitive exact-label filter: %s",
                                 term,
                             )
 
