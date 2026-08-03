@@ -562,7 +562,8 @@ if OLS_AVAILABLE:
             label_accessions: dict,
             column_name: str | None,
         ) -> list[LogicError]:
-            """Accession existence + label<->accession agreement (issue #321 A1).
+            """
+            Accession existence + label<->accession agreement (issue #321 A1).
 
             A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
             value carries both NT= and AC= and its label validated, require the accession to be one
