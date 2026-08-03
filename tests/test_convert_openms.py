@@ -176,3 +176,41 @@ def test_on_reference_sdrf(file_subpath, two_files, shared_datadir, on_tmpdir):
     result = run_and_check_status_code(cli, cmd + ["-s", str(test_sdrf)])
     assert "ERROR" not in result.output.upper(), result.output
     _check_output_existance(on_tmpdir, two_files=two_files)
+
+
+class TestSampleIdTrackerSuffixCollapse:
+    """Regression tests for issue #320.
+
+    Source names that merely *end* in the same 'sample N' must not collapse into one
+    OpenMS Sample / MSstats BioReplicate. Only a name that is exactly 'sample N' takes
+    the numeric shortcut; every other name gets a distinct per-name id.
+    """
+
+    def test_distinct_names_sharing_a_suffix_do_not_merge(self):
+        from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker
+
+        tracker = SampleIdTracker()
+        results = {
+            name: tracker.get_sample_info(name)
+            for name in ["Tumor sample 1", "Normal sample 1", "Tumor sample 2", "Normal sample 2"]
+        }
+        samples = [sample for sample, _bio in results.values()]
+        assert len(set(samples)) == 4, f"names collapsed: {results}"
+
+    def test_canonical_sample_n_still_uses_numeric_shortcut(self):
+        from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker
+
+        tracker = SampleIdTracker()
+        assert tracker.get_sample_info("Sample 1") == ("1", "1")
+        assert tracker.get_sample_info("Sample 2") == ("2", "2")
+        # the same source name maps back to the same sample
+        assert tracker.get_sample_info("Sample 1") == ("1", "1")
+
+    def test_repeated_distinct_name_is_stable(self):
+        from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker
+
+        tracker = SampleIdTracker()
+        first = tracker.get_sample_info("Tumor sample 1")
+        # an unrelated name in between must not disturb the mapping
+        tracker.get_sample_info("Normal sample 1")
+        assert tracker.get_sample_info("Tumor sample 1") == first

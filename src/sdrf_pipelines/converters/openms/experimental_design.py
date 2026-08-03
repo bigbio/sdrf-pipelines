@@ -15,8 +15,11 @@ from sdrf_pipelines.converters.openms.constants import (
 from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_itraqplex, infer_tmtplex
 from sdrf_pipelines.utils.utils import tsv_line
 
-# Pattern to extract sample number from source name
-SAMPLE_IDENTIFIER_RE = re.compile(r"sample (\d+)$", re.IGNORECASE)
+# Pattern for a source name that is *exactly* "sample N" (the canonical corpus).
+# Matched with fullmatch, not search: a suffix match (`.search` + `$`) would let two
+# different names ending in the same "sample N" — e.g. "Tumor sample 1" and
+# "Normal sample 1" — collapse into one Sample/BioReplicate (issue #320).
+SAMPLE_IDENTIFIER_RE = re.compile(r"sample (\d+)", re.IGNORECASE)
 
 
 @dataclass
@@ -61,7 +64,7 @@ class SampleIdTracker:
 
     def get_sample_info(self, source_name: str) -> tuple[str | int, str]:
         """Get sample ID and bio replicate string for a source name."""
-        sample_match = SAMPLE_IDENTIFIER_RE.search(source_name)
+        sample_match = SAMPLE_IDENTIFIER_RE.fullmatch(source_name.strip())
 
         if sample_match is not None:
             sample: str | int = sample_match.group(1)
