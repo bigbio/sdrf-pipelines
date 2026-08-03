@@ -477,6 +477,9 @@ if OLS_AVAILABLE:
                     continue
 
             labels = []
+            # label (lowercased) -> set of accessions (obo_id, lowercased) whose label matches it.
+            # Reuses the same OLS hits as the label check, so no extra queries are issued.
+            label_accessions: dict[str, set[str]] = {}
             for term in terms:
                 if self.term_name not in term:
                     ontology_terms = None
@@ -501,6 +504,13 @@ if OLS_AVAILABLE:
                     query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
                     if term[self.term_name] in query_labels:
                         labels.append(term[self.term_name])
+                        # Record the accessions OLS returns for this exact label, so a value that
+                        # carries AC=... can be checked for label<->accession agreement (issue #321 A1).
+                        label_accessions.setdefault(term[self.term_name], set()).update(
+                            o["obo_id"].lower()
+                            for o in ontology_terms
+                            if o.get("obo_id") and o.get("label", "").lower() == term[self.term_name]
+                        )
             # Only allow sentinel values when the column definition permits them
             if self.allow_not_available:
                 labels.append(NOT_AVAILABLE)
@@ -539,6 +549,39 @@ if OLS_AVAILABLE:
                             row=idx,
                             error_type=self.error_level,
                             suggestion=suggestion,
+                        )
+                    )
+
+            # Accession existence + label<->accession agreement (issue #321 A1).
+            # A clean label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a
+            # value carries both NT= and AC=, and its label validated above, require the accession to
+            # be one OLS actually returns for that label. Additive: a value with no AC=, or whose
+            # label already failed, is untouched here.
+            sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
+            for idx, cell_value in enumerate(value):
+                if not cell_value or str(cell_value).strip() == "":
+                    continue
+                try:
+                    parsed = self.ontology_term_parser(str(cell_value).lower())
+                except ValueError:
+                    continue  # malformed format already reported above
+                label = parsed.get(self.term_name)
+                accession = parsed.get("AC")
+                if not label or not accession or label in sentinels:
+                    continue
+                if label not in labels:
+                    continue  # label itself is invalid — ONTOLOGY_TERM_NOT_FOUND already covers it
+                expected = label_accessions.get(label, set())
+                if accession not in expected:
+                    errors.append(
+                        LogicError.from_code(
+                            ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
+                            accession=parsed["AC"],
+                            label=label,
+                            column=column_name,
+                            expected=", ".join(sorted(expected)) or "none found",
+                            row=idx,
+                            error_type=self.error_level,
                         )
                     )
             return errors

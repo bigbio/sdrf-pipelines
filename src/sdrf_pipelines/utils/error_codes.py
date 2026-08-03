@@ -46,6 +46,7 @@ class ErrorCode(str, Enum):
     # Ontology errors
     ONTOLOGY_TERM_NOT_FOUND = "ONTOLOGY_TERM_NOT_FOUND"
     INVALID_ONTOLOGY_TERM_FORMAT = "INVALID_ONTOLOGY_TERM_FORMAT"
+    ONTOLOGY_ACCESSION_MISMATCH = "ONTOLOGY_ACCESSION_MISMATCH"
 
     # Content errors
     EMPTY_CELL = "EMPTY_CELL"
@@ -90,6 +91,7 @@ _ERROR_CATEGORY_MAP = {
     # Ontology
     ErrorCode.ONTOLOGY_TERM_NOT_FOUND: ErrorCategory.ONTOLOGY,
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: ErrorCategory.ONTOLOGY,
+    ErrorCode.ONTOLOGY_ACCESSION_MISMATCH: ErrorCategory.ONTOLOGY,
     # Content
     ErrorCode.EMPTY_CELL: ErrorCategory.CONTENT,
     ErrorCode.INVALID_VALUE: ErrorCategory.CONTENT,
@@ -134,6 +136,11 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
         "Term: {value} in column '{column}', is not found in the given ontology list {ontologies}"
     ),
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: "Term: {value} in column '{column}', is not a valid ontology term",
+    ErrorCode.ONTOLOGY_ACCESSION_MISMATCH: (
+        "Accession '{accession}' in column '{column}' does not match the ontology entry for label "
+        "'{label}' (expected one of: {expected}). The label is valid but the AC= accession is wrong "
+        "or does not exist."
+    ),
     # Content
     ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}, Source: {source_name}",
     ErrorCode.INVALID_VALUE: "Invalid value '{value}' - must be one of the allowed values",
