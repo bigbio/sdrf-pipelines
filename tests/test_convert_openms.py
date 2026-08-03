@@ -178,13 +178,11 @@ def test_on_reference_sdrf(file_subpath, two_files, shared_datadir, on_tmpdir):
     _check_output_existance(on_tmpdir, two_files=two_files)
 
 
+# Regression tests for issue #320: source names that merely *end* in the same 'sample N' must not
+# collapse into one OpenMS Sample / MSstats BioReplicate. Only a name that is exactly 'sample N'
+# takes the numeric shortcut; every other name gets a distinct per-name id.
 class TestSampleIdTrackerSuffixCollapse:
-    """Regression tests for issue #320.
-
-    Source names that merely *end* in the same 'sample N' must not collapse into one
-    OpenMS Sample / MSstats BioReplicate. Only a name that is exactly 'sample N' takes
-    the numeric shortcut; every other name gets a distinct per-name id.
-    """
+    """Regression tests for the issue #320 suffix-collapse bug."""
 
     def test_distinct_names_sharing_a_suffix_do_not_merge(self):
         from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker
