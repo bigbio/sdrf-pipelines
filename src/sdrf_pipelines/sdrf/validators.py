@@ -562,23 +562,16 @@ if OLS_AVAILABLE:
             label_accessions: dict,
             column_name: str | None,
         ) -> list[LogicError]:
-            """Verify a value's ``AC=`` accession actually corresponds to its ``NT=`` label.
-
-            Two-step, so both directions the reviewer asked for are covered:
-
-            1. Fast path — accept if the accession is among *all* accessions the label resolved
-               to (label or synonym), collected above with no primary-label filter.
-            2. Otherwise resolve the accession itself and accept only if the label matches its
-               label or one of its synonyms (case-insensitive). This accepts valid cross-ontology
-               accessions (e.g. DIA as ``NCIT:C161786``) and rejects genuinely wrong ones
-               (e.g. ``PRIDE:0000449`` = "Gel image file URI" annotated as an acquisition method).
-
-            A genuine mismatch (accession resolves to a different term) or a nonexistent accession
-            is an ERROR at the column's level. Only when agreement cannot be verified at all
-            (``--use_ols_cache_only``: no synonyms/accession index offline, or a lookup error) is
-            it downgraded to a WARNING. Values with no ``AC=``, or an already-invalid label, are
-            left to the label pass.
-            """
+            """Verify a value's AC= accession actually corresponds to its NT= label (issue #321)."""
+            # Two steps, covering both directions the review asked for:
+            #  1. Fast path: accept if AC is among ALL accessions the label resolved to (label OR
+            #     synonym), collected above with no primary-label filter.
+            #  2. Else resolve the accession itself and accept only if the label matches its label or
+            #     a synonym (case-insensitive) — this accepts valid cross-ontology accessions (DIA as
+            #     NCIT:C161786) and rejects wrong ones (PRIDE:0000449 = "Gel image file URI").
+            # Genuine mismatch or nonexistent accession -> ERROR at the column's level; when it cannot
+            # be verified at all (--use_ols_cache_only / lookup error) -> WARNING. Values with no AC=,
+            # or an already-invalid label, are left to the label pass.
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
