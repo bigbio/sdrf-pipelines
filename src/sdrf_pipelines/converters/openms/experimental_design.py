@@ -51,20 +51,17 @@ class SampleIdTracker:
     """Tracks sample ID assignments for source names."""
 
     sample_id_map: dict[str, int] = field(default_factory=dict)
-    bio_replicates: list[str | int] = field(default_factory=list)
     next_id: int = 1
     warnings: dict[str, int] = field(default_factory=dict)
 
     def get_sample_info(self, source_name: str) -> tuple[str | int, str]:
         """Assign a sample ID + bio replicate keyed on the source name."""
         # `source name` is the SDRF column that is mandatory and unique per biological sample, so it
-        # *is* the sample identity: each distinct source name gets its own running id. This replaces
-        # the earlier "sample N" suffix heuristic, which both ignored the authoritative column and
-        # collapsed distinct names that merely ended in the same number (issue #320).
+        # *is* the sample identity: each distinct source name gets its own running id (issue #320,
+        # replacing the "sample N" suffix heuristic). Ids are assigned sequentially in order of first
+        # appearance, so the id already equals the biological-replicate number.
         sample = self._get_or_assign_id(source_name)
-        self._track_bio_replicate(sample)
-        bio_replicate = str(self.bio_replicates.index(sample) + 1)
-        return sample, bio_replicate
+        return sample, str(sample)
 
     def _get_or_assign_id(self, source_name: str) -> int:
         """Get existing or assign new sample ID for source name."""
@@ -72,11 +69,6 @@ class SampleIdTracker:
             self.sample_id_map[source_name] = self.next_id
             self.next_id += 1
         return self.sample_id_map[source_name]
-
-    def _track_bio_replicate(self, sample: str | int) -> None:
-        """Track sample in bio replicates list if not already present."""
-        if sample not in self.bio_replicates:
-            self.bio_replicates.append(sample)
 
     def _add_warning(self, message: str) -> None:
         """Add a warning message."""
@@ -241,7 +233,7 @@ class ExperimentalDesignWriter:
 
         for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
-            source_name = row["source name"]
+            source_name = str(row["source name"]).strip()
             replicate = file2technical_rep[raw]
 
             fraction_group = self._calculate_fraction_group(
@@ -277,7 +269,7 @@ class ExperimentalDesignWriter:
 
         for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
-            source_name = row["source name"]
+            source_name = str(row["source name"]).strip()
             sample, bio_replicate = sample_tracker.get_sample_info(source_name)
             condition = self._get_condition(file2combined_factors, raw, row["comment[label]"], source_name)
 
@@ -325,7 +317,7 @@ class ExperimentalDesignWriter:
 
         for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
-            source_name = row["source name"]
+            source_name = str(row["source name"]).strip()
             replicate = file2technical_rep[raw]
 
             fraction_group = self._calculate_fraction_group(
