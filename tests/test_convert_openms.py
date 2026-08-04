@@ -178,9 +178,9 @@ def test_on_reference_sdrf(file_subpath, two_files, shared_datadir, on_tmpdir):
     _check_output_existance(on_tmpdir, two_files=two_files)
 
 
-# Regression tests for issue #320: source names that merely *end* in the same 'sample N' must not
-# collapse into one OpenMS Sample / MSstats BioReplicate. Only a name that is exactly 'sample N'
-# takes the numeric shortcut; every other name gets a distinct per-name id.
+# Regression tests for issue #320: the sample id is keyed on `source name` (the mandatory,
+# unique-per-sample SDRF column), so distinct names never collapse — including names that merely
+# end in the same number (the old "sample N" suffix heuristic collapsed those).
 class TestSampleIdTrackerSuffixCollapse:
     """Regression tests for the issue #320 suffix-collapse bug."""
 
@@ -195,14 +195,14 @@ class TestSampleIdTrackerSuffixCollapse:
         samples = [sample for sample, _bio in results.values()]
         assert len(set(samples)) == 4, f"names collapsed: {results}"
 
-    def test_canonical_sample_n_still_uses_numeric_shortcut(self):
+    def test_distinct_source_names_get_running_ids(self):
         from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker
 
         tracker = SampleIdTracker()
-        assert tracker.get_sample_info("Sample 1") == ("1", "1")
-        assert tracker.get_sample_info("Sample 2") == ("2", "2")
+        assert tracker.get_sample_info("Sample 1") == (1, "1")
+        assert tracker.get_sample_info("Sample 2") == (2, "2")
         # the same source name maps back to the same sample
-        assert tracker.get_sample_info("Sample 1") == ("1", "1")
+        assert tracker.get_sample_info("Sample 1") == (1, "1")
 
     def test_repeated_distinct_name_is_stable(self):
         from sdrf_pipelines.converters.openms.experimental_design import SampleIdTracker

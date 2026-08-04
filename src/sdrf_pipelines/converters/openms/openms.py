@@ -113,7 +113,7 @@ class OpenMS:
 
         for _, row in sdrf.iterrows():
             raw = row["comment[data file]"]
-            source_name = row["source name"]
+            source_name = str(row["source name"]).strip()
 
             # Extract modifications
             all_mods = list(row[mod_cols])
