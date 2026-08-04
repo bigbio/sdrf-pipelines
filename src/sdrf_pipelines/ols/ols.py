@@ -762,6 +762,39 @@ class OlsClient:
                     raise
         return terms
 
+    def labels_for_accession(self, accession: str, use_ols_cache_only: bool = False) -> set[str] | None:
+        """Resolve an accession (obo_id) to the set of its label + synonyms (lowercased)."""
+        # Used to verify an SDRF value's AC= agrees with its NT= label. Return values:
+        #   - a set of lowercase label + synonym strings -> the accession resolves
+        #   - an empty set -> the lookup ran but the accession does not exist
+        #   - None -> cannot be verified (cache-only: the parquet cache is label-indexed
+        #             with no synonyms/accession index; or a live lookup error) -> caller warns
+        if use_ols_cache_only:
+            return None
+        try:
+            docs = self.ols_search(
+                accession,
+                query_fields="obo_id",
+                field_list=["label", "obo_id", "synonym"],
+                exact=True,
+            )
+        except Exception as e:  # network / OLS error → cannot verify
+            logger.warning("By-accession lookup failed for %s: %s", accession, e)
+            return None
+        acc_lower = accession.lower()
+        labels: set[str] = set()
+        matched = False
+        for doc in docs or []:
+            if str(doc.get("obo_id", "")).lower() != acc_lower:
+                continue
+            matched = True
+            if doc.get("label"):
+                labels.add(str(doc["label"]).lower())
+            syn_val: Any = doc.get("synonym")
+            synonyms: list[str] = [syn_val] if isinstance(syn_val, str) else [str(s) for s in (syn_val or [])]
+            labels.update(s.lower() for s in synonyms)
+        return labels if matched else set()
+
     def _perform_ols_search(
         self, params: dict[str, Any], name: str, exact: bool, retry_num: int = 0
     ) -> list[dict[str, str]]:

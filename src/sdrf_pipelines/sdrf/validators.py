@@ -504,12 +504,12 @@ if OLS_AVAILABLE:
                     query_labels = [o["label"].lower() for o in ontology_terms if "label" in o]
                     if term[self.term_name] in query_labels:
                         labels.append(term[self.term_name])
-                        # Record the accessions OLS returns for this exact label, so a value that
-                        # carries AC=... can be checked for label<->accession agreement (issue #321 A1).
+                        # Record EVERY accession this exact label resolves to (label OR synonym
+                        # match — do not filter to the primary label), so a value carrying AC= can
+                        # be checked for label<->accession agreement (issue #321). Filtering to the
+                        # primary label here would drop valid synonym accessions and mis-flag them.
                         label_accessions.setdefault(term[self.term_name], set()).update(
-                            o["obo_id"].lower()
-                            for o in ontology_terms
-                            if o.get("obo_id") and o.get("label", "").lower() == term[self.term_name]
+                            o["obo_id"].lower() for o in ontology_terms if o.get("obo_id")
                         )
             # Only allow sentinel values when the column definition permits them
             if self.allow_not_available:
@@ -562,16 +562,16 @@ if OLS_AVAILABLE:
             label_accessions: dict,
             column_name: str | None,
         ) -> list[LogicError]:
-            """Flag a likely label<->accession mismatch as a WARNING (issue #321 A1)."""
-            # The label check alone lets a bogus AC= (e.g. NCBITaxon:99999999) through. When a value
-            # carries both NT= and AC=, we surface accessions OLS does not return for that label.
-            #
-            # This is a WARNING, never an error: a single label legitimately maps to several valid
-            # accessions (across ontologies, or synonymous terms) that a single exact label search
-            # does not all surface — e.g. `data-dependent acquisition` is both PRIDE:0000449 and
-            # PRIDE:0000627, DIA is NCIT:C161786 and PRIDE:0000450 — so a strict error here produces
-            # false positives on valid files. Confirming true nonexistence needs a by-accession
-            # lookup (follow-up). Additive: no AC=, or an already-invalid label, is left untouched.
+            """Verify a value's AC= accession actually corresponds to its NT= label (issue #321)."""
+            # Two steps, covering both directions the review asked for:
+            #  1. Fast path: accept if AC is among ALL accessions the label resolved to (label OR
+            #     synonym), collected above with no primary-label filter.
+            #  2. Else resolve the accession itself and accept only if the label matches its label or
+            #     a synonym (case-insensitive) — this accepts valid cross-ontology accessions (DIA as
+            #     NCIT:C161786) and rejects wrong ones (PRIDE:0000449 = "Gel image file URI").
+            # Genuine mismatch or nonexistent accession -> ERROR at the column's level; when it cannot
+            # be verified at all (--use_ols_cache_only / lookup error) -> WARNING. Values with no AC=,
+            # or an already-invalid label, are left to the label pass.
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
@@ -585,17 +585,38 @@ if OLS_AVAILABLE:
                 accession = parsed.get("AC")
                 if not label or not accession or label in sentinels or label not in labels:
                     continue
-                expected = label_accessions.get(label, set())
-                if accession not in expected:
+                if accession in label_accessions.get(label, set()):
+                    continue  # fast path: accession is one the label resolves to
+                acc_labels = self.client.labels_for_accession(accession, use_ols_cache_only=self.use_ols_cache_only)
+                if acc_labels is None:
+                    # Cannot verify (offline/cache-only or lookup error) → warn, do not fail.
                     errors.append(
                         LogicError.from_code(
                             ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
                             accession=accession,
                             label=label,
                             column=column_name,
-                            expected=", ".join(sorted(expected)) or "none found",
+                            detail="agreement could not be verified (no live ontology lookup)",
                             row=idx,
                             error_type=logging.WARNING,
+                        )
+                    )
+                elif label not in acc_labels:
+                    detail = (
+                        f"the accession resolves to a different term ({', '.join(sorted(acc_labels))}); "
+                        "use the accession of the intended term"
+                        if acc_labels
+                        else "the accession does not exist in the ontology"
+                    )
+                    errors.append(
+                        LogicError.from_code(
+                            ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
+                            accession=accession,
+                            label=label,
+                            column=column_name,
+                            detail=detail,
+                            row=idx,
+                            error_type=self.error_level,
                         )
                     )
             return errors
