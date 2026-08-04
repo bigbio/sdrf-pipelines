@@ -596,20 +596,25 @@ if OLS_AVAILABLE:
                             accession=accession,
                             label=label,
                             column=column_name,
-                            expected="could not verify (no live ontology lookup)",
+                            detail="agreement could not be verified (no live ontology lookup)",
                             row=idx,
                             error_type=logging.WARNING,
                         )
                     )
                 elif label not in acc_labels:
-                    resolved = ", ".join(sorted(acc_labels)) if acc_labels else "does not exist"
+                    detail = (
+                        f"the accession resolves to a different term ({', '.join(sorted(acc_labels))}); "
+                        "use the accession of the intended term"
+                        if acc_labels
+                        else "the accession does not exist in the ontology"
+                    )
                     errors.append(
                         LogicError.from_code(
                             ErrorCode.ONTOLOGY_ACCESSION_MISMATCH,
                             accession=accession,
                             label=label,
                             column=column_name,
-                            expected=resolved,
+                            detail=detail,
                             row=idx,
                             error_type=self.error_level,
                         )

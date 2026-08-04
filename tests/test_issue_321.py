@@ -50,9 +50,11 @@ def _make_validator(cache_only=False):
         return _LABEL_HITS.get(term.lower(), [])
 
     def fake_labels_for_accession(accession, use_ols_cache_only=False):
+        # Mirror the real OlsClient: None only when it cannot be verified (cache-only); an accession
+        # that is looked up but not found resolves to an empty set (i.e. does not exist).
         if use_ols_cache_only:
-            return None  # cannot verify offline
-        return _ACC_LABELS.get(accession.lower())  # None => unknown accession, not looked up
+            return None
+        return _ACC_LABELS.get(accession.lower(), set())
 
     params = {"ontologies": ["ncbitaxon"], "error_level": "error"}
     if cache_only:

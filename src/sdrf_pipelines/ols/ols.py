@@ -791,8 +791,8 @@ class OlsClient:
             if doc.get("label"):
                 labels.add(str(doc["label"]).lower())
             syn_val: Any = doc.get("synonym")
-            synonyms: list = [syn_val] if isinstance(syn_val, str) else list(syn_val or [])
-            labels.update(str(s).lower() for s in synonyms)
+            synonyms: list[str] = [syn_val] if isinstance(syn_val, str) else [str(s) for s in (syn_val or [])]
+            labels.update(s.lower() for s in synonyms)
         return labels if matched else set()
 
     def _perform_ols_search(
