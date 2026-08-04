@@ -12,7 +12,7 @@ from sdrf_pipelines.ols.ols import OlsClient
 pytestmark = pytest.mark.ontology
 
 
-def _client_with(search=None, ols_search=None, use_cache=False):
+def _client_with(search=None, ols_search=None, labels_for_accession=None, use_cache=False):
     """Build an OlsClient without its heavy __init__, stubbing methods as instance attrs."""
     client = OlsClient.__new__(OlsClient)
     client.use_cache = use_cache
@@ -20,6 +20,8 @@ def _client_with(search=None, ols_search=None, use_cache=False):
         client.search = search
     if ols_search is not None:
         client.ols_search = ols_search
+    if labels_for_accession is not None:
+        client.labels_for_accession = labels_for_accession
     return client
 
 
@@ -27,55 +29,95 @@ def _codes(errors):
     return [e.error_code.value for e in errors]
 
 
-def _make_validator():
+# label -> exact-search hits (in the column's ontology). Only ncbitaxon here.
+_LABEL_HITS = {
+    "homo sapiens": [{"label": "Homo sapiens", "obo_id": "NCBITaxon:9606"}],
+}
+# accession -> its label + synonyms (what a by-accession lookup resolves to).
+# empty set == accession does not exist; a returned None == cannot verify.
+_ACC_LABELS = {
+    "ncbitaxon:9606": {"homo sapiens"},
+    "ncbitaxon:10090": {"mus musculus"},  # a real term, but the wrong one
+    "ncbitaxon:99999999": set(),  # does not exist
+    "ncit:c161786": {"data-independent acquisition", "dia"},  # valid cross-ontology
+}
+
+
+def _make_validator(cache_only=False):
     from sdrf_pipelines.sdrf.validators import OntologyValidator
 
-    db = {
-        "homo sapiens": [{"label": "Homo sapiens", "obo_id": "NCBITaxon:9606"}],
-        "t cell": [{"label": "T cell", "obo_id": "CL:0000084"}],
-    }
-
     def fake_search(term, ontology=None, exact=True, use_ols_cache_only=False, **kwargs):
-        return db.get(term.lower(), [])
+        return _LABEL_HITS.get(term.lower(), [])
 
+    def fake_labels_for_accession(accession, use_ols_cache_only=False):
+        # Mirror the real OlsClient: None only when it cannot be verified (cache-only); an accession
+        # that is looked up but not found resolves to an empty set (i.e. does not exist).
+        if use_ols_cache_only:
+            return None
+        return _ACC_LABELS.get(accession.lower(), set())
+
+    params = {"ontologies": ["ncbitaxon"], "error_level": "error"}
+    if cache_only:
+        params["use_ols_cache_only"] = True
     return OntologyValidator(
-        params={"ontologies": ["ncbitaxon"], "error_level": "error"},
-        client=_client_with(search=fake_search),
+        params=params,
+        client=_client_with(search=fake_search, labels_for_accession=fake_labels_for_accession),
     )
 
 
 # --------------------------------------------------------------------------- A1
 
 
+def _errs(v, value):
+    return v.validate(pd.Series([value]), column_name="characteristics[organism]")
+
+
 def test_correct_label_and_accession_pass():
-    v = _make_validator()
-    errors = v.validate(pd.Series(["NT=Homo sapiens;AC=NCBITaxon:9606"]), column_name="characteristics[organism]")
-    assert errors == []
+    # fast path: accession is one the label resolves to
+    assert _errs(_make_validator(), "NT=Homo sapiens;AC=NCBITaxon:9606") == []
 
 
-def test_bogus_accession_with_valid_label_is_flagged_as_warning():
-    """Real label, nonexistent accession → flagged, but as a WARNING (never fails validation)."""
+def test_cross_ontology_accession_matching_by_synonym_passes():
+    """An accession not in the label's own ontology, but whose label/synonym matches, is accepted."""
+    _ACC_LABELS["other:1"] = {"homo sapiens", "human"}  # matches NT via label
+    try:
+        assert _errs(_make_validator(), "NT=Homo sapiens;AC=Other:1") == []
+    finally:
+        del _ACC_LABELS["other:1"]
+
+
+def test_wrong_accession_resolving_to_other_term_is_error():
     import logging
 
-    v = _make_validator()
-    errors = v.validate(pd.Series(["NT=Homo sapiens;AC=NCBITaxon:99999999"]), column_name="characteristics[organism]")
+    errors = _errs(_make_validator(), "NT=Homo sapiens;AC=NCBITaxon:10090")  # that's mouse
+    assert _codes(errors) == ["ONTOLOGY_ACCESSION_MISMATCH"]
+    assert all(e.error_type == logging.ERROR for e in errors)
+
+
+def test_nonexistent_accession_is_error():
+    import logging
+
+    errors = _errs(_make_validator(), "NT=Homo sapiens;AC=NCBITaxon:99999999")
+    assert _codes(errors) == ["ONTOLOGY_ACCESSION_MISMATCH"]
+    assert all(e.error_type == logging.ERROR for e in errors)
+
+
+def test_cache_only_downgrades_to_warning():
+    """When agreement cannot be verified offline, it is a warning, not an error."""
+    import logging
+
+    errors = _errs(_make_validator(cache_only=True), "NT=Homo sapiens;AC=NCBITaxon:10090")
     assert _codes(errors) == ["ONTOLOGY_ACCESSION_MISMATCH"]
     assert all(e.error_type == logging.WARNING for e in errors)
 
 
 def test_plain_label_without_accession_is_untouched():
-    """Additive: a value with no AC= must not gain a new error."""
-    v = _make_validator()
-    errors = v.validate(pd.Series(["Homo sapiens"]), column_name="characteristics[organism]")
-    assert errors == []
+    assert _errs(_make_validator(), "Homo sapiens") == []
 
 
 def test_invalid_label_reports_once_not_twice():
     """A bad label already yields ONTOLOGY_TERM_NOT_FOUND; no duplicate accession error."""
-    v = _make_validator()
-    errors = v.validate(
-        pd.Series(["NT=Nonexistent species;AC=NCBITaxon:9606"]), column_name="characteristics[organism]"
-    )
+    errors = _errs(_make_validator(), "NT=Nonexistent species;AC=NCBITaxon:9606")
     assert _codes(errors) == ["ONTOLOGY_TERM_NOT_FOUND"]
 
 
