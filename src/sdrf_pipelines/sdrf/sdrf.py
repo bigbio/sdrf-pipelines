@@ -123,27 +123,51 @@ class SDRFMetadata:
     def _parse_name_version_format(self, value: str) -> Optional[dict[str, str | None]]:
         """Parse name/version from supported formats.
 
-        Supported formats:
+        Supported and more permissive formats handled:
         - Simple format: name vX.Y.Z (e.g., 'human v1.1.0')
-        - Key=value format with VV: NT=name;VV=vX.Y.Z (e.g., 'NT=human;VV=v1.1.0')
-        - Key=value format with version: NT=name;version=vX.Y.Z (e.g., 'NT=human;version=v1.1.0')
+        - Key/value pairs (order-insensitive, case-insensitive), e.g. 'NT=human;VV=v1.1.0' or 'nt=human;version=1.1.0'
+        - NT-only: 'NT=human' -> name='human', version=None
 
         Returns dict with 'name' and 'version' keys, or None if not parseable.
         """
-        if value.startswith("NT=") and ";VV=" in value:
-            # Key=value format: NT=name;VV=vX.Y.Z
-            content = value[3:]  # Remove "NT=" prefix
-            parts = content.split(";VV=")
-            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
-        elif value.startswith("NT=") and ";version=" in value:
-            # Key=value format: NT=name;version=vX.Y.Z (legacy format from annotated datasets)
-            content = value[3:]  # Remove "NT=" prefix
-            parts = content.split(";version=")
-            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
-        elif " v" in value:
-            # Simple format: name vX.Y.Z
-            parts = value.rsplit(" v", 1)
-            return {"name": parts[0], "version": "v" + parts[1] if len(parts) > 1 else None}
+        if not isinstance(value, str):
+            return None
+
+        v = value.strip()
+        # Try to find NT= and VV= / version= pairs in a case-insensitive way
+        import re
+
+        # key=value pairs separated by ; or ,
+        kv_pairs = re.split(r"[;,]", v)
+        kv_map: dict[str, str] = {}
+        for pair in kv_pairs:
+            if "=" in pair:
+                k, val = pair.split("=", 1)
+                kv_map[k.strip().lower()] = val.strip()
+
+        # If NT present, use it
+        if "nt" in kv_map:
+            name = kv_map.get("nt")
+            version = kv_map.get("vv") or kv_map.get("version")
+            if version:
+                # normalize to start with 'v' if it looks like a numeric version
+                if not version.lower().startswith("v") and re.match(r"^\d+(?:\.\d+)*$", version):
+                    version = f"v{version}"
+            return {"name": name, "version": version}
+
+        # Fallback: simple 'name vX.Y.Z' pattern (last ' v' separates version)
+        if " v" in v:
+            parts = v.rsplit(" v", 1)
+            name = parts[0].strip()
+            ver = parts[1].strip()
+            if ver and not ver.lower().startswith("v"):
+                ver = f"v{ver}"
+            return {"name": name, "version": ver}
+
+        # Fallback: bare value (treat as name)
+        if v:
+            return {"name": v, "version": None}
+
         return None
 
     def get_version(self) -> Optional[str]:
