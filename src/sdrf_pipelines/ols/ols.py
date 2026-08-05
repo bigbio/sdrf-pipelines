@@ -683,14 +683,10 @@ class OlsClient:
         """
         url = self.ontology_ancestors.format(ontology=ontology, iri=_dparse(iri))
         response = self.session.get(url)
-        try:
-            return response.json()["_embedded"]["terms"]
-        except KeyError as ex:
-            logger.warning(
-                "Term was found but ancestor lookup returned an empty response: %s",
-                response.json(),
-            )
-            raise ex
+        # OLS omits "_embedded" when the ancestor set is empty (a root term) and also when a
+        # transient response drops the payload. Treat both as "no ancestors" and return [] rather
+        # than raising: a network blip must not hard-crash callers, and no caller relies on KeyError.
+        return response.json().get("_embedded", {}).get("terms", [])
 
     def _normalize_term_for_fuzzy_query(self, term: str) -> str:
         """Replace special characters that break OLS exact search with spaces, collapse spaces."""
