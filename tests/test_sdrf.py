@@ -155,6 +155,19 @@ class TestSDRFMetadataFormats:
             ("NT=human;VV=v1.1.0", "human", "v1.1.0"),
             ("NT=ms-proteomics;VV=v2.0.0-dev", "ms-proteomics", "v2.0.0-dev"),
             ("NT=cell-line;VV=v1.0.0", "cell-line", "v1.0.0"),
+            # NT-only (no version)
+            ("NT=human", "human", None),
+            # case-insensitive keys + numeric version normalized to 'v' prefix
+            ("nt=human;version=1.1.0", "human", "v1.1.0"),
+            ("NT=x;VV=1.1.0", "x", "v1.1.0"),
+            # comma separator between pairs
+            ("NT=human,VV=v1.1.0", "human", "v1.1.0"),
+            # dev-suffixed numeric version normalized consistently
+            ("NT=x;VV=2.0.0-dev", "x", "v2.0.0-dev"),
+            # bare value -> treated as a template name
+            ("cell-lines", "cell-lines", None),
+            # surrounding whitespace tolerated
+            ("  human v1.1.0  ", "human", "v1.1.0"),
         ],
     )
     def test_template_format_parsing(self, template_value, expected_name, expected_version):
@@ -172,6 +185,37 @@ class TestSDRFMetadataFormats:
         assert len(templates) == 1
         assert templates[0]["template"] == expected_name
         assert templates[0]["version"] == expected_version
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            (None, None),  # non-str
+            (123, None),  # non-str
+            ("", None),  # empty
+            ("   ", None),  # whitespace-only
+        ],
+    )
+    def test_parse_name_version_non_parseable(self, value, expected):
+        """Non-string or empty template values parse to None."""
+        metadata = SDRFMetadata(df=pd.DataFrame({"source name": ["s1"]}))
+        assert metadata._parse_name_version_format(value) is expected
+
+    @pytest.mark.parametrize(
+        "version,expected",
+        [
+            ("1.1.0", "v1.1.0"),
+            ("v1.1.0", "v1.1.0"),
+            ("2.0.0-dev", "v2.0.0-dev"),
+            ("v2.0.0-dev", "v2.0.0-dev"),
+            ("nightly", "nightly"),  # non-numeric left unchanged
+            ("  1.0  ", "v1.0"),
+            (None, None),
+            ("", None),
+        ],
+    )
+    def test_normalize_version(self, version, expected):
+        """`_normalize_version` prepends 'v' only to bare numeric versions."""
+        assert SDRFMetadata._normalize_version(version) == expected
 
     def test_multiple_template_columns(self):
         """Test parsing multiple template columns."""
