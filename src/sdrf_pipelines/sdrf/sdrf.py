@@ -1,4 +1,5 @@
 import io
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -120,30 +121,49 @@ class SDRFMetadata:
         # Fall back to header-based
         return [p for p in self.properties if "template" in p]
 
+    @staticmethod
+    def _normalize_version(version: Optional[str]) -> Optional[str]:
+        """Strip a version and prepend 'v' to a bare numeric one ('1.1.0' -> 'v1.1.0')."""
+        # '2.0.0-dev' -> 'v2.0.0-dev'; already-'v'/non-numeric unchanged; empty/None -> None.
+        if not version:
+            return None
+        version = version.strip()
+        if not version:
+            return None
+        if not version.lower().startswith("v") and re.match(r"^\d+(?:\.\d+)*(?:-\w+)?$", version):
+            version = f"v{version}"
+        return version
+
     def _parse_name_version_format(self, value: str) -> Optional[dict[str, str | None]]:
-        """Parse name/version from supported formats.
+        """Parse a comment[sdrf template] value into {name, version}, or None if empty/non-str."""
+        # Formats (permissive): 'name vX.Y.Z'; key/value pairs order- and case-insensitive,
+        # ';' or ',' separated ('NT=human;VV=v1.1.0', 'nt=human;version=1.1.0'); 'NT=human'
+        # (no version); and a bare 'human' -> name only.
+        if not isinstance(value, str):
+            return None
 
-        Supported formats:
-        - Simple format: name vX.Y.Z (e.g., 'human v1.1.0')
-        - Key=value format with VV: NT=name;VV=vX.Y.Z (e.g., 'NT=human;VV=v1.1.0')
-        - Key=value format with version: NT=name;version=vX.Y.Z (e.g., 'NT=human;version=v1.1.0')
+        v = value.strip()
 
-        Returns dict with 'name' and 'version' keys, or None if not parseable.
-        """
-        if value.startswith("NT=") and ";VV=" in value:
-            # Key=value format: NT=name;VV=vX.Y.Z
-            content = value[3:]  # Remove "NT=" prefix
-            parts = content.split(";VV=")
-            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
-        elif value.startswith("NT=") and ";version=" in value:
-            # Key=value format: NT=name;version=vX.Y.Z (legacy format from annotated datasets)
-            content = value[3:]  # Remove "NT=" prefix
-            parts = content.split(";version=")
-            return {"name": parts[0], "version": parts[1] if len(parts) > 1 else None}
-        elif " v" in value:
-            # Simple format: name vX.Y.Z
-            parts = value.rsplit(" v", 1)
-            return {"name": parts[0], "version": "v" + parts[1] if len(parts) > 1 else None}
+        # key=value pairs, order- and case-insensitive, separated by ';' or ','
+        kv_map: dict[str, str] = {}
+        for pair in re.split(r"[;,]", v):
+            if "=" in pair:
+                k, val = pair.split("=", 1)
+                kv_map[k.strip().lower()] = val.strip()
+
+        if "nt" in kv_map:
+            return {"name": kv_map["nt"], "version": self._normalize_version(kv_map.get("vv") or kv_map.get("version"))}
+
+        # Simple 'name vX.Y.Z' (the last ' v' separates the version)
+        if " v" in v:
+            name, _, ver = v.rpartition(" v")
+            ver = ver.strip()
+            return {"name": name.strip(), "version": f"v{ver}" if ver else None}
+
+        # Bare value -> treat as a template name
+        if v:
+            return {"name": v, "version": None}
+
         return None
 
     def get_version(self) -> Optional[str]:

@@ -569,9 +569,11 @@ if OLS_AVAILABLE:
             #  2. Else resolve the accession itself and accept only if the label matches its label or
             #     a synonym (case-insensitive) — this accepts valid cross-ontology accessions (DIA as
             #     NCIT:C161786) and rejects wrong ones (PRIDE:0000449 = "Gel image file URI").
-            # Genuine mismatch or nonexistent accession -> ERROR at the column's level; when it cannot
-            # be verified at all (--use_ols_cache_only / lookup error) -> WARNING. Values with no AC=,
-            # or an already-invalid label, are left to the label pass.
+            # An accession that resolves to a DIFFERENT term -> ERROR at the column's level. When it
+            # cannot be verified (accession did not resolve, OLS unavailable, or --use_ols_cache_only)
+            # -> WARNING, never an error: OLS server errors surface as an empty lookup, so a hard
+            # error there would fail clean files during an outage. Values with no AC=, or an
+            # already-invalid label, are left to the label pass.
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
@@ -602,11 +604,11 @@ if OLS_AVAILABLE:
                         )
                     )
                 elif label not in acc_labels:
+                    # acc_labels is a non-empty set here (None is handled above), so the accession
+                    # resolved to a different term than the label -> a genuine mismatch.
                     detail = (
                         f"the accession resolves to a different term ({', '.join(sorted(acc_labels))}); "
                         "use the accession of the intended term"
-                        if acc_labels
-                        else "the accession does not exist in the ontology"
                     )
                     errors.append(
                         LogicError.from_code(
