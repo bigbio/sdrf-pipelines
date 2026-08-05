@@ -123,12 +123,8 @@ class SDRFMetadata:
 
     @staticmethod
     def _normalize_version(version: Optional[str]) -> Optional[str]:
-        """Normalize a version string.
-
-        Strips whitespace and prepends 'v' to a bare numeric version
-        ('1.1.0' -> 'v1.1.0', '2.0.0-dev' -> 'v2.0.0-dev'). Already-'v'-prefixed or
-        non-numeric values are returned unchanged; empty/None -> None.
-        """
+        """Strip a version and prepend 'v' to a bare numeric one ('1.1.0' -> 'v1.1.0')."""
+        # '2.0.0-dev' -> 'v2.0.0-dev'; already-'v'/non-numeric unchanged; empty/None -> None.
         if not version:
             return None
         version = version.strip()
@@ -139,16 +135,10 @@ class SDRFMetadata:
         return version
 
     def _parse_name_version_format(self, value: str) -> Optional[dict[str, str | None]]:
-        """Parse name/version from supported (permissive) formats.
-
-        - Simple: 'name vX.Y.Z' (e.g. 'human v1.1.0')
-        - Key/value pairs, order- and case-insensitive, separated by ';' or ',':
-          'NT=human;VV=v1.1.0', 'nt=human;version=1.1.0'
-        - NT-only: 'NT=human' -> name='human', version=None
-        - Bare value: 'human' -> name='human', version=None
-
-        Returns dict with 'name' and 'version' keys, or None for non-str / empty input.
-        """
+        """Parse a comment[sdrf template] value into {name, version}, or None if empty/non-str."""
+        # Formats (permissive): 'name vX.Y.Z'; key/value pairs order- and case-insensitive,
+        # ';' or ',' separated ('NT=human;VV=v1.1.0', 'nt=human;version=1.1.0'); 'NT=human'
+        # (no version); and a bare 'human' -> name only.
         if not isinstance(value, str):
             return None
 
