@@ -1,4 +1,5 @@
 import io
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -120,51 +121,46 @@ class SDRFMetadata:
         # Fall back to header-based
         return [p for p in self.properties if "template" in p]
 
+    @staticmethod
+    def _normalize_version(version: Optional[str]) -> Optional[str]:
+        """Strip a version and prepend 'v' to a bare numeric one ('1.1.0' -> 'v1.1.0')."""
+        # '2.0.0-dev' -> 'v2.0.0-dev'; already-'v'/non-numeric unchanged; empty/None -> None.
+        if not version:
+            return None
+        version = version.strip()
+        if not version:
+            return None
+        if not version.lower().startswith("v") and re.match(r"^\d+(?:\.\d+)*(?:-\w+)?$", version):
+            version = f"v{version}"
+        return version
+
     def _parse_name_version_format(self, value: str) -> Optional[dict[str, str | None]]:
-        """Parse name/version from supported formats.
-
-        Supported and more permissive formats handled:
-        - Simple format: name vX.Y.Z (e.g., 'human v1.1.0')
-        - Key/value pairs (order-insensitive, case-insensitive), e.g. 'NT=human;VV=v1.1.0' or 'nt=human;version=1.1.0'
-        - NT-only: 'NT=human' -> name='human', version=None
-
-        Returns dict with 'name' and 'version' keys, or None if not parseable.
-        """
+        """Parse a comment[sdrf template] value into {name, version}, or None if empty/non-str."""
+        # Formats (permissive): 'name vX.Y.Z'; key/value pairs order- and case-insensitive,
+        # ';' or ',' separated ('NT=human;VV=v1.1.0', 'nt=human;version=1.1.0'); 'NT=human'
+        # (no version); and a bare 'human' -> name only.
         if not isinstance(value, str):
             return None
 
         v = value.strip()
-        # Try to find NT= and VV= / version= pairs in a case-insensitive way
-        import re
 
-        # key=value pairs separated by ; or ,
-        kv_pairs = re.split(r"[;,]", v)
+        # key=value pairs, order- and case-insensitive, separated by ';' or ','
         kv_map: dict[str, str] = {}
-        for pair in kv_pairs:
+        for pair in re.split(r"[;,]", v):
             if "=" in pair:
                 k, val = pair.split("=", 1)
                 kv_map[k.strip().lower()] = val.strip()
 
-        # If NT present, use it
         if "nt" in kv_map:
-            name = kv_map.get("nt")
-            version = kv_map.get("vv") or kv_map.get("version")
-            if version:
-                # normalize to start with 'v' if it looks like a numeric version
-                if not version.lower().startswith("v") and re.match(r"^\d+(?:\.\d+)*$", version):
-                    version = f"v{version}"
-            return {"name": name, "version": version}
+            return {"name": kv_map["nt"], "version": self._normalize_version(kv_map.get("vv") or kv_map.get("version"))}
 
-        # Fallback: simple 'name vX.Y.Z' pattern (last ' v' separates version)
+        # Simple 'name vX.Y.Z' (the last ' v' separates the version)
         if " v" in v:
-            parts = v.rsplit(" v", 1)
-            name = parts[0].strip()
-            ver = parts[1].strip()
-            if ver and not ver.lower().startswith("v"):
-                ver = f"v{ver}"
-            return {"name": name, "version": ver}
+            name, _, ver = v.rpartition(" v")
+            ver = ver.strip()
+            return {"name": name.strip(), "version": f"v{ver}" if ver else None}
 
-        # Fallback: bare value (treat as name)
+        # Bare value -> treat as a template name
         if v:
             return {"name": v, "version": None}
 
