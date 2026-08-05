@@ -35,10 +35,12 @@ _LABEL_HITS = {
 }
 # accession -> its label + synonyms (what a by-accession lookup resolves to).
 # empty set == accession does not exist; a returned None == cannot verify.
-_ACC_LABELS = {
+# label + synonyms per accession, mirroring OlsClient.labels_for_accession: a resolved accession
+# maps to a non-empty set; anything unresolvable (nonexistent OR OLS unavailable) maps to None.
+_ACC_LABELS: dict[str, set[str] | None] = {
     "ncbitaxon:9606": {"homo sapiens"},
     "ncbitaxon:10090": {"mus musculus"},  # a real term, but the wrong one
-    "ncbitaxon:99999999": set(),  # does not exist
+    "ncbitaxon:99999999": None,  # unresolvable (nonexistent or lookup unavailable)
     "ncit:c161786": {"data-independent acquisition", "dia"},  # valid cross-ontology
 }
 
@@ -50,11 +52,11 @@ def _make_validator(cache_only=False):
         return _LABEL_HITS.get(term.lower(), [])
 
     def fake_labels_for_accession(accession, use_ols_cache_only=False):
-        # Mirror the real OlsClient: None only when it cannot be verified (cache-only); an accession
-        # that is looked up but not found resolves to an empty set (i.e. does not exist).
+        # Mirror the real OlsClient: a resolved accession -> non-empty set; anything unresolvable
+        # (nonexistent, OLS unavailable, or cache-only) -> None (caller warns, never errors).
         if use_ols_cache_only:
             return None
-        return _ACC_LABELS.get(accession.lower(), set())
+        return _ACC_LABELS.get(accession.lower())
 
     params = {"ontologies": ["ncbitaxon"], "error_level": "error"}
     if cache_only:
@@ -94,12 +96,16 @@ def test_wrong_accession_resolving_to_other_term_is_error():
     assert all(e.error_type == logging.ERROR for e in errors)
 
 
-def test_nonexistent_accession_is_error():
+def test_unresolvable_accession_is_warning_not_error():
+    """An accession that does not resolve (nonexistent OR OLS unavailable) -> warning, not error.
+
+    OLS server errors surface as an empty lookup, so this must never hard-fail a clean file.
+    """
     import logging
 
     errors = _errs(_make_validator(), "NT=Homo sapiens;AC=NCBITaxon:99999999")
     assert _codes(errors) == ["ONTOLOGY_ACCESSION_MISMATCH"]
-    assert all(e.error_type == logging.ERROR for e in errors)
+    assert all(e.error_type == logging.WARNING for e in errors)
 
 
 def test_cache_only_downgrades_to_warning():

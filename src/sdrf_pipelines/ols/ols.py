@@ -683,14 +683,10 @@ class OlsClient:
         """
         url = self.ontology_ancestors.format(ontology=ontology, iri=_dparse(iri))
         response = self.session.get(url)
-        try:
-            return response.json()["_embedded"]["terms"]
-        except KeyError as ex:
-            logger.warning(
-                "Term was found but ancestor lookup returned an empty response: %s",
-                response.json(),
-            )
-            raise ex
+        # OLS omits "_embedded" when the ancestor set is empty (a root term) and also when a
+        # transient response drops the payload. Treat both as "no ancestors" and return [] rather
+        # than raising: a network blip must not hard-crash callers, and no caller relies on KeyError.
+        return response.json().get("_embedded", {}).get("terms", [])
 
     def _normalize_term_for_fuzzy_query(self, term: str) -> str:
         """Replace special characters that break OLS exact search with spaces, collapse spaces."""
@@ -765,10 +761,14 @@ class OlsClient:
     def labels_for_accession(self, accession: str, use_ols_cache_only: bool = False) -> set[str] | None:
         """Resolve an accession (obo_id) to the set of its label + synonyms (lowercased)."""
         # Used to verify an SDRF value's AC= agrees with its NT= label. Return values:
-        #   - a set of lowercase label + synonym strings -> the accession resolves
-        #   - an empty set -> the lookup ran but the accession does not exist
-        #   - None -> cannot be verified (cache-only: the parquet cache is label-indexed
-        #             with no synonyms/accession index; or a live lookup error) -> caller warns
+        #   - a non-empty set of lowercase label + synonym strings -> the accession resolves
+        #   - None -> could not be resolved, so agreement CANNOT be verified -> caller warns.
+        #     This deliberately conflates "accession does not exist" with "lookup unavailable":
+        #     ols_search swallows OLS server errors (e.g. HTTP 500) as an empty result, so an
+        #     empty lookup is ambiguous and must NOT be treated as a hard "nonexistent" error
+        #     (that would fail clean files during an OLS outage). Only an accession that resolves
+        #     to a DIFFERENT term (a non-empty set not containing the label) is a real error.
+        #     Cache-only mode (label-indexed parquet, no accession index) also returns None.
         if use_ols_cache_only:
             return None
         try:
@@ -793,7 +793,8 @@ class OlsClient:
             syn_val: Any = doc.get("synonym")
             synonyms: list[str] = [syn_val] if isinstance(syn_val, str) else [str(s) for s in (syn_val or [])]
             labels.update(s.lower() for s in synonyms)
-        return labels if matched else set()
+        # Empty/unmatched -> None (unverifiable), never an empty set (see docstring).
+        return labels if matched else None
 
     def _perform_ols_search(
         self, params: dict[str, Any], name: str, exact: bool, retry_num: int = 0
