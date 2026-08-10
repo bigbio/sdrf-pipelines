@@ -641,59 +641,73 @@ if OLS_AVAILABLE:
             """Require AC= (or resolved label accessions) to sit under parent_accession (issue #336)."""
             if not self.parent_accession:
                 return []
-            sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
+            parent: str = self.parent_accession  # narrowed non-None for the rest of the method
+            # Memoize each accession's ancestry result for this pass: repeated cell values would
+            # otherwise re-issue the same live OLS request row after row.
+            ancestry_cache: dict[str, bool | None] = {}
             errors: list[LogicError] = []
             for idx, cell_value in enumerate(value):
-                if not cell_value or str(cell_value).strip() == "":
-                    continue
-                try:
-                    parsed = self.ontology_term_parser(str(cell_value).lower())
-                except ValueError:
-                    continue
-                label = parsed.get(self.term_name)
-                accession = parsed.get("AC")
-                if label in sentinels:
-                    continue
-                candidates: list[str] = []
-                if accession:
-                    candidates = [accession]
-                elif label and label in labels:
-                    candidates = sorted(label_accessions.get(label, set()))
+                candidates, accession = self._parent_candidates(cell_value, labels, label_accessions)
                 if not candidates:
                     continue
-                under_parent = False
-                unverifiable = False
-                for cand in candidates:
-                    result = self.client.is_under_parent(
-                        cand, self.parent_accession, use_ols_cache_only=self.use_ols_cache_only
-                    )
-                    if result is True:
-                        under_parent = True
-                        break
-                    if result is None:
-                        unverifiable = True
+                under_parent, unverifiable = self._candidates_under_parent(candidates, parent, ancestry_cache)
                 if under_parent:
                     continue
                 if unverifiable and not accession:
                     # Plain label with no AC= and no live ancestry check: leave to encoding warning.
                     continue
-                level = logging.WARNING if unverifiable else self.error_level
-                detail_accession = accession or ",".join(candidates) or "(unknown)"
                 errors.append(
                     LogicError.from_code(
                         ErrorCode.ONTOLOGY_NOT_UNDER_PARENT,
-                        accession=detail_accession,
-                        parent=self.parent_accession,
+                        accession=accession or ",".join(candidates) or "(unknown)",
+                        parent=parent,
                         column=column_name,
                         row=idx,
-                        error_type=level,
-                        suggestion=(
-                            f"Use an accession that is a descendant of {self.parent_accession}, "
-                            "with a matching NT= label"
-                        ),
+                        error_type=logging.WARNING if unverifiable else self.error_level,
+                        suggestion=(f"Use an accession that is a descendant of {parent}, with a matching NT= label"),
                     )
                 )
             return errors
+
+        def _parent_candidates(
+            self, cell_value: Any, labels: list, label_accessions: dict
+        ) -> tuple[list[str], str | None]:
+            """Return (candidate accessions, explicit AC=) for a cell, or ([], None) to skip it."""
+            if not cell_value or str(cell_value).strip() == "":
+                return [], None
+            try:
+                parsed = self.ontology_term_parser(str(cell_value).lower())
+            except ValueError:
+                return [], None
+            label = parsed.get(self.term_name)
+            accession = parsed.get("AC")
+            if label in {NOT_AVAILABLE, NOT_APPLICABLE, NORM}:
+                return [], None
+            if accession:
+                return [accession], accession
+            if label and label in labels:
+                return sorted(label_accessions.get(label, set())), None
+            return [], None
+
+        def _candidates_under_parent(
+            self, candidates: list[str], parent: str, cache: dict[str, bool | None]
+        ) -> tuple[bool, bool]:
+            """Resolve candidates against ``parent``, memoized per validation pass.
+
+            Returns (under_parent, unverifiable): under_parent is True if any candidate resolves
+            under the parent; unverifiable is True when none resolve and at least one could not
+            be checked (offline/cache-only or an OLS lookup failure).
+            """
+            unverifiable = False
+            for cand in candidates:
+                if cand not in cache:
+                    cache[cand] = self.client.is_under_parent(cand, parent, use_ols_cache_only=self.use_ols_cache_only)
+                result = cache[cand]
+                if result is True:
+                    return True, False
+                if result is None:
+                    unverifiable = True
+            return False, unverifiable
 
         def _encoding_recommendation_warnings(
             self,

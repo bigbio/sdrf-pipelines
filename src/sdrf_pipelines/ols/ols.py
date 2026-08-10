@@ -691,9 +691,12 @@ class OlsClient:
         """
         url = self.ontology_ancestors.format(ontology=ontology, iri=_dparse(iri))
         response = self.session.get(url)
-        # OLS omits "_embedded" when the ancestor set is empty (a root term) and also when a
-        # transient response drops the payload. Treat both as "no ancestors" and return [] rather
-        # than raising: a network blip must not hard-crash callers, and no caller relies on KeyError.
+        # An HTTP error must surface as an exception, not an empty list: a 4xx/5xx body without
+        # "_embedded" would otherwise look like "no ancestors" and let is_under_parent() report a
+        # false negative instead of "unverifiable". Callers treat a raised error as unverifiable.
+        response.raise_for_status()
+        # On a 200, OLS omits "_embedded" when the ancestor set is genuinely empty (a root term).
+        # Return [] there rather than raising: no caller relies on KeyError.
         return response.json().get("_embedded", {}).get("terms", [])
 
     def _normalize_term_for_fuzzy_query(self, term: str) -> str:
@@ -822,12 +825,14 @@ class OlsClient:
             return True
         try:
             ontology = acc.split(":", 1)[0].lower()
+            # Build parent_iri inside the try: a malformed parent accession (e.g. "PRIDE" with no
+            # local id) raises ValueError, which must yield an unverifiable None, not crash.
+            parent_iri = accession_to_iri(parent)
             ancestors = self.get_ancestors(ontology, accession_to_iri(acc))
         except Exception as e:
             logger.warning("Ancestor lookup failed for %s under %s: %s", acc, parent, e)
             return None
         parent_lower = parent.lower()
-        parent_iri = accession_to_iri(parent)
         for term in ancestors or []:
             if str(term.get("obo_id", "")).lower() == parent_lower:
                 return True
