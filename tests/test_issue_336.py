@@ -1,7 +1,7 @@
 # Tests for issue #336 — proteomics data acquisition method under PRIDE:0000659.
 #   - AC= must be a descendant of the configured parent_accession
 #   - NT=/AC= mismatch remains an error (issue #321)
-#   - plain / non-lowercase encodings warn when recommend_nt_ac is enabled
+#   - plain / missing-AC encodings warn when recommend_nt_ac is enabled (case is not enforced)
 
 import logging
 
@@ -115,16 +115,16 @@ def test_plain_lowercase_passes_with_encoding_warning():
     assert all(e.error_type == logging.WARNING for e in errors)
 
 
-def test_title_case_plain_warns_for_case_and_encoding():
+def test_title_case_plain_warns_for_encoding_only():
+    # Case is not enforced (OLS label as written): a plain label warns only to recommend NT+AC.
     errors = _errs("Data-dependent acquisition")
     assert _codes(errors) == ["ONTOLOGY_ENCODING_RECOMMENDATION"]
-    assert "lowercase" in errors[0].message.lower() or "lowercase" in str(errors[0]).lower()
+    assert "lowercase" not in str(errors[0]).lower()
 
 
-def test_title_case_nt_with_good_ac_warns_for_case_only():
-    errors = _errs("NT=Data-dependent acquisition;AC=PRIDE:0000627")
-    assert _codes(errors) == ["ONTOLOGY_ENCODING_RECOMMENDATION"]
-    assert all(e.error_type == logging.WARNING for e in errors)
+def test_title_case_nt_with_good_ac_passes():
+    # NT= using the OLS label as written + a matching descendant AC= is the recommended form.
+    assert _errs("NT=Data-dependent acquisition;AC=PRIDE:0000627") == []
 
 
 def test_wrong_pride_accession_is_error():
@@ -159,11 +159,7 @@ def test_unrecognizable_free_text_is_error():
 def test_cache_only_downgrades_parent_check_to_warning():
     errors = _errs("NT=data-dependent acquisition;AC=MS:1003221", cache_only=True)
     assert "ONTOLOGY_NOT_UNDER_PARENT" in _codes(errors)
-    assert all(
-        e.error_type == logging.WARNING
-        for e in errors
-        if e.error_code.value == "ONTOLOGY_NOT_UNDER_PARENT"
-    )
+    assert all(e.error_type == logging.WARNING for e in errors if e.error_code.value == "ONTOLOGY_NOT_UNDER_PARENT")
 
 
 def test_recommend_flag_can_be_disabled():

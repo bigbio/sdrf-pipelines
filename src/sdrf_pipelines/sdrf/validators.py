@@ -701,7 +701,11 @@ if OLS_AVAILABLE:
             labels: list,
             column_name: str | None,
         ) -> list[LogicError]:
-            """Warn when a valid term is not in recommended lowercase NT+AC form (issue #336)."""
+            """Warn when a valid term is not in the recommended NT+AC form (issue #336).
+
+            Case is not enforced: the recommended label is the OLS label written as-is, so only
+            values that are plain or missing an ``AC=`` are nudged toward ``NT=<OLS label>;AC=...``.
+            """
             if not self.recommend_nt_ac:
                 return []
             sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
@@ -718,36 +722,19 @@ if OLS_AVAILABLE:
                 if not label or label in sentinels or label not in labels:
                     continue
                 accession = parsed.get("AC")
-                reasons: list[str] = []
-                is_plain = "=" not in raw
-                if is_plain or not accession:
-                    reasons.append("prefer NT=<lowercase OLS label>;AC=<matching accession>")
-                # Check stored label case against lowercase recommendation.
-                if is_plain:
-                    stored_label = raw.strip()
-                else:
-                    # Recover original NT= value casing from the raw cell.
-                    stored_label = None
-                    for part in raw.split(";"):
-                        if part.strip().upper().startswith("NT="):
-                            stored_label = part.split("=", 1)[1].strip()
-                            break
-                    if stored_label is None:
-                        stored_label = label
-                if stored_label != stored_label.lower():
-                    reasons.append("prefer lowercase OLS label")
-                if not reasons:
+                # A complete NT+AC value is already the recommended form -> nothing to warn about.
+                if "=" in raw and accession:
                     continue
                 errors.append(
                     LogicError.from_code(
                         ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION,
                         value=raw,
                         column=column_name,
-                        detail="; ".join(reasons),
+                        detail="prefer NT=<OLS label>;AC=<matching accession>",
                         row=idx,
                         error_type=logging.WARNING,
                         suggestion=(
-                            f"Recommended form: NT={label};AC=<matching accession under "
+                            "Recommended form: NT=<OLS label>;AC=<matching accession under "
                             f"{self.parent_accession or 'the column parent term'}>"
                         ),
                     )

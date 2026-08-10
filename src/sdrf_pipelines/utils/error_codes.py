@@ -144,9 +144,7 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
     ErrorCode.ONTOLOGY_NOT_UNDER_PARENT: (
         "Accession '{accession}' in column '{column}' is not under parent term '{parent}'"
     ),
-    ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION: (
-        "Value '{value}' in column '{column}': {detail}"
-    ),
+    ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION: ("Value '{value}' in column '{column}': {detail}"),
     # Content
     ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}, Source: {source_name}",
     ErrorCode.INVALID_VALUE: "Invalid value '{value}' - must be one of the allowed values",

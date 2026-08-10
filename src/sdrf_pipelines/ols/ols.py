@@ -804,9 +804,7 @@ class OlsClient:
         # Empty/unmatched -> None (unverifiable), never an empty set (see docstring).
         return labels if matched else None
 
-    def is_under_parent(
-        self, accession: str, parent_accession: str, use_ols_cache_only: bool = False
-    ) -> bool | None:
+    def is_under_parent(self, accession: str, parent_accession: str, use_ols_cache_only: bool = False) -> bool | None:
         """Return whether ``accession`` is under ``parent_accession`` in the ontology hierarchy.
 
         Returns:
