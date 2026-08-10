@@ -24,12 +24,14 @@ def _client_with(
 
     client = OlsClient.__new__(OlsClient)
     client.use_cache = use_cache
+    # Stub methods on the instance for the test double; mypy flags method assignment, which is
+    # exactly what we intend here.
     if search is not None:
-        client.search = search
+        client.search = search  # type: ignore[method-assign]
     if labels_for_accession is not None:
-        client.labels_for_accession = labels_for_accession
+        client.labels_for_accession = labels_for_accession  # type: ignore[method-assign]
     if is_under_parent is not None:
-        client.is_under_parent = is_under_parent
+        client.is_under_parent = is_under_parent  # type: ignore[method-assign]
     return client
 
 
