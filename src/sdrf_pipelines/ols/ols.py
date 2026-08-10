@@ -229,6 +229,14 @@ def _concat_str_or_list(input_str: str | list[str]) -> str:
     return ",".join(input_str)
 
 
+def accession_to_iri(accession: str) -> str:
+    """Convert an OBO id (e.g. PRIDE:0000659) to its OLS term IRI."""
+    prefix, _, local = accession.partition(":")
+    if not local:
+        raise ValueError(f"Invalid accession: {accession}")
+    return f"http://purl.obolibrary.org/obo/{prefix.upper()}_{local}"
+
+
 def _dparse(iri: str) -> str:
     """
     Double url encode the IRI, which is required.
@@ -795,6 +803,39 @@ class OlsClient:
             labels.update(s.lower() for s in synonyms)
         # Empty/unmatched -> None (unverifiable), never an empty set (see docstring).
         return labels if matched else None
+
+    def is_under_parent(
+        self, accession: str, parent_accession: str, use_ols_cache_only: bool = False
+    ) -> bool | None:
+        """Return whether ``accession`` is under ``parent_accession`` in the ontology hierarchy.
+
+        Returns:
+            True if accession equals parent or has parent among its OLS ancestors.
+            False if the accession resolves and is not under the parent.
+            None if ancestry cannot be verified (cache-only mode or OLS/lookup failure).
+        """
+        if use_ols_cache_only:
+            return None
+        acc = accession.strip()
+        parent = parent_accession.strip()
+        if not acc or not parent:
+            return None
+        if acc.lower() == parent.lower():
+            return True
+        try:
+            ontology = acc.split(":", 1)[0].lower()
+            ancestors = self.get_ancestors(ontology, accession_to_iri(acc))
+        except Exception as e:
+            logger.warning("Ancestor lookup failed for %s under %s: %s", acc, parent, e)
+            return None
+        parent_lower = parent.lower()
+        parent_iri = accession_to_iri(parent)
+        for term in ancestors or []:
+            if str(term.get("obo_id", "")).lower() == parent_lower:
+                return True
+            if str(term.get("iri", "")) == parent_iri:
+                return True
+        return False
 
     def _perform_ols_search(
         self, params: dict[str, Any], name: str, exact: bool, retry_num: int = 0

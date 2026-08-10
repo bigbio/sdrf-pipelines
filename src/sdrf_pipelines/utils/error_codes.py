@@ -47,6 +47,8 @@ class ErrorCode(str, Enum):
     ONTOLOGY_TERM_NOT_FOUND = "ONTOLOGY_TERM_NOT_FOUND"
     INVALID_ONTOLOGY_TERM_FORMAT = "INVALID_ONTOLOGY_TERM_FORMAT"
     ONTOLOGY_ACCESSION_MISMATCH = "ONTOLOGY_ACCESSION_MISMATCH"
+    ONTOLOGY_NOT_UNDER_PARENT = "ONTOLOGY_NOT_UNDER_PARENT"
+    ONTOLOGY_ENCODING_RECOMMENDATION = "ONTOLOGY_ENCODING_RECOMMENDATION"
 
     # Content errors
     EMPTY_CELL = "EMPTY_CELL"
@@ -92,6 +94,8 @@ _ERROR_CATEGORY_MAP = {
     ErrorCode.ONTOLOGY_TERM_NOT_FOUND: ErrorCategory.ONTOLOGY,
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: ErrorCategory.ONTOLOGY,
     ErrorCode.ONTOLOGY_ACCESSION_MISMATCH: ErrorCategory.ONTOLOGY,
+    ErrorCode.ONTOLOGY_NOT_UNDER_PARENT: ErrorCategory.ONTOLOGY,
+    ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION: ErrorCategory.ONTOLOGY,
     # Content
     ErrorCode.EMPTY_CELL: ErrorCategory.CONTENT,
     ErrorCode.INVALID_VALUE: ErrorCategory.CONTENT,
@@ -137,6 +141,12 @@ ERROR_MESSAGE_TEMPLATES: dict[ErrorCode, str] = {
     ),
     ErrorCode.INVALID_ONTOLOGY_TERM_FORMAT: "Term: {value} in column '{column}', is not a valid ontology term",
     ErrorCode.ONTOLOGY_ACCESSION_MISMATCH: ("Label '{label}' / accession '{accession}' in column '{column}': {detail}"),
+    ErrorCode.ONTOLOGY_NOT_UNDER_PARENT: (
+        "Accession '{accession}' in column '{column}' is not under parent term '{parent}'"
+    ),
+    ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION: (
+        "Value '{value}' in column '{column}': {detail}"
+    ),
     # Content
     ErrorCode.EMPTY_CELL: "Empty value found Row: {row}, Column: {column}, Source: {source_name}",
     ErrorCode.INVALID_VALUE: "Invalid value '{value}' - must be one of the allowed values",
