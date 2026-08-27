@@ -36,9 +36,14 @@ class TestOlsClientReal:
         ancestors. That is an availability blip, not a code defect, so retry a few times and skip
         rather than hard-fail the suite.
         """
+        import requests
+
         result = []
         for _ in range(4):
-            result = ols_client.get_ancestors("go", "http://purl.obolibrary.org/obo/GO_0009987")
+            try:
+                result = ols_client.get_ancestors("go", "http://purl.obolibrary.org/obo/GO_0009987")
+            except requests.HTTPError:
+                result = []  # transient OLS HTTP error → treat like an empty and retry/skip
             if result:
                 break
         if not result:

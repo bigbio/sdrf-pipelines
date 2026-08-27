@@ -402,6 +402,8 @@ if OLS_AVAILABLE:
         allow_not_available: bool = True
         description: str = ""
         examples: list[str] = Field(default_factory=list)
+        parent_accession: str | None = None
+        recommend_nt_ac: bool = False
         model_config = {"arbitrary_types_allowed": True}
 
         def __init__(self, params: dict[str, Any] | None = None, **data: Any):
@@ -428,6 +430,10 @@ if OLS_AVAILABLE:
                         self.description = value
                     elif key == "examples":
                         self.examples = value if isinstance(value, list) else [value]
+                    elif key == "parent_accession":
+                        self.parent_accession = value
+                    elif key == "recommend_nt_ac":
+                        self.recommend_nt_ac = bool(value)
 
         def validate(  # type: ignore[override]
             self, value: pd.Series, column_name: str | None = None
@@ -553,6 +559,8 @@ if OLS_AVAILABLE:
                     )
 
             errors.extend(self._accession_agreement_errors(value, labels, label_accessions, column_name))
+            errors.extend(self._parent_accession_errors(value, labels, label_accessions, column_name))
+            errors.extend(self._encoding_recommendation_warnings(value, labels, column_name))
             return errors
 
         def _accession_agreement_errors(
@@ -621,6 +629,130 @@ if OLS_AVAILABLE:
                             error_type=self.error_level,
                         )
                     )
+            return errors
+
+        def _parent_accession_errors(
+            self,
+            value: pd.Series,
+            labels: list,
+            label_accessions: dict,
+            column_name: str | None,
+        ) -> list[LogicError]:
+            """Require AC= (or resolved label accessions) to sit under parent_accession (issue #336)."""
+            if not self.parent_accession:
+                return []
+            parent: str = self.parent_accession  # narrowed non-None for the rest of the method
+            # Memoize each accession's ancestry result for this pass: repeated cell values would
+            # otherwise re-issue the same live OLS request row after row.
+            ancestry_cache: dict[str, bool | None] = {}
+            errors: list[LogicError] = []
+            for idx, cell_value in enumerate(value):
+                candidates, accession = self._parent_candidates(cell_value, labels, label_accessions)
+                if not candidates:
+                    continue
+                under_parent, unverifiable = self._candidates_under_parent(candidates, parent, ancestry_cache)
+                if under_parent:
+                    continue
+                if unverifiable and not accession:
+                    # Plain label with no AC= and no live ancestry check: leave to encoding warning.
+                    continue
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.ONTOLOGY_NOT_UNDER_PARENT,
+                        accession=accession or ",".join(candidates) or "(unknown)",
+                        parent=parent,
+                        column=column_name,
+                        row=idx,
+                        error_type=logging.WARNING if unverifiable else self.error_level,
+                        suggestion=(f"Use an accession that is a descendant of {parent}, with a matching NT= label"),
+                    )
+                )
+            return errors
+
+        def _parent_candidates(
+            self, cell_value: Any, labels: list, label_accessions: dict
+        ) -> tuple[list[str], str | None]:
+            """Return (candidate accessions, explicit AC=) for a cell, or ([], None) to skip it."""
+            if not cell_value or str(cell_value).strip() == "":
+                return [], None
+            try:
+                parsed = self.ontology_term_parser(str(cell_value).lower())
+            except ValueError:
+                return [], None
+            label = parsed.get(self.term_name)
+            accession = parsed.get("AC")
+            if label in {NOT_AVAILABLE, NOT_APPLICABLE, NORM}:
+                return [], None
+            if accession:
+                return [accession], accession
+            if label and label in labels:
+                return sorted(label_accessions.get(label, set())), None
+            return [], None
+
+        def _candidates_under_parent(
+            self, candidates: list[str], parent: str, cache: dict[str, bool | None]
+        ) -> tuple[bool, bool]:
+            """Resolve candidates against ``parent``, memoized per validation pass.
+
+            Returns (under_parent, unverifiable): under_parent is True if any candidate resolves
+            under the parent; unverifiable is True when none resolve and at least one could not
+            be checked (offline/cache-only or an OLS lookup failure).
+            """
+            unverifiable = False
+            for cand in candidates:
+                if cand not in cache:
+                    cache[cand] = self.client.is_under_parent(cand, parent, use_ols_cache_only=self.use_ols_cache_only)
+                result = cache[cand]
+                if result is True:
+                    return True, False
+                if result is None:
+                    unverifiable = True
+            return False, unverifiable
+
+        def _encoding_recommendation_warnings(
+            self,
+            value: pd.Series,
+            labels: list,
+            column_name: str | None,
+        ) -> list[LogicError]:
+            """Warn when a valid term is not in the recommended NT+AC form (issue #336).
+
+            Case is not enforced: the recommended label is the OLS label written as-is, so only
+            values that are plain or missing an ``AC=`` are nudged toward ``NT=<OLS label>;AC=...``.
+            """
+            if not self.recommend_nt_ac:
+                return []
+            sentinels = {NOT_AVAILABLE, NOT_APPLICABLE, NORM}
+            errors: list[LogicError] = []
+            for idx, cell_value in enumerate(value):
+                raw = str(cell_value) if cell_value is not None else ""
+                if not raw.strip():
+                    continue
+                try:
+                    parsed = self.ontology_term_parser(raw.lower())
+                except ValueError:
+                    continue
+                label = parsed.get(self.term_name)
+                if not label or label in sentinels or label not in labels:
+                    continue
+                accession = parsed.get("AC")
+                # A complete NT+AC value is already the recommended form -> nothing to warn about.
+                if "=" in raw and accession:
+                    continue
+                errors.append(
+                    LogicError.from_code(
+                        ErrorCode.ONTOLOGY_ENCODING_RECOMMENDATION,
+                        value=raw,
+                        column=column_name,
+                        detail="prefer NT=<OLS label>;AC=<matching accession>",
+                        row=idx,
+                        error_type=logging.WARNING,
+                        suggestion=(
+                            "Recommended form: NT=<OLS label>;AC=<matching accession under "
+                            f"{self.parent_accession or 'the column parent term'}>"
+                        ),
+                    )
+                )
             return errors
 
         def validate_ontology_terms(self, cell_value, labels):
