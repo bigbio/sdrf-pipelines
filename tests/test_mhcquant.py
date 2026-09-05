@@ -157,13 +157,7 @@ class TestErrorHandling:
 
 
 class TestEliteVelosInstruments:
-    """LTQ Orbitrap Elite / Velos deposits must map to the ``qe`` preset family.
-
-    The ``xl`` preset encodes ion-trap MS2 (0.50025 Da), not an instrument model. Elite/Velos
-    runs commonly read MS2 out of the Orbitrap, so ``qe`` is the safe fallback and
-    ``resolve_fragment_tolerance`` downgrades to low_res when the MS2 analyzer is an ion trap.
-    Public examples that previously failed with ``Unrecognized instrument``: PXD012083, PXD004746.
-    """
+    """LTQ Orbitrap Elite/Velos map to the qe presets; ion-trap MS2 still resolves to low_res."""
 
     @staticmethod
     def _write_sdrf(path: Path, instrument: str, analyzer: str, frag_tol: str, dissociation: str) -> Path:

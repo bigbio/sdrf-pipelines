@@ -30,8 +30,7 @@ INSTRUMENT_PRESET_MAP = [
     (["timstof", "tims tof"], "timstof"),
     (["astral"], "astral"),
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
-    # "qe", not "xl": xl means ion-trap MS2; Elite/Velos usually acquire Orbitrap MS2 and
-    # resolve_fragment_tolerance() handles the ion-trap case via comment[ms2 mass analyzer].
+    # Elite/Velos acquire Orbitrap MS2 by default; ion-trap MS2 is handled by resolve_fragment_tolerance()
     (["elite", "velos"], "qe"),
 ]
 
