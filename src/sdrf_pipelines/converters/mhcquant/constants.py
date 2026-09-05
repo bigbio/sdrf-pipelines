@@ -30,6 +30,13 @@ INSTRUMENT_PRESET_MAP = [
     (["timstof", "tims tof"], "timstof"),
     (["astral"], "astral"),
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
+    # Elite/Velos deliberately map to "qe", NOT "xl". The xl preset differs from qe only on the
+    # fragment side (0.50025 Da / bin offset 0.4 / low_res), i.e. it encodes ion-trap MS2, not an
+    # instrument model. Elite/Velos deposits commonly acquire MS2 in the Orbitrap (e.g. R=15,000),
+    # so "qe" is the correct fallback; resolve_fragment_tolerance() still downgrades a genuine
+    # ion-trap run to low_res when comment[ms2 mass analyzer] is populated. Mapping to "xl" would
+    # silently apply 0.50025 Da to any Elite/Velos file that omits that column.
+    (["elite", "velos"], "qe"),
 ]
 
 PRESET_COLUMNS = [

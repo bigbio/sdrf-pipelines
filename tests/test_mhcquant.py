@@ -154,3 +154,76 @@ class TestErrorHandling:
         sdrf_path.write_text("source name\tcomment[data file]\npatient_1\trun1.raw\n")
         with pytest.raises(ValueError, match="No factor value columns"):
             converter.convert(str(sdrf_path), str(tmpdir / "ss.tsv"), output_presets=str(tmpdir / "p.tsv"))
+
+
+class TestEliteVelosInstruments:
+    """LTQ Orbitrap Elite / Velos deposits must map to the ``qe`` preset family.
+
+    The ``xl`` preset encodes ion-trap MS2 (0.50025 Da), not an instrument model. Elite/Velos
+    runs commonly read MS2 out of the Orbitrap, so ``qe`` is the safe fallback and
+    ``resolve_fragment_tolerance`` downgrades to low_res when the MS2 analyzer is an ion trap.
+    Public examples that previously failed with ``Unrecognized instrument``: PXD012083, PXD004746.
+    """
+
+    @staticmethod
+    def _write_sdrf(path: Path, instrument: str, analyzer: str, frag_tol: str, dissociation: str) -> Path:
+        header = "\t".join(
+            [
+                "source name",
+                "characteristics[mhc protein complex]",
+                "comment[data file]",
+                "comment[instrument]",
+                "comment[ms2 mass analyzer]",
+                "comment[dissociation method]",
+                "comment[modification parameters]",
+                "comment[precursor mass tolerance]",
+                "comment[fragment mass tolerance]",
+                "factor value[source name]",
+            ]
+        )
+        row = "\t".join(
+            [
+                "patient_1",
+                "MHC class I protein complex",
+                "run1.raw",
+                f"NT={instrument};AC=MS:0000000",
+                f"NT={analyzer};AC=MS:0000000",
+                f"NT={dissociation};AC=MS:0000000",
+                "NT=Oxidation;MT=Variable;TA=M;AC=UNIMOD:35;PP=Anywhere",
+                "5 ppm",
+                frag_tol,
+                "patient_1",
+            ]
+        )
+        path.write_text(f"{header}\n{row}\n")
+        return path
+
+    def _convert(self, converter, tmpdir, instrument, analyzer, frag_tol="0.02 Da", dissociation="HCD"):
+        sdrf = self._write_sdrf(tmpdir / "elite.sdrf.tsv", instrument, analyzer, frag_tol, dissociation)
+        ss, presets = tmpdir / "ss.tsv", tmpdir / "presets.tsv"
+        converter.convert(str(sdrf), str(ss), output_presets=str(presets))
+        return pd.read_csv(ss, sep="\t"), pd.read_csv(presets, sep="\t").iloc[0]
+
+    def test_orbitrap_elite_high_res_maps_to_qe(self, converter, tmpdir):
+        df, p = self._convert(converter, tmpdir, "Orbitrap Elite", "orbitrap")
+        assert list(df["SearchPreset"]) == ["qe_class1"]
+        assert p["PresetName"] == "qe_class1"
+        assert p["Instrument"] == "high_res"
+        assert p["FragmentMassTolerance"] == 0.01
+
+    def test_ltq_orbitrap_elite_ion_trap_downgrades_to_low_res(self, converter, tmpdir):
+        _, p = self._convert(converter, tmpdir, "LTQ Orbitrap Elite", "ion trap", "0.5 Da")
+        assert p["Instrument"] == "low_res"
+        assert p["FragmentMassTolerance"] == 0.50025
+        assert p["FragmentBinOffset"] == 0.4
+
+    def test_ltq_orbitrap_velos_maps_to_qe(self, converter, tmpdir):
+        df, _ = self._convert(converter, tmpdir, "LTQ Orbitrap Velos", "orbitrap")
+        assert list(df["SearchPreset"]) == ["qe_class1"]
+
+    def test_ltq_orbitrap_xl_ion_trap_stays_low_res(self, converter, tmpdir):
+        """Regression: the XL mapping is unchanged (CID matches the xl_class1 default)."""
+        df, p = self._convert(converter, tmpdir, "LTQ Orbitrap XL", "ion trap", "0.5 Da", dissociation="CID")
+        assert list(df["SearchPreset"]) == ["xl_class1"]
+        assert p["Instrument"] == "low_res"
+        assert p["FragmentMassTolerance"] == 0.50025

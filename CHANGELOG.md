@@ -31,6 +31,10 @@
   DIA-NN site string (`Phospho,79.966331,STY`), and the same modification (same name + mass)
   declared across several SDRF cells (`Oxidation` on `M` and on `P`) is merged into a single entry
   (`Oxidation,15.994915,MP`).
+- MHCquant converter (`converters/mhcquant/constants.py`): `convert-mhcquant` no longer fails with
+  `Unrecognized instrument` for LTQ Orbitrap Elite / Velos deposits (e.g. PXD012083, PXD004746). They now
+  fall back to the `qe` preset family rather than `xl`, because `xl` encodes ion-trap MS2 (0.50025 Da)
+  and `comment[ms2 mass analyzer]` already downgrades genuine ion-trap runs to low_res.
 
 ### Chores
 - Update the `sdrf-templates` submodule to the latest `main`.
