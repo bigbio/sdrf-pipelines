@@ -27,11 +27,11 @@ MHC_CLASS_PEPTIDE_LENGTHS = {
 INSTRUMENT_PRESET_MAP = [
     (["lumos", "fusion", "exploris", "eclipse"], "lumos"),
     (["q exactive", "exactive"], "qe"),
+    # Velos/Elite behave like Q Exactive instruments, so they share the qe presets
+    (["elite", "velos"], "qe"),
     (["timstof", "tims tof"], "timstof"),
     (["astral"], "astral"),
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
-    # Velos/Elite behave like Q Exactive instruments, so they share the qe presets
-    (["elite", "velos"], "qe"),
 ]
 
 PRESET_COLUMNS = [
