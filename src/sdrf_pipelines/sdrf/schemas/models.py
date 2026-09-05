@@ -54,5 +54,6 @@ class SchemaDefinition(BaseModel):
     usable_alone: bool = True
     layer: str | None = None
     mutually_exclusive_with: list[str] = Field(default_factory=list)
+    excludes: dict[str, Any] = Field(default_factory=dict, description="Templates to exclude from combination")
     validators: list[ValidatorConfig] = Field(default_factory=list)
     columns: list[ColumnDefinition] = Field(default_factory=list)

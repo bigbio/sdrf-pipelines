@@ -453,6 +453,57 @@ class SchemaRegistry:
                 ordered_columns.append(col_name)
         return ordered_columns
 
+    def _get_excluded_templates(self, schema_names: list[str]) -> set[str]:
+        """Get all templates that should be excluded based on the schemas being combined.
+
+        Args:
+            schema_names: List of schema names being combined
+
+        Returns:
+            Set of excluded template names
+        """
+        excluded = set()
+        for schema_name in schema_names:
+            schema = self.get_schema(schema_name)
+            if schema and schema.excludes:
+                # The excludes field contains a dict with 'templates' key that lists excluded templates
+                templates_to_exclude = schema.excludes.get("templates", [])
+                if isinstance(templates_to_exclude, list):
+                    excluded.update(templates_to_exclude)
+        return excluded
+
+    def _get_template_columns(self, template_name: str) -> set[str]:
+        """Get all column names defined in a template (including inherited columns).
+
+        Args:
+            template_name: Name of the template
+
+        Returns:
+            Set of column names defined in this template
+        """
+        if template_name not in self.raw_schema_data:
+            return set()
+
+        # Get the raw schema data (before inheritance processing)
+        raw_schema = self.raw_schema_data[template_name]
+        columns = set()
+
+        # Collect columns from this template
+        if "columns" in raw_schema:
+            for col_def in raw_schema["columns"]:
+                if "name" in col_def:
+                    columns.add(col_def["name"])
+
+        # Also collect columns from parent templates
+        extends = raw_schema.get("extends")
+        if extends:
+            parent_name, _ = parse_extends(extends)
+            if parent_name:
+                parent_columns = self._get_template_columns(parent_name)
+                columns.update(parent_columns)
+
+        return columns
+
     def compile_columns_from_schemas(
         self, schema_names: list[str], strategy: MergeStrategy = MergeStrategy.COMBINE
     ) -> tuple[list[str], dict[str, OrderedDict[str, ColumnDefinition]]]:
@@ -516,11 +567,23 @@ class SchemaRegistry:
             else:
                 raise ValueError(f"Schema '{schema_name}' not found in registry")
 
+        # Get all columns from combined schemas
         _, merge_column_definitions = self.compile_columns_from_schemas(schema_names, strategy)
+
+        # Get all templates that should be excluded
+        excluded_templates = self._get_excluded_templates(schema_names)
+
+        # Collect columns that should be excluded
+        excluded_columns = set()
+        for excluded_template in excluded_templates:
+            excluded_columns.update(self._get_template_columns(excluded_template))
+
+        # Build final columns list, excluding columns from excluded templates
         columns = []
         for section in ["source name", "characteristics", "special", "comment", "factor value"]:
             for col_name in merge_column_definitions[section]:
-                columns.append(merge_column_definitions[section][col_name])
+                if col_name not in excluded_columns:
+                    columns.append(merge_column_definitions[section][col_name])
 
         combined_schema.columns = columns
 

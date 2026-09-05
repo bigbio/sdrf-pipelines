@@ -546,6 +546,17 @@ if OLS_AVAILABLE:
                         suggestion_parts.append(f"Examples: {example_str}")
                     suggestion = ". ".join(suggestion_parts)
 
+                    # Offline, a miss is ambiguous: the bundled ontology snapshot cannot
+                    # distinguish a term that does not exist from one minted after the
+                    # snapshot was built. Report it so it stays visible, but do not fail a
+                    # file whose term may be perfectly valid -- the same treatment accession
+                    # agreement gets when it cannot be verified.
+                    unverifiable = self.use_ols_cache_only
+                    if unverifiable:
+                        suggestion += (
+                            ". Not found in the bundled ontology snapshot; it may be newer than "
+                            "the snapshot. Re-run without --use_ols_cache_only to check against OLS"
+                        )
                     errors.append(
                         LogicError.from_code(
                             ErrorCode.ONTOLOGY_TERM_NOT_FOUND,
@@ -553,7 +564,7 @@ if OLS_AVAILABLE:
                             column=column_name,
                             ontologies=";".join(self.ontologies),
                             row=idx,
-                            error_type=self.error_level,
+                            error_type=logging.WARNING if unverifiable else self.error_level,
                             suggestion=suggestion,
                         )
                     )
