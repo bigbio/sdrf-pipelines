@@ -157,7 +157,7 @@ class TestErrorHandling:
 
 
 class TestEliteVelosInstruments:
-    """LTQ Orbitrap Elite/Velos map to the qe presets; ion-trap MS2 still resolves to low_res."""
+    """LTQ Orbitrap Elite/Velos share the qe presets."""
 
     @staticmethod
     def _write_sdrf(path: Path, instrument: str, analyzer: str, frag_tol: str, dissociation: str) -> Path:

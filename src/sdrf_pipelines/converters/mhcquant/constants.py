@@ -30,7 +30,7 @@ INSTRUMENT_PRESET_MAP = [
     (["timstof", "tims tof"], "timstof"),
     (["astral"], "astral"),
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
-    # Elite/Velos acquire Orbitrap MS2 by default; ion-trap MS2 is handled by resolve_fragment_tolerance()
+    # Velos/Elite behave like Q Exactive instruments, so they share the qe presets
     (["elite", "velos"], "qe"),
 ]
 
