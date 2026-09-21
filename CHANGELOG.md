@@ -31,6 +31,7 @@
   DIA-NN site string (`Phospho,79.966331,STY`), and the same modification (same name + mass)
   declared across several SDRF cells (`Oxidation` on `M` and on `P`) is merged into a single entry
   (`Oxidation,15.994915,MP`).
+- MHCquant converter: support LTQ Orbitrap Elite/Velos instruments (mapped to the `qe` presets; e.g. PXD012083, PXD004746).
 
 ### Chores
 - Update the `sdrf-templates` submodule to the latest `main`.
