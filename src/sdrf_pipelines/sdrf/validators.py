@@ -1673,12 +1673,15 @@ class EmptyCellValidator(SDRFValidator):
         df_subset = df[columns_to_check]
         validation_results = df_subset.map(validate_string)
 
-        # Get the indices where the validation fails
+        # Get the indices where the validation fails. Addressed by position, not by label: a
+        # required column may legitimately appear several times in an SDRF (for example
+        # comment[modification parameters]), and a label lookup would then return a Series.
+        results = validation_results.to_numpy()
         failed_indices = [
-            (row, col)
-            for row in validation_results.index
-            for col in validation_results.columns
-            if not validation_results.at[row, col]
+            (validation_results.index[i], validation_results.columns[j])
+            for i in range(results.shape[0])
+            for j in range(results.shape[1])
+            if not results[i, j]
         ]
 
         inner_df = df.df if isinstance(df, SDRFDataFrame) else df
