@@ -11,7 +11,12 @@ from sdrf_pipelines.converters.openms.constants import (
     SILAC_3PLEX,
     TMT_PLEXES,
 )
-from sdrf_pipelines.converters.openms.utils import get_openms_file_name, infer_itraqplex, infer_tmtplex
+from sdrf_pipelines.converters.openms.utils import (
+    get_openms_file_name,
+    infer_itraqplex,
+    infer_tmtplex,
+    parse_openms_label,
+)
 from sdrf_pipelines.utils.utils import tsv_line
 
 
@@ -112,46 +117,84 @@ class ExperimentalDesignWriter:
     def _get_label_from_labels(
         self,
         labels: list[str],
-        label_set: set,
-        label_index: dict,
-        raw: str,
+        silac_labels: set[str],
         row: pd.Series,
     ) -> str:
-        """Determine the numeric label identifier from label strings."""
-        labels_str = ",".join(labels)
+        """Map this row's channel, independently of SDRF row order or subsets."""
+        label = parse_openms_label(row["comment[label]"])
 
-        if "label free sample" in labels:
+        if label == "label free sample":
             return "1"
 
-        if "TMT" in labels_str:
-            return self._get_tmt_label(labels, label_set, label_index, raw)
+        if label.startswith("TMT"):
+            return str(TMT_PLEXES[infer_tmtplex(labels)][label])
 
-        if "SILAC" in labels_str:
-            return self._get_silac_label(labels, label_set, label_index, raw)
+        if label.startswith("SILAC"):
+            # Infer from the complete input, including channels absent from a
+            # particular raw file or removed by a condition split.
+            plex_map = self.silac3 if "silac medium" in silac_labels else self.silac2
+            return str(plex_map[label.lower()])
 
-        if "ITRAQ" in labels_str:
-            return self._get_itraq_label(labels, label_set, label_index, raw)
+        if label.startswith("ITRAQ"):
+            plex_map = self.itraq8plex if infer_itraqplex(labels) == "itraq8plex" else self.itraq4plex
+            return str(plex_map[label.lower()])
 
         raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
 
-    def _get_tmt_label(self, labels: list[str], label_set: set, label_index: dict, raw: str) -> str:
-        """Get TMT label identifier."""
-        choice = TMT_PLEXES[infer_tmtplex(label_set)]
-        label = str(choice[labels[label_index[raw]]])
-        label_index[raw] += 1
-        return label
+    def get_silac_fraction_groups(self, sdrf: pd.DataFrame, file2technical_rep: dict[str, str]) -> dict[str, int]:
+        """Group SILAC fractions by the full channel/sample assignment and replicate.
 
-    def _get_silac_label(self, labels: list[str], label_set: set, label_index: dict, raw: str) -> str:
-        """Get SILAC label identifier."""
-        plex_map = self.silac3 if len(label_set) == 3 else self.silac2
-        return str(plex_map[labels[label_index[raw]].lower()])
+        Reusing one reference sample does not join otherwise different mixtures.
+        Swapping labels changes the mixture even when the source names are the same.
+        """
+        if not sdrf["comment[label]"].map(parse_openms_label).str.startswith("SILAC").any():
+            return {}
+        groups: dict[tuple[tuple[tuple[str, str], ...], int], int] = {}
+        file2group: dict[str, int] = {}
+        fractions: dict[int, set[str]] = {}
+        for raw, rows in sdrf.groupby("comment[data file]", sort=False):
+            labels = [parse_openms_label(label).lower() for label in rows["comment[label]"]]
+            if not any(label.startswith("silac") for label in labels):
+                continue
+            if not set(labels).issubset(self.silac3):
+                raise ValueError(f"Unsupported or mixed SILAC labels in {raw}: {labels}")
+            if len(set(labels)) != len(labels):
+                raise ValueError(f"A SILAC channel occurs more than once in {raw}")
+            replicate_values = rows.get("comment[technical replicate]", pd.Series(["1"]))
+            replicates = {1 if "not available" in value else int(value) for value in replicate_values}
+            if len(replicates) != 1:
+                raise ValueError(f"Inconsistent SILAC technical replicate identifiers in {raw}")
+            samples = [str(sample).strip() for sample in rows["source name"]]
+            key = (tuple(sorted(zip(labels, samples))), int(file2technical_rep[str(raw)]))
+            group = groups.setdefault(key, len(groups) + 1)
+            fraction_values = rows.get("comment[fraction identifier]", pd.Series(["1"]))
+            file_fractions = {"1" if "not available" in value else value for value in fraction_values}
+            if len(file_fractions) != 1:
+                raise ValueError(f"Inconsistent SILAC fraction identifiers in {raw}")
+            fraction = next(iter(file_fractions))
+            if fraction in fractions.setdefault(group, set()):
+                raise ValueError(
+                    f"Multiple SILAC files have the same mixture, technical replicate and fraction ({raw}). "
+                    "Use distinct technical replicate identifiers for repeated acquisitions."
+                )
+            fractions[group].add(fraction)
+            file2group[str(raw)] = group
+        if len(file2group) != sdrf["comment[data file]"].nunique():
+            raise ValueError("Convert SILAC and other labeling methods in separate SDRF files")
+        return file2group
 
-    def _get_itraq_label(self, labels: list[str], label_set: set, label_index: dict, raw: str) -> str:
-        """Get iTRAQ label identifier."""
-        plex_map = self.itraq8plex if infer_itraqplex(label_set) == "itraq8plex" else self.itraq4plex
-        label = str(plex_map[labels[label_index[raw]].lower()])
-        label_index[raw] += 1
-        return label
+    def _silac_file_groups(
+        self, sdrf: pd.DataFrame, file2technical_rep: dict[str, str], file2fraction_group: dict[str, int] | None
+    ) -> dict[str, int]:
+        """Renumber the selected groups consecutively without merging split mixtures."""
+        groups = (
+            self.get_silac_fraction_groups(sdrf, file2technical_rep)
+            if file2fraction_group is None
+            else file2fraction_group
+        )
+        selected = {raw: groups[raw] for raw in sdrf["comment[data file]"].unique() if raw in groups}
+        group_ids = {group: i + 1 for i, group in enumerate(dict.fromkeys(selected.values()))}
+        return {raw: group_ids[group] for raw, group in selected.items()}
 
     def _calculate_fraction_group(
         self,
@@ -185,6 +228,7 @@ class ExperimentalDesignWriter:
         extension_convert: str | None,
         file2fraction: dict[str, str],
         file2combined_factors: dict[str, str],
+        file2fraction_group: dict[str, int] | None = None,
     ):
         """Write two-table format experimental design file.
 
@@ -192,7 +236,14 @@ class ExperimentalDesignWriter:
         """
         # Build file table
         file_table = self._build_file_table(
-            sdrf, file2technical_rep, source_name_list, source_name2n_reps, file2label, extension_convert, file2fraction
+            sdrf,
+            file2technical_rep,
+            source_name_list,
+            source_name2n_reps,
+            file2label,
+            extension_convert,
+            file2fraction,
+            file2fraction_group,
         )
 
         # Build sample table
@@ -222,12 +273,16 @@ class ExperimentalDesignWriter:
         file2label: dict[str, list[str]],
         extension_convert: str | None,
         file2fraction: dict[str, str],
+        file2fraction_group: dict[str, int] | None = None,
     ) -> dict:
         """Build the file table portion of the experimental design."""
         header = ["Fraction_Group", "Fraction", "Spectra_Filepath", "Label", "Sample"]
         content = "\t".join(header) + "\n"
 
-        label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
+        silac_labels = {
+            label.lower() for labels in file2label.values() for label in labels if label.startswith("SILAC")
+        }
+        silac_groups = self._silac_file_groups(sdrf, file2technical_rep, file2fraction_group)
         fraction_tracker = FractionGroupTracker()
         sample_tracker = SampleIdTracker()
 
@@ -239,11 +294,13 @@ class ExperimentalDesignWriter:
             fraction_group = self._calculate_fraction_group(
                 source_name, replicate, source_name_list, source_name2n_reps
             )
-            frac_group = fraction_tracker.get_fraction_group(raw, fraction_group)
+            frac_group = (
+                silac_groups[raw] if raw in silac_groups else fraction_tracker.get_fraction_group(raw, fraction_group)
+            )
             sample, _ = sample_tracker.get_sample_info(source_name)
 
             labels = file2label[raw]
-            label = self._get_label_from_labels(labels, set(labels), label_index, raw, row)
+            label = self._get_label_from_labels(labels, silac_labels, row)
             out = get_openms_file_name(raw, extension_convert)
 
             content += tsv_line(str(frac_group), file2fraction[raw], out, label, str(sample))
@@ -298,6 +355,7 @@ class ExperimentalDesignWriter:
         file2label: dict[str, list[str]],
         extension_convert: str | None,
         file2fraction: dict[str, str],
+        file2fraction_group: dict[str, int] | None = None,
     ):
         """Write one-table format experimental design file.
 
@@ -307,10 +365,18 @@ class ExperimentalDesignWriter:
         cdf = file2label[first_file][0].lower() if file2label[first_file] else ""
         is_multiplex = self._is_multiplex_label(cdf)
 
-        header = self._get_one_table_header(is_multiplex, legacy)
+        # Sample is required for every labeled one-table design. Keep the
+        # legacy flag's existing behavior for label-free output.
+        include_sample = legacy or any(
+            label != "label free sample" for labels in file2label.values() for label in labels
+        )
+        header = self._get_one_table_header(is_multiplex, include_sample)
         content = tsv_line(*header)
 
-        label_index = dict(zip(sdrf["comment[data file]"], [0] * len(sdrf["comment[data file]"])))
+        silac_labels = {
+            label.lower() for labels in file2label.values() for label in labels if label.startswith("SILAC")
+        }
+        silac_groups = self._silac_file_groups(sdrf, file2technical_rep, file2fraction_group)
         fraction_tracker = FractionGroupTracker()
         sample_tracker = SampleIdTracker()
         mixture_tracker = MixtureTracker()
@@ -323,12 +389,14 @@ class ExperimentalDesignWriter:
             fraction_group = self._calculate_fraction_group(
                 source_name, replicate, source_name_list, source_name2n_reps
             )
-            frac_group = fraction_tracker.get_fraction_group(raw, fraction_group)
+            frac_group = (
+                silac_groups[raw] if raw in silac_groups else fraction_tracker.get_fraction_group(raw, fraction_group)
+            )
             sample, bio_replicate = sample_tracker.get_sample_info(source_name)
             condition = self._get_condition(file2combined_factors, raw, row["comment[label]"], source_name)
 
             labels = file2label[raw]
-            label = self._get_label_from_labels(labels, set(labels), label_index, raw, row)
+            label = self._get_label_from_labels(labels, silac_labels, row)
             out = get_openms_file_name(raw, extension_convert)
 
             content += self._format_one_table_row(
@@ -340,7 +408,7 @@ class ExperimentalDesignWriter:
                 condition,
                 bio_replicate,
                 is_multiplex,
-                legacy,
+                include_sample,
                 mixture_tracker,
                 raw,
             )
