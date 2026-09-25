@@ -11,9 +11,23 @@ from sdrf_pipelines.ols.ols import OLS_AVAILABLE
 if OLS_AVAILABLE:
     from sdrf_pipelines.ols.ols import OlsClient
 from sdrf_pipelines.sdrf.sdrf import SDRFDataFrame
-from sdrf_pipelines.sdrf.specification import NORM, NOT_APPLICABLE, NOT_AVAILABLE
+from sdrf_pipelines.sdrf.specification import ANONYMIZED, NORM, NOT_APPLICABLE, NOT_AVAILABLE, POOLED
 from sdrf_pipelines.utils.error_codes import ErrorCode
 from sdrf_pipelines.utils.exceptions import LogicError
+
+
+def _reserved_values(params: dict[str, Any]) -> set[str]:
+    """Reserved words that value/pattern checks skip for a column.
+
+    'not applicable'/'not available' are always skipped here (SchemaValidator enforces their
+    allow_* flags). 'pooled'/'anonymized' are skipped only when the column allows them.
+    """
+    reserved = {NOT_APPLICABLE, NOT_AVAILABLE}
+    if params.get("allow_pooled"):
+        reserved.add(POOLED)
+    if params.get("allow_anonymized"):
+        reserved.add(ANONYMIZED)
+    return reserved
 
 
 def _is_string_like_dtype(series: pd.Series) -> bool:
@@ -123,11 +137,12 @@ class ValuesValidator(SDRFValidator):
         # Normalize values for comparison (case-insensitive)
         allowed_lower = {str(v).lower() for v in allowed_values}
         errors = []
+        skip = {"", "nan"} | _reserved_values(self.params)
 
         for idx, value in series.items():
             str_value = str(value).strip()
-            # Skip empty/NA values
-            if str_value.lower() in ("", "nan", "not applicable", "not available"):
+            # Skip empty values and reserved words
+            if str_value.lower() in skip:
                 continue
             if str_value.lower() not in allowed_lower:
                 level = logging.WARNING if error_level == "warning" else logging.ERROR
@@ -837,9 +852,9 @@ class PatternValidator(SDRFValidator):
         else:
             non_empty_series = series
 
-        # Skip sentinel values — SchemaValidator enforces allow_not_applicable/allow_not_available flags
+        # Skip reserved words — SchemaValidator enforces allow_not_applicable/allow_not_available flags
         non_empty_series = non_empty_series[
-            ~non_empty_series.str.strip().str.lower().isin(["not applicable", "not available"])
+            ~non_empty_series.str.strip().str.lower().isin(_reserved_values(self.params))
         ]
 
         not_matched = non_empty_series[~non_empty_series.str.match(pat=pattern, case=case)]

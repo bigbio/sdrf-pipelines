@@ -9,6 +9,9 @@ from sdrf_pipelines.sdrf.schemas.models import (
     SchemaDefinition,
 )
 
+# Reserved-word flags carried across merged column definitions
+_ALLOW_FLAGS = ("allow_not_applicable", "allow_not_available", "allow_pooled", "allow_anonymized")
+
 # Requirement level ordering for "stricter" comparison
 _REQUIREMENT_ORDER = {
     RequirementLevel.OPTIONAL: 0,
@@ -19,14 +22,14 @@ _REQUIREMENT_ORDER = {
 
 def _merge_fields_first_strategy(merged: ColumnDefinition, col_def: ColumnDefinition) -> None:
     """Merge fields using FIRST strategy - use first non-null value."""
-    for field in ["description", "requirement", "allow_not_applicable", "allow_not_available"]:
+    for field in ["description", "requirement", *_ALLOW_FLAGS]:
         if getattr(merged, field) is None and getattr(col_def, field) is not None:
             setattr(merged, field, getattr(col_def, field))
 
 
 def _merge_fields_last_strategy(merged: ColumnDefinition, col_def: ColumnDefinition) -> None:
     """Merge fields using LAST strategy - use last non-null value."""
-    for field in ["description", "requirement", "allow_not_applicable", "allow_not_available"]:
+    for field in ["description", "requirement", *_ALLOW_FLAGS]:
         if getattr(col_def, field) is not None:
             setattr(merged, field, getattr(col_def, field))
 
@@ -46,8 +49,8 @@ def _merge_fields_combine_strategy(merged: ColumnDefinition, col_def: ColumnDefi
         if _REQUIREMENT_ORDER.get(col_def.requirement, 0) > _REQUIREMENT_ORDER.get(merged.requirement, 0):
             merged.requirement = col_def.requirement
 
-    # Merge allow_not_applicable and allow_not_available fields
-    for field in ["allow_not_applicable", "allow_not_available"]:
+    # Merge allow_* reserved-word flags
+    for field in _ALLOW_FLAGS:
         if getattr(col_def, field):
             setattr(merged, field, True)
 
