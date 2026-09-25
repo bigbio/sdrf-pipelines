@@ -1694,8 +1694,8 @@ class EmptyCellValidator(SDRFValidator):
         results = validation_results.to_numpy()
         failed_indices = [
             (validation_results.index[i], validation_results.columns[j])
-            for i in range(results.shape[0])
-            for j in range(results.shape[1])
+            for i in range(len(validation_results.index))
+            for j in range(len(validation_results.columns))
             if not results[i, j]
         ]
 
