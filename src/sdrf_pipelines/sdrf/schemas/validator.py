@@ -120,6 +120,8 @@ class SchemaValidator:
                 "use_ols_cache_only": use_ols_cache_only,
                 "allow_not_applicable": column_def.allow_not_applicable,
                 "allow_not_available": column_def.allow_not_available,
+                "allow_pooled": column_def.allow_pooled,
+                "allow_anonymized": column_def.allow_anonymized,
             }
             temp_config = ValidatorConfig(validator_name=validator_config.validator_name, params=params)
             validator = self._create_validator_instance(temp_config, skip_ontology=skip_ontology)
