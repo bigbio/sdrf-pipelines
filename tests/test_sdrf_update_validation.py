@@ -172,3 +172,107 @@ def test_cli_writes_machine_readable_diagnostics(tmp_path: Path):
     text = output.read_text(encoding="utf-8")
     assert "column_occurrence" in text
     assert "f1.raw" in text
+
+
+def test_multiplex_rows_are_disambiguated_by_label(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]", "comment[instrument]"]
+    rows = [
+        ["s1", "a1", "shared.raw", "light", "A"],
+        ["s1", "a2", "shared.raw", "heavy", "A"],
+    ]
+    base = _write(tmp_path / "base.tsv", headers, rows)
+    candidate = _write(tmp_path / "candidate.tsv", headers, rows)
+
+    assert validate_sdrf_update(base, candidate) == []
+
+
+def test_multiplex_rows_can_be_reordered(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]", "comment[instrument]"]
+    rows = [
+        ["s1", "a1", "shared.raw", "light", "A"],
+        ["s1", "a2", "shared.raw", "heavy", "A"],
+    ]
+    base = _write(tmp_path / "base.tsv", headers, rows)
+    candidate = _write(tmp_path / "candidate.tsv", headers, list(reversed(rows)))
+
+    assert validate_sdrf_update(base, candidate) == []
+
+
+def test_multiplex_duplicate_labels_fail_closed(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]"]
+    rows = [
+        ["s1", "a1", "shared.raw", "light"],
+        ["s1", "a2", "shared.raw", "light"],
+    ]
+    base = _write(tmp_path / "base.tsv", headers, rows)
+    candidate = _write(tmp_path / "candidate.tsv", headers, rows)
+
+    assert _changes(base, candidate) == [UpdateChange.AMBIGUOUS_ROW_IDENTITY]
+
+
+def test_multiplex_missing_label_fails_closed(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]"]
+    rows = [
+        ["s1", "a1", "shared.raw", "light"],
+        ["s1", "a2", "shared.raw", ""],
+    ]
+    base = _write(tmp_path / "base.tsv", headers, rows)
+    candidate = _write(tmp_path / "candidate.tsv", headers, rows)
+
+    assert _changes(base, candidate) == [UpdateChange.AMBIGUOUS_ROW_IDENTITY]
+
+
+def test_unique_data_files_do_not_require_unique_labels(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]"]
+    rows = [
+        ["s1", "a1", "f1.raw", "label free"],
+        ["s2", "a2", "f2.raw", "label free"],
+    ]
+    base = _write(tmp_path / "base.tsv", headers, rows)
+    candidate = _write(tmp_path / "candidate.tsv", headers, rows)
+
+    assert validate_sdrf_update(base, candidate) == []
+
+
+def test_multiplex_scientific_change_is_reported(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]", "comment[instrument]"]
+    base = _write(
+        tmp_path / "base.tsv",
+        headers,
+        [["s1", "a1", "shared.raw", "light", "A"], ["s1", "a2", "shared.raw", "heavy", "A"]],
+    )
+    candidate = _write(
+        tmp_path / "candidate.tsv",
+        headers,
+        [["s1", "a1", "shared.raw", "light", "B"], ["s1", "a2", "shared.raw", "heavy", "A"]],
+    )
+
+    assert _changes(base, candidate) == [UpdateChange.SCIENTIFIC_VALUE_CHANGED]
+
+
+def test_multiplex_assay_change_remains_relationship_change(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]"]
+    base = _write(
+        tmp_path / "base.tsv",
+        headers,
+        [["s1", "a1", "shared.raw", "light"], ["s1", "a2", "shared.raw", "heavy"]],
+    )
+    candidate = _write(
+        tmp_path / "candidate.tsv",
+        headers,
+        [["s1", "changed", "shared.raw", "light"], ["s1", "a2", "shared.raw", "heavy"]],
+    )
+
+    assert _changes(base, candidate) == [UpdateChange.RELATIONSHIP_CHANGED]
+
+
+def test_removed_multiplex_row_is_reported_not_misaligned(tmp_path: Path):
+    headers = ["source name", "assay name", "comment[data file]", "comment[label]"]
+    base = _write(
+        tmp_path / "base.tsv",
+        headers,
+        [["s1", "a1", "shared.raw", "light"], ["s1", "a2", "shared.raw", "heavy"]],
+    )
+    candidate = _write(tmp_path / "candidate.tsv", headers, [["s1", "a1", "shared.raw", "light"]])
+
+    assert _changes(base, candidate) == [UpdateChange.ROW_REMOVED]

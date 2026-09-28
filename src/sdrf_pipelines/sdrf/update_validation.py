@@ -64,6 +64,7 @@ _CV_PART_RE = re.compile(r"(?:^|;)\s*(NT|AC)\s*=\s*([^;]+)", re.IGNORECASE)
 _RELATIONSHIP_COLUMNS = {"source name", "assay name", "comment[data file]"}
 _TEMPLATE_COLUMN = "comment[sdrf template]"
 _IDENTITY_COLUMN = "comment[data file]"
+_LABEL_COLUMN = "comment[label]"
 
 
 def _normalize_header(value: str) -> str:
@@ -108,19 +109,90 @@ def _column_index(sdrf: _LosslessSDRF, column: ColumnOccurrence) -> int | None:
         return None
 
 
-def _identity_map(sdrf: _LosslessSDRF) -> tuple[dict[str, tuple[str, ...]] | None, str | None]:
-    identity_columns = [col for col in sdrf.columns if col.name == _IDENTITY_COLUMN]
-    if len(identity_columns) != 1:
-        return None, f"expected exactly one '{_IDENTITY_COLUMN}' column, found {len(identity_columns)}"
-    idx = _column_index(sdrf, identity_columns[0])
-    assert idx is not None
-    identities = [row[idx].strip() for row in sdrf.rows]
-    if any(not identity for identity in identities):
-        return None, f"'{_IDENTITY_COLUMN}' contains empty values"
-    duplicates = sorted(value for value, count in Counter(identities).items() if count > 1)
-    if duplicates:
-        return None, f"'{_IDENTITY_COLUMN}' is not unique: {', '.join(duplicates[:3])}"
-    return dict(zip(identities, sdrf.rows, strict=True)), None
+def _identity_columns(sdrf: _LosslessSDRF) -> tuple[int | None, int | None, str | None]:
+    data_file_columns = [col for col in sdrf.columns if col.name == _IDENTITY_COLUMN]
+    if len(data_file_columns) != 1:
+        return None, None, f"expected exactly one '{_IDENTITY_COLUMN}' column, found {len(data_file_columns)}"
+
+    data_file_idx = _column_index(sdrf, data_file_columns[0])
+    assert data_file_idx is not None
+
+    label_columns = [col for col in sdrf.columns if col.name == _LABEL_COLUMN]
+    if len(label_columns) > 1:
+        return None, None, f"expected at most one '{_LABEL_COLUMN}' column, found {len(label_columns)}"
+    label_idx = _column_index(sdrf, label_columns[0]) if label_columns else None
+    return data_file_idx, label_idx, None
+
+
+def _identity_maps(
+    base: _LosslessSDRF, candidate: _LosslessSDRF
+) -> tuple[
+    dict[str, tuple[str, ...]] | None,
+    dict[str, tuple[str, ...]] | None,
+    str | None,
+]:
+    """Build exact row identities, using label only for multiplexed data files.
+
+    A unique ``comment[data file]`` identifies a row directly. If a data file occurs
+    more than once in either document, both documents use the exact
+    ``(comment[data file], comment[label])`` pair for that file. This keeps the
+    identity scheme stable when a multiplex row is added or removed while avoiding
+    assay/source fields whose changes must remain detectable as relationships.
+    """
+    base_file_idx, base_label_idx, base_error = _identity_columns(base)
+    candidate_file_idx, candidate_label_idx, candidate_error = _identity_columns(candidate)
+    if base_error or candidate_error:
+        details = "; ".join(
+            part
+            for part in (
+                f"base: {base_error}" if base_error else None,
+                f"candidate: {candidate_error}" if candidate_error else None,
+            )
+            if part
+        )
+        return None, None, details
+
+    assert base_file_idx is not None and candidate_file_idx is not None
+    base_files = [row[base_file_idx].strip() for row in base.rows]
+    candidate_files = [row[candidate_file_idx].strip() for row in candidate.rows]
+    if any(not value for value in base_files):
+        return None, None, f"base: '{_IDENTITY_COLUMN}' contains empty values"
+    if any(not value for value in candidate_files):
+        return None, None, f"candidate: '{_IDENTITY_COLUMN}' contains empty values"
+
+    base_counts = Counter(base_files)
+    candidate_counts = Counter(candidate_files)
+    multiplexed_files = {
+        value
+        for value in set(base_counts) | set(candidate_counts)
+        if base_counts[value] > 1 or candidate_counts[value] > 1
+    }
+
+    def build_map(
+        sdrf: _LosslessSDRF, file_idx: int, label_idx: int | None, side: str
+    ) -> tuple[dict[str, tuple[str, ...]] | None, str | None]:
+        result: dict[str, tuple[str, ...]] = {}
+        for row in sdrf.rows:
+            data_file = row[file_idx].strip()
+            if data_file in multiplexed_files:
+                if label_idx is None:
+                    return None, f"{side}: multiplexed data file '{data_file}' requires '{_LABEL_COLUMN}'"
+                label = row[label_idx].strip()
+                if not label:
+                    return None, f"{side}: multiplexed data file '{data_file}' has an empty '{_LABEL_COLUMN}'"
+                identity = f"{data_file} | {_LABEL_COLUMN}={label}"
+            else:
+                identity = data_file
+            if identity in result:
+                return None, f"{side}: row identity is not unique: {identity}"
+            result[identity] = row
+        return result, None
+
+    base_map, base_map_error = build_map(base, base_file_idx, base_label_idx, "base")
+    candidate_map, candidate_map_error = build_map(candidate, candidate_file_idx, candidate_label_idx, "candidate")
+    if base_map_error or candidate_map_error:
+        return None, None, "; ".join(error for error in (base_map_error, candidate_map_error) if error)
+    return base_map, candidate_map, None
 
 
 def _cv_parts(value: str) -> dict[str, str]:
@@ -156,23 +228,16 @@ def validate_sdrf_update(base: str | Path, candidate: str | Path) -> list[Update
     """Compare an existing SDRF with a candidate replacement.
 
     Additive rows/columns and empty-to-non-empty enrichment are allowed. Existing non-empty
-    metadata changes are returned as review-blocking findings. Rows are aligned only by a
-    unique, exact ``comment[data file]`` identity; ambiguous identity fails closed.
+    metadata changes are returned as review-blocking findings. Rows are aligned by exact
+    ``comment[data file]`` identity, disambiguated by exact ``comment[label]`` only for
+    data files that occur multiple times; ambiguous identity fails closed.
     """
     base_sdrf = _read_lossless_sdrf(base)
     candidate_sdrf = _read_lossless_sdrf(candidate)
-    base_rows, base_identity_error = _identity_map(base_sdrf)
-    candidate_rows, candidate_identity_error = _identity_map(candidate_sdrf)
+    base_rows, candidate_rows, identity_error = _identity_maps(base_sdrf, candidate_sdrf)
 
-    if base_identity_error or candidate_identity_error:
-        details = "; ".join(
-            part
-            for part in (
-                f"base: {base_identity_error}" if base_identity_error else None,
-                f"candidate: {candidate_identity_error}" if candidate_identity_error else None,
-            )
-            if part
-        )
+    if identity_error:
+        details = identity_error
         return [
             UpdateFinding(
                 change=UpdateChange.AMBIGUOUS_ROW_IDENTITY,
