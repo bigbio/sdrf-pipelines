@@ -31,6 +31,7 @@ Commands:
   split-sdrf            Command to split the sdrf file
   validate-sdrf         Command to validate the sdrf file
   validate-sdrf-simple  Simple command to validate the sdrf file.
+  validate-sdrf-update  Validate preservation when replacing an existing SDRF
 ```
 
 ## Validate SDRF
@@ -64,6 +65,22 @@ parse_sdrf validate-sdrf [OPTIONS]
 | `-po, --proof_out TEXT` | Output file to write the validation proof |
 | `--generate_proof` | Generate cryptographic proof of validation |
 | `--proof_salt TEXT` | Optional user-provided salt for proof generation |
+| `-h, --help` | Show this message and exit. |
+
+## Validate SDRF Update
+
+Compare a candidate SDRF with the existing BASE SDRF and flag destructive
+changes.
+
+```bash
+parse_sdrf validate-sdrf-update [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--base FILE` | [required] |
+| `--candidate FILE` | [required] |
+| `-o, --out FILE` |  |
 | `-h, --help` | Show this message and exit. |
 
 ## Convert to OpenMS
