@@ -32,6 +32,7 @@
   declared across several SDRF cells (`Oxidation` on `M` and on `P`) is merged into a single entry
   (`Oxidation,15.994915,MP`).
 - MHCquant converter: support LTQ Orbitrap Elite/Velos instruments (mapped to the `qe` presets; e.g. PXD012083, PXD004746).
+- MHCquant converter: map PSI-MS dissociation method terms to `ActivationMethod` by accession, then by name (e.g. `beam-type collision-induced dissociation` → `HCD`; e.g. PXD007203, PXD029882). Methods that OpenMS CometAdapter does not support (e.g. EThcD) fall back to `ALL`. A missing dissociation method keeps the default preset's `MS2PIPModel` instead of leaving it empty.
 
 ### Chores
 - Update the `sdrf-templates` submodule to the latest `main`.

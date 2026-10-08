@@ -6,6 +6,8 @@ from typing import TypedDict
 import pandas as pd
 
 from sdrf_pipelines.converters.mhcquant.constants import (
+    ACTIVATION_METHOD_BY_ACCESSION,
+    ACTIVATION_METHOD_BY_NAME,
     EMPTY_VALUES,
     MHC_CLASS_PEPTIDE_LENGTHS,
     PRESET_COLUMNS,
@@ -24,6 +26,7 @@ __all__ = [
     "parse_mhc_class",
     "ppm_to_da",
     "presets_match",
+    "resolve_activation_method",
     "resolve_fragment_tolerance",
     "strip_unit",
     "write_presets",
@@ -121,6 +124,19 @@ def extract_nt_value(value: str) -> str:
     """Extract the NT= value from an SDRF field like 'NT=HCD;AC=MS:1000422'."""
     match = re.search(r"NT=([^;]+)", value)
     return match.group(1).strip() if match else value.strip()
+
+
+def resolve_activation_method(value: str) -> str:
+    """Map an SDRF dissociation method like 'NT=HCD;AC=MS:1000422' to an mhcquant ActivationMethod.
+
+    The PSI-MS accession takes precedence over the case-insensitive NT= name.
+    Unmapped values are returned as their NT= value.
+    """
+    accession = re.search(r"AC=([^;]+)", value)
+    if accession and (method := ACTIVATION_METHOD_BY_ACCESSION.get(accession.group(1).strip().upper())):
+        return method
+    name = extract_nt_value(value)
+    return ACTIVATION_METHOD_BY_NAME.get(name.lower(), name)
 
 
 def resolve_fragment_tolerance(

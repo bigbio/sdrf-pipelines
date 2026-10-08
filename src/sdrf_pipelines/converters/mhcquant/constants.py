@@ -5,6 +5,9 @@ from pathlib import Path
 import pandas as pd
 
 __all__ = [
+    "ACTIVATION_METHOD_BY_ACCESSION",
+    "ACTIVATION_METHOD_BY_NAME",
+    "COMET_ACTIVATION_METHODS",
     "DEFAULT_PRESETS_FILE",
     "EMPTY_VALUES",
     "INSTRUMENT_PRESET_MAP",
@@ -33,6 +36,36 @@ INSTRUMENT_PRESET_MAP = [
     (["astral"], "astral"),
     (["ltq orbitrap xl", "orbitrap xl"], "xl"),
 ]
+
+# PSI-MS dissociation method accession / lowercase name or synonym -> mhcquant ActivationMethod
+ACTIVATION_METHOD_BY_ACCESSION = {
+    "MS:1000133": "CID",
+    "MS:1000422": "HCD",
+    "MS:1002481": "HCD",
+    "MS:1000598": "ETD",
+    "MS:1000250": "ECD",
+    "MS:1002631": "EThcD",
+    "MS:1003182": "ETciD",
+}
+
+ACTIVATION_METHOD_BY_NAME = {
+    "cid": "CID",
+    "collision-induced dissociation": "CID",
+    "hcd": "HCD",
+    "beam-type collision-induced dissociation": "HCD",
+    "higher energy beam-type collision-induced dissociation": "HCD",
+    "etd": "ETD",
+    "electron transfer dissociation": "ETD",
+    "ecd": "ECD",
+    "electron capture dissociation": "ECD",
+    "ethcd": "EThcD",
+    "electron-transfer/higher-energy collision dissociation": "EThcD",
+    "etcid": "ETciD",
+    "electron-transfer/collision-induced dissociation": "ETciD",
+}
+
+# ActivationMethod values accepted by both the mhcquant presets schema and OpenMS CometAdapter
+COMET_ACTIVATION_METHODS = {"ALL", "CID", "HCD", "ETD", "ECD"}
 
 PRESET_COLUMNS = [
     "PresetName",

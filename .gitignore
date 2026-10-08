@@ -132,4 +132,5 @@ pip-wheel-metadata
 .cursor/
 .codacy/
 .claude/
+CLAUDE.md
 .ruff_cache/
