@@ -127,11 +127,7 @@ def extract_nt_value(value: str) -> str:
 
 
 def resolve_activation_method(value: str) -> str:
-    """Map an SDRF dissociation method like 'NT=HCD;AC=MS:1000422' to an mhcquant ActivationMethod.
-
-    The PSI-MS accession takes precedence over the case-insensitive NT= name.
-    Unmapped values are returned as their NT= value.
-    """
+    """Map an SDRF dissociation method to an mhcquant ActivationMethod by PSI-MS accession, then by NT= name."""
     accession = re.search(r"AC=([^;]+)", value)
     if accession and (method := ACTIVATION_METHOD_BY_ACCESSION.get(accession.group(1).strip().upper())):
         return method
