@@ -7,6 +7,7 @@ import pandas as pd
 
 from sdrf_pipelines.converters.base import BaseConverter
 from sdrf_pipelines.converters.mhcquant.constants import (
+    COMET_ACTIVATION_METHODS,
     EMPTY_VALUES,
     INSTRUMENT_PRESET_MAP,
     load_default_presets,
@@ -20,6 +21,7 @@ from sdrf_pipelines.converters.mhcquant.utils import (
     overlay_params_on_preset,
     parse_mhc_class,
     ppm_to_da,
+    resolve_activation_method,
     resolve_fragment_tolerance,
     strip_unit,
     write_presets,
@@ -137,10 +139,6 @@ class MHCquant(BaseConverter):
             else:
                 params["precursor_mass_range"] = f"{int(min_mz_val)}:{int(max_mz_val)}"
 
-        diss = get_column_value(row, "comment[dissociation method]")
-        if diss:
-            params["activation_method"] = extract_nt_value(diss).upper()
-
         instrument_str = get_column_value(row, "comment[instrument]")
         ms2_analyzer = get_column_value(row, "comment[ms2 mass analyzer]")
         if instrument_str:
@@ -160,10 +158,15 @@ class MHCquant(BaseConverter):
         else:
             params["instrument_resolution"] = "high_res"
 
-        params["ms2pip_model"] = self._determine_ms2pip_model(
-            params.get("activation_method", ""),
-            params.get("instrument_name", ""),
-        )
+        # Without an SDRF dissociation method, the default preset keeps its activation and MS2PIP pair
+        diss = get_column_value(row, "comment[dissociation method]")
+        if diss:
+            activation_method = resolve_activation_method(diss)
+            params["activation_method"] = self._comet_activation_method(activation_method)
+            params["ms2pip_model"] = self._determine_ms2pip_model(
+                activation_method,
+                params.get("instrument_name", ""),
+            )
 
         fixed_mods, variable_mods = self._extract_modifications(row)
         params["fixed_mods"] = fixed_mods
@@ -181,6 +184,15 @@ class MHCquant(BaseConverter):
             )
         return parse_mhc_class(val)
 
+    def _comet_activation_method(self, activation_method: str) -> str:
+        """Return the activation method, or 'ALL' if CometAdapter or the mhcquant presets schema rejects it."""
+        if activation_method in COMET_ACTIVATION_METHODS:
+            return activation_method
+        self.add_warning(
+            f"Activation method '{activation_method}' is not supported by CometAdapter. ActivationMethod set to 'ALL'."
+        )
+        return "ALL"
+
     def _determine_ms2pip_model(self, activation_method: str, instrument_name: str) -> str:
         """Determine MS2PIP model based on instrument and activation method.
 
@@ -196,9 +208,7 @@ class MHCquant(BaseConverter):
         if upper_method == "HCD":
             return "Immuno-HCD"
 
-        self.add_warning(
-            f"Unknown activation method '{activation_method}' for MS2PIP model selection. MS2PIP model left empty."
-        )
+        self.add_warning(f"No MS2PIP model for activation method '{activation_method}'. MS2PIP model left empty.")
         return ""
 
     def _extract_modifications(self, row: pd.Series) -> tuple[str, str]:
