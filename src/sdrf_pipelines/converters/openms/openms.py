@@ -27,6 +27,7 @@ from sdrf_pipelines.converters.openms.utils import (
     FileToColumnEntries,
     infer_itraqplex,
     infer_tmtplex,
+    parse_openms_label,
     parse_tolerance,
 )
 from sdrf_pipelines.utils.utils import tsv_line
@@ -66,7 +67,7 @@ class OpenMS:
         Args:
             sdrf_file: Path to SDRF file
             one_table: If True, write one-table format; otherwise two-table format
-            legacy: If True, include legacy Sample column
+            legacy: Include Sample also for label-free one-table output (always included for labeled data)
             verbose: If True, print verbose output
             split_by_columns: Columns to split output by (comma-separated in brackets)
             extension_convert: File extension conversion pattern
@@ -89,6 +90,7 @@ class OpenMS:
             )
         sdrf = sdrf.astype(str)
         sdrf.columns = sdrf.columns.str.lower()
+        sdrf["comment[label]"] = sdrf["comment[label]"].map(parse_openms_label)
 
         # Get modification columns
         mod_cols = [c for c in sdrf.columns if c.startswith("comment[modification parameters")]
@@ -159,6 +161,9 @@ class OpenMS:
             list_of_combined_factors.append(combined_factors)
 
         sdrf["_conditions_from_factors"] = list_of_combined_factors
+        # Use the complete mixture before splitting by condition: a shared reference
+        # alone cannot identify which mixture a file belongs to.
+        f2c.file2fraction_group = self._design_writer.get_silac_fraction_groups(sdrf, f2c.file2technical_rep)
 
         # Collect warnings from modification converter
         self.warnings.update(self._mod_converter.warnings)
@@ -276,22 +281,13 @@ class OpenMS:
 
     def _process_label(self, row, f2c: FileToColumnEntries, raw: str, sdrf: pd.DataFrame):
         """Process label information."""
-        search_result_label = re.search("NT=(.+?)(;|$)", row["comment[label]"])
-        if search_result_label is not None:
-            label = search_result_label.group(1)
-            f2c.file2label[raw] = [label]
-        else:
-            if "TMT" in row["comment[label]"]:
-                label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
-            elif "SILAC" in row["comment[label]"]:
-                label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
-            elif "label free sample" in row["comment[label]"]:
-                label = ["label free sample"]
-            elif "ITRAQ" in row["comment[label]"]:
-                label = sdrf[sdrf["comment[data file]"] == raw]["comment[label]"].tolist()
-            else:
-                raise ValueError("Label " + str(row["comment[label]"]) + " is not recognized")
-            f2c.file2label[raw] = label
+        if raw in f2c.file2label:
+            return
+        labels = sdrf.loc[sdrf["comment[data file]"] == raw, "comment[label]"].tolist()
+        for label in labels:
+            if label != "label free sample" and not label.startswith(("TMT", "SILAC", "ITRAQ")):
+                raise ValueError("Label " + label + " is not recognized")
+        f2c.file2label[raw] = labels
 
     def _combine_factors_to_conditions(self, characteristics_cols, factor_cols, row):
         """Combine factors to create condition strings."""
@@ -340,6 +336,7 @@ class OpenMS:
                 f2c.file2label,
                 extension_convert,
                 f2c.file2fraction,
+                file2fraction_group=f2c.file2fraction_group,
             )
         else:
             self._design_writer.write_two_table_format(
@@ -352,6 +349,7 @@ class OpenMS:
                 extension_convert,
                 f2c.file2fraction,
                 f2c.file2combined_factors,
+                file2fraction_group=f2c.file2fraction_group,
             )
 
     def _write_split_output_files(
@@ -376,6 +374,7 @@ class OpenMS:
                     f2c.file2label,
                     extension_convert,
                     f2c.file2fraction,
+                    file2fraction_group=f2c.file2fraction_group,
                 )
             else:
                 self._design_writer.write_two_table_format(
@@ -388,6 +387,7 @@ class OpenMS:
                     extension_convert,
                     f2c.file2fraction,
                     f2c.file2combined_factors,
+                    file2fraction_group=f2c.file2fraction_group,
                 )
 
     def _save_search_settings_to_file(self, output_filename, sdrf, f2c: FileToColumnEntries):

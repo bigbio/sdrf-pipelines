@@ -59,6 +59,26 @@ jobs:
       - name: Run core tests (excluding ontology)
         run: uv run pytest -m "not ontology" -v
 
+  test-openms-designs:
+    name: OpenMS SILAC design compatibility
+    runs-on: ubuntu-latest
+    needs: pre-commit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --group dev
+      - name: Convert SILAC designs and load them with OpenMS
+        run: |
+          uv run --with pyopenms==3.5.0 python -c "import pyopenms; print(pyopenms.__version__)"
+          uv run --with pyopenms==3.5.0 pytest tests/test_convert_openms_silac.py -v
+
   test-ontology:
     name: Ontology Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -85,7 +105,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: [test-core, test-ontology]
+    needs: [test-core, test-openms-designs, test-ontology]
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/checkout@v4

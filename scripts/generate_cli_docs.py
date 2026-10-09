@@ -106,6 +106,7 @@ def main():
     # Commands to document (command_name, display_title)
     commands = [
         ("validate-sdrf", "Validate SDRF"),
+        ("validate-sdrf-update", "Validate SDRF Update"),
         ("convert-openms", "Convert to OpenMS"),
         ("convert-maxquant", "Convert to MaxQuant"),
         ("convert-msstats", "Convert to MSstats"),

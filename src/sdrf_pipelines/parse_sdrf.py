@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import sys
+from collections import Counter
 from typing import Optional
 
 import click
@@ -28,6 +29,7 @@ from sdrf_pipelines.ols.ols import (
 )
 from sdrf_pipelines.sdrf.schemas import SchemaRegistry, SchemaValidator
 from sdrf_pipelines.sdrf.sdrf import read_sdrf
+from sdrf_pipelines.sdrf.update_validation import validate_sdrf_update
 from sdrf_pipelines.utils.exceptions import AppConfigException, LogicError
 from sdrf_pipelines.utils.utils import ValidationProof
 
@@ -351,6 +353,64 @@ def validate_sdrf(
             click.secho(f"Warning: Could not generate validation proof: {e}", fg="yellow")
 
     sys.exit(bool(errors_not_warnings))
+
+
+@click.command("validate-sdrf-update", short_help="Validate preservation when replacing an existing SDRF")
+@click.option("--base", "base_file", required=True, type=click.Path(exists=True, dir_okay=False))
+@click.option("--candidate", "candidate_file", required=True, type=click.Path(exists=True, dir_okay=False))
+@click.option("--out", "-o", default=None, type=click.Path(dir_okay=False))
+def validate_sdrf_update_command(base_file: str, candidate_file: str, out: Optional[str] = None):
+    """Compare a candidate SDRF with the existing BASE SDRF and flag destructive changes."""
+    findings = validate_sdrf_update(base_file, candidate_file)
+    finding_counts = Counter(
+        (finding.change, finding.column, finding.old_value, finding.new_value) for finding in findings
+    )
+    rows = [
+        {
+            "classification": finding.change.value,
+            "row_identity": finding.row_identity or "",
+            "column": finding.column.name if finding.column else "",
+            "column_occurrence": finding.column.occurrence + 1 if finding.column else "",
+            "old_value": finding.old_value or "",
+            "new_value": finding.new_value or "",
+            "affected_rows": finding_counts[(finding.change, finding.column, finding.old_value, finding.new_value)],
+            "message": finding.message,
+        }
+        for finding in findings
+    ]
+    result = pd.DataFrame(
+        rows,
+        columns=[
+            "classification",
+            "row_identity",
+            "column",
+            "column_occurrence",
+            "old_value",
+            "new_value",
+            "affected_rows",
+            "message",
+        ],
+    )
+    if out is not None:
+        result.to_csv(out, sep="\t", index=False)
+
+    for row in rows:
+        location = row["row_identity"] or "all rows"
+        column = row["column"]
+        if column:
+            column = f"{column}#{row['column_occurrence']}"
+        click.secho(
+            f"REVIEW: {row['classification']} row={location} column={column or '-'} "
+            f"old={row['old_value']!r} new={row['new_value']!r}",
+            fg="red",
+        )
+    if findings:
+        click.secho(f"SDRF update requires review: {len(findings)} finding(s).", fg="red")
+        raise click.exceptions.Exit(1)
+    click.secho("SDRF update preservation checks passed.", fg="green")
+
+
+cli.add_command(validate_sdrf_update_command)
 
 
 @click.command("split-sdrf", short_help="Command to split the sdrf file")

@@ -1,11 +1,23 @@
 """Utility functions for OpenMS conversion."""
 
 import logging
+import re
 from collections.abc import Collection
 
 from sdrf_pipelines.converters.openms.constants import CHANNEL_MAP
 
 logger = logging.getLogger(__name__)
+
+
+def parse_openms_label(value: str) -> str:
+    """Read a plain or NT-encoded channel name without discarding other rows."""
+    match = re.search(r"(?:^|;)\s*NT=([^;]+)", value, flags=re.IGNORECASE)
+    label = (match.group(1) if match else value).strip()
+    for channels in CHANNEL_MAP.values():
+        for canonical in channels:
+            if label.casefold() == canonical.casefold():
+                return "label free sample" if canonical == "LFQ" else canonical
+    return label
 
 
 def _infer_plex(label_set: Collection[str], plex_prefix: str) -> str:
@@ -127,3 +139,4 @@ class FileToColumnEntries:
         self.file2fraction: dict[str, str] = {}
         self.file2combined_factors: dict[str, str] = {}
         self.file2technical_rep: dict[str, str] = {}
+        self.file2fraction_group: dict[str, int] = {}
