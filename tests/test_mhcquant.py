@@ -221,3 +221,71 @@ class TestEliteVelosInstruments:
         assert list(df["SearchPreset"]) == ["xl_class1"]
         assert p["Instrument"] == "low_res"
         assert p["FragmentMassTolerance"] == 0.50025
+
+
+class TestDissociationMethod:
+    """PSI-MS dissociation method terms map to mhcquant ActivationMethod and MS2PIPModel values."""
+
+    @staticmethod
+    def _row(dissociation: str) -> pd.Series:
+        return pd.Series(
+            {
+                "source name": "patient_1",
+                "characteristics[mhc protein complex]": "MHC class I protein complex",
+                "comment[instrument]": "NT=Q Exactive;AC=MS:1001911",
+                "comment[dissociation method]": dissociation,
+            }
+        )
+
+    @pytest.mark.parametrize(
+        "dissociation,activation,ms2pip",
+        [
+            ("NT=HCD;AC=MS:1000422", "HCD", "Immuno-HCD"),
+            ("NT=CID;AC=MS:1000133", "CID", "CIDch2"),
+            ("NT=beam-type collision-induced dissociation;AC=MS:1000422", "HCD", "Immuno-HCD"),
+            ("NT=collision-induced dissociation;AC=MS:1000133", "CID", "CIDch2"),
+            ("NT=higher energy beam-type collision-induced dissociation;AC=MS:1002481", "HCD", "Immuno-HCD"),
+            ("AC=MS:1000422;NT=beam-type CID", "HCD", "Immuno-HCD"),
+            ("NT=Collision-Induced Dissociation", "CID", "CIDch2"),
+            ("NT=hcd", "HCD", "Immuno-HCD"),
+        ],
+    )
+    def test_collision_methods(self, converter, dissociation, activation, ms2pip):
+        params = converter._extract_search_params(self._row(dissociation))
+        assert params["activation_method"] == activation
+        assert params["ms2pip_model"] == ms2pip
+
+    def test_etd_has_no_ms2pip_model(self, converter):
+        params = converter._extract_search_params(self._row("NT=electron transfer dissociation;AC=MS:1000598"))
+        assert params["activation_method"] == "ETD"
+        assert params["ms2pip_model"] == ""
+        assert any("MS2PIP" in w for w in converter.warnings)
+
+    @pytest.mark.parametrize(
+        "dissociation",
+        [
+            "NT=electron-transfer/higher-energy collision dissociation;AC=MS:1002631",
+            "NT=EThcD;AC=MS:1002631",
+            "NT=electron-transfer/collision-induced dissociation;AC=MS:1003182",
+            "NT=photodissociation;AC=MS:1000435",
+        ],
+    )
+    def test_methods_unsupported_by_comet_fall_back_to_all(self, converter, dissociation):
+        params = converter._extract_search_params(self._row(dissociation))
+        assert params["activation_method"] == "ALL"
+        assert params["ms2pip_model"] == ""
+        assert any("CometAdapter" in w for w in converter.warnings)
+
+    def test_missing_method_keeps_default_preset_values(self, converter, tmpdir):
+        sdrf = tmpdir / "na.sdrf.tsv"
+        sdrf.write_text(
+            "source name\tcharacteristics[mhc protein complex]\tcomment[data file]\tcomment[instrument]\t"
+            "comment[dissociation method]\tfactor value[source name]\n"
+            "patient_1\tMHC class I protein complex\trun1.raw\tNT=Q Exactive;AC=MS:1001911\t"
+            "not available\tpatient_1\n"
+        )
+        presets = tmpdir / "presets.tsv"
+        converter.convert(str(sdrf), str(tmpdir / "ss.tsv"), output_presets=str(presets))
+        p = pd.read_csv(presets, sep="\t").iloc[0]
+        assert p["ActivationMethod"] == "HCD"
+        assert p["MS2PIPModel"] == "Immuno-HCD"
