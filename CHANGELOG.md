@@ -16,6 +16,10 @@
 - Add cryptographic proof generation to the `validate-sdrf` command.
 - Add new options to several commands, including `convert-openms`, `convert-maxquant`, and `validate-sdrf`.
 
+### Performance
+- The ontology cache backend no longer builds a Python dict of every term when an ontology is loaded (NCBITaxon has ~2.7M): labels are indexed lazily with pandas, so `validate-sdrf` startup is about 4x faster
+- `validate-sdrf` reuses its schema registry for the validation proof instead of loading all templates a second time
+
 ### Bug Fixes (from v0.0.33)
 - Fixed Unimod modification matching bugs in OpenMS module
 - Added fallback to match modifications by name when accession lookup fails
