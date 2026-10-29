@@ -84,29 +84,28 @@ class _OntologyTable:
         self._labels = df["label"].astype(str).to_numpy(dtype=object)
         self._ontologies = df["ontology"].astype(str).to_numpy(dtype=object)
         self._accessions = df["accession"].astype(str).to_numpy(dtype=object)
-        self._uniques: pd.Index | None = None
-        self._order: np.ndarray | None = None
-        self._starts: np.ndarray | None = None
+        self._lookup: tuple[pd.Index, np.ndarray, np.ndarray] | None = None
 
     def __len__(self) -> int:
         return len(self._labels)
 
-    def _build_lookup(self) -> None:
+    def _build_lookup(self) -> tuple[pd.Index, np.ndarray, np.ndarray]:
         codes, uniques = pd.factorize(pd.Series(self._labels).str.lower())
-        self._uniques = pd.Index(uniques)
-        self._order = np.argsort(codes, kind="stable")  # rows of one label stay in file order
-        self._starts = np.concatenate(([0], np.cumsum(np.bincount(codes, minlength=len(uniques)))))
+        order = np.argsort(codes, kind="stable")  # rows of one label stay in file order
+        starts = np.concatenate(([0], np.cumsum(np.bincount(codes, minlength=len(uniques)))))
+        return pd.Index(uniques), order, starts
 
     def find(self, label_lower: str) -> list[dict[str, str]]:
-        if self._uniques is None:
-            self._build_lookup()
-        try:
-            code = self._uniques.get_loc(label_lower)
-        except KeyError:
+        if self._lookup is None:
+            self._lookup = self._build_lookup()
+        uniques, order, starts = self._lookup
+        code = int(uniques.get_indexer(pd.Index([label_lower]))[0])  # `uniques` has no duplicates; -1 means not found
+        if code < 0:
             return []
-        rows = self._order[self._starts[code] : self._starts[code + 1]]
+        rows = order[starts[code] : starts[code + 1]]
         return [
-            {"ontology_name": self._ontologies[i], "label": self._labels[i], "obo_id": self._accessions[i]} for i in rows
+            {"ontology_name": self._ontologies[i], "label": self._labels[i], "obo_id": self._accessions[i]}
+            for i in rows
         ]
 
 
