@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 # Characters that may break OLS exact search (known bug with terms like "SILAC heavy L:13C(6)")
@@ -70,34 +71,67 @@ class CacheBackend(ABC):
         ...
 
 
+class _OntologyTable:
+    """Columnar view of one ontology parquet file with a lazily built label lookup.
+
+    Building a Python dict of millions of entries (NCBITaxon alone has ~2.7M terms) cost tens of seconds
+    per validation, although a validation only looks up the few hundred distinct terms of the SDRF.
+    Here the labels are factorized once, on the first lookup, with pandas (C speed); a lookup is then a
+    hash probe plus a slice of the row positions, and entry dicts are only created for matching rows.
+    """
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        self._labels = df["label"].astype(str).to_numpy(dtype=object)
+        self._ontologies = df["ontology"].astype(str).to_numpy(dtype=object)
+        self._accessions = df["accession"].astype(str).to_numpy(dtype=object)
+        self._lookup: tuple[pd.Index, np.ndarray, np.ndarray] | None = None
+
+    def __len__(self) -> int:
+        return len(self._labels)
+
+    def _build_lookup(self) -> tuple[pd.Index, np.ndarray, np.ndarray]:
+        codes, uniques = pd.factorize(pd.Series(self._labels).str.lower())
+        order = np.argsort(codes, kind="stable")  # rows of one label stay in file order
+        starts = np.concatenate(([0], np.cumsum(np.bincount(codes, minlength=len(uniques)))))
+        return pd.Index(uniques), order, starts
+
+    def find(self, label_lower: str) -> list[dict[str, str]]:
+        if self._lookup is None:
+            self._lookup = self._build_lookup()
+        uniques, order, starts = self._lookup
+        code = int(uniques.get_indexer(pd.Index([label_lower]))[0])  # `uniques` has no duplicates; -1 means not found
+        if code < 0:
+            return []
+        rows = order[starts[code] : starts[code + 1]]
+        return [
+            {"ontology_name": self._ontologies[i], "label": self._labels[i], "obo_id": self._accessions[i]}
+            for i in rows
+        ]
+
+
 class DictBackend(CacheBackend):
-    """Dict-based cache backend. No extra dependencies. 0.01ms/query after build."""
+    """Cache backend over the ontology parquet files. No extra dependencies.
+
+    Loading an ontology only reads the parquet file; the label index is built lazily in C (see
+    ``_OntologyTable``), so loading NCBITaxon takes about a second instead of tens of seconds.
+    """
 
     def __init__(self) -> None:
-        # {ontology_lower: {label_lower: [{"ontology_name": str, "label": str, "obo_id": str}]}}
-        self._index: dict[str, dict[str, list[dict[str, str]]]] = {}
+        self._tables: dict[str, _OntologyTable] = {}
         self._ontology_names: list[str] = []
 
     def load_ontology(self, name: str, path: str) -> None:
         name_lower = name.lower()
-        if name_lower in self._index:
+        if name_lower in self._tables:
             return
-        df = pd.read_parquet(path, engine="fastparquet")
-        index: dict[str, list[dict[str, str]]] = {}
-        for row in df.itertuples(index=False):
-            label_lower = str(row.label).lower()
-            entry = {"ontology_name": str(row.ontology), "label": str(row.label), "obo_id": str(row.accession)}
-            if label_lower in index:
-                index[label_lower].append(entry)
-            else:
-                index[label_lower] = [entry]
-        self._index[name_lower] = index
+        df = pd.read_parquet(path, engine="fastparquet", columns=["accession", "ontology", "label"])
+        self._tables[name_lower] = _OntologyTable(df)
         if name_lower not in self._ontology_names:
             self._ontology_names.append(name_lower)
         logger.info("DictBackend: loaded %s (%d terms)", name, len(df))
 
     def is_ontology_loaded(self, name: str) -> bool:
-        return name.lower() in self._index
+        return name.lower() in self._tables
 
     def get_ontologies(self) -> list[str]:
         return list(self._ontology_names)
@@ -105,16 +139,16 @@ class DictBackend(CacheBackend):
     def search(self, term: str, ontology: str | None, full_search: bool = False) -> list[dict[str, str]]:
         term_lower = term.lower()
         if ontology is not None:
-            ont_index = self._index.get(ontology.lower())
-            if ont_index is None:
+            table = self._tables.get(ontology.lower())
+            if table is None:
                 return []
-            return list(ont_index.get(term_lower, []))
+            return table.find(term_lower)
         if not full_search:
             return []
         # full_search: search across all loaded ontologies
-        results = []
-        for ont_index in self._index.values():
-            results.extend(ont_index.get(term_lower, []))
+        results: list[dict[str, str]] = []
+        for table in self._tables.values():
+            results.extend(table.find(term_lower))
         return results
 
 
