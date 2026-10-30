@@ -278,7 +278,7 @@ def validate_sdrf(
     registry = SchemaRegistry()
     validator = SchemaValidator(registry)
     sdrf_df = read_sdrf(sdrf_file)
-    validation_proof = ValidationProof()
+    validation_proof = ValidationProof(registry)
     template_content = ""
     if generate_proof:
         contents = []
