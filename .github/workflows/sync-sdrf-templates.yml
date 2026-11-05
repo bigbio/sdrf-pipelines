@@ -25,6 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: dev
           fetch-depth: 0
           submodules: recursive
 
@@ -89,7 +90,7 @@ jobs:
             ${{ steps.vars.outputs.templates_short_sha }}
           branch: automation/sync-sdrf-templates-main
           delete-branch: true
-          base: main
+          base: dev
           title: >-
             Sync sdrf-templates main
             (${{ steps.vars.outputs.templates_short_sha }})
