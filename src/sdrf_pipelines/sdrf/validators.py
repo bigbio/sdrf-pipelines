@@ -1439,10 +1439,9 @@ class SemverValidator(SDRFValidator):
 
 @register_validator(validator_name="column_order")
 class ColumnOrderValidator(SDRFValidator):
-    """Validator that checks if columns are in the correct order in the SDRF file.
+    """Validator that checks if columns are in the correct order in the SDRF file."""
 
-    A column's type is what its name starts with: ``comment[characteristics source]`` is a comment column.
-    """
+    # A column's type is what its name starts with: comment[characteristics source] is a comment column.
 
     def _check_characteristics_before_assay(self, cnames: list[str], assay_index: int) -> list[LogicError]:
         errors = []

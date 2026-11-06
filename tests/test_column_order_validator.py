@@ -1,8 +1,4 @@
-"""Tests for ColumnOrderValidator: a column's type is what its name starts with, not a word inside it.
-
-``comment[characteristics source]`` is a comment column, and comment columns belong after ``assay name``. Looking for
-the word anywhere in the name reported it as a misplaced characteristics column.
-"""
+"""Tests for ColumnOrderValidator: a column's type is what its name starts with, not a word inside it."""
 
 import logging
 from io import StringIO
