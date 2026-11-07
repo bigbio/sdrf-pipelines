@@ -1441,9 +1441,11 @@ class SemverValidator(SDRFValidator):
 class ColumnOrderValidator(SDRFValidator):
     """Validator that checks if columns are in the correct order in the SDRF file."""
 
+    # A column's type is what its name starts with: comment[characteristics source] is a comment column.
+
     def _check_characteristics_before_assay(self, cnames: list[str], assay_index: int) -> list[LogicError]:
         errors = []
-        characteristics_after_assay = [col for col in cnames[assay_index:] if "characteristics" in col]
+        characteristics_after_assay = [col for col in cnames[assay_index:] if col.startswith("characteristics")]
         if characteristics_after_assay:
             errors.append(
                 LogicError.from_code(
@@ -1459,10 +1461,10 @@ class ColumnOrderValidator(SDRFValidator):
     ) -> tuple[ErrorCode | None, int | None]:
         error_code, error_type = None, None
 
-        if "comment" in column:
+        if column.startswith("comment"):
             error_code = ErrorCode.COMMENT_BEFORE_ASSAY
             error_type = logging.ERROR
-        elif "technology type" in column:
+        elif column.startswith("technology type"):
             error_code = ErrorCode.TECHNOLOGY_TYPE_MISPLACED
             if assay_index - idx > 1:
                 error_type = logging.ERROR
@@ -1476,10 +1478,10 @@ class ColumnOrderValidator(SDRFValidator):
     ) -> tuple[ErrorCode | None, int | None]:
         error_code, error_type = None, None
 
-        if "characteristics" in column or ("material type" in column and "factor value" not in column):
+        if column.startswith(("characteristics", "material type")):
             error_code = ErrorCode.COLUMN_ORDER_INVALID
             error_type = logging.ERROR
-        elif "technology type" in column and idx > assay_index + 1:
+        elif column.startswith("technology type") and idx > assay_index + 1:
             error_code = ErrorCode.TECHNOLOGY_TYPE_MISPLACED
             error_type = logging.ERROR
 
@@ -1509,7 +1511,7 @@ class ColumnOrderValidator(SDRFValidator):
         error_cols: list[str] = []
 
         for column in cnames[factor_index:]:
-            if "comment" in column or "characteristics" in column:
+            if column.startswith(("comment", "characteristics")):
                 error_cols.extend(temp)
                 temp = []
             elif "factor value" in column:
