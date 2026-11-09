@@ -453,3 +453,55 @@ class TestDiannMultiEnzyme:
 
         df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
         assert all(df["Enzyme"] == "Trypsin")
+
+
+class TestDiannDiaScanWindow:
+    """comment[scan window lower/upper limit] (dia-acquisition template) sets DIA-NN's precursor m/z range."""
+
+    def test_scan_window_sets_precursor_range(self, diann_data_dir, on_tmpdir):
+        converter = DiaNN()
+        converter.diann_convert(str(diann_data_dir / "scan_window_dia.sdrf.tsv"))
+
+        content = (on_tmpdir / "diann_config.cfg").read_text()
+        # global over runs: min(400, 350), max(1000, 1100); bare numbers as in the template
+        assert "--min-pr-mz 350.0" in content
+        assert "--max-pr-mz 1100.0" in content
+        assert "--min-fr-mz" not in content
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        row1 = df[df["Filename"] == "sample1.raw"].iloc[0]
+        row2 = df[df["Filename"] == "sample2.raw"].iloc[0]
+        assert (row1["MS1MinMz"], row1["MS1MaxMz"]) == (400.0, 1000.0)
+        assert (row2["MS1MinMz"], row2["MS1MaxMz"]) == (350.0, 1100.0)
+
+    def test_scan_window_preferred_over_ms1_range(self, diann_data_dir, on_tmpdir):
+        converter = DiaNN()
+        converter.diann_convert(str(diann_data_dir / "scan_window_and_ms1.sdrf.tsv"))
+
+        content = (on_tmpdir / "diann_config.cfg").read_text()
+        # the MS1 acquisition range (100-1700) is wider than the isolation windows (400-1000)
+        assert "--min-pr-mz 400.0" in content
+        assert "--max-pr-mz 1000.0" in content
+        df = pd.read_csv(on_tmpdir / "diann_design.tsv", sep="\t")
+        assert set(df["MS1MinMz"]) == {400.0} and set(df["MS1MaxMz"]) == {1000.0}  # "400" and "400 m/z" both parse
+        assert any("DIA scan window" in w and "MS1 scan range" in w for w in converter.warnings)
+
+    def test_partial_scan_window_falls_back_to_ms1_range(self, diann_data_dir, on_tmpdir):
+        converter = DiaNN()
+        converter.diann_convert(str(diann_data_dir / "scan_window_partial.sdrf.tsv"))
+
+        content = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--min-pr-mz 300.0" in content
+        assert "--max-pr-mz 1500.0" in content
+        assert any("Only one of comment[scan window lower limit]" in w for w in converter.warnings)
+
+    def test_inverted_scan_window_raises_error(self, diann_data_dir, on_tmpdir):
+        with pytest.raises(ValueError, match="Inverted DIA scan window"):
+            DiaNN().diann_convert(str(diann_data_dir / "scan_window_inverted.sdrf.tsv"))
+
+    def test_no_scan_window_keeps_ms1_behaviour(self, diann_data_dir, on_tmpdir):
+        converter = DiaNN()
+        converter.diann_convert(str(diann_data_dir / "scan_range_interval.sdrf.tsv"))
+
+        content = (on_tmpdir / "diann_config.cfg").read_text()
+        assert "--min-pr-mz 350.0" in content and "--max-pr-mz 1400.0" in content
+        assert not any("DIA scan window" in w for w in converter.warnings)
