@@ -41,6 +41,11 @@ _DISCRETE_MZ_COLS = {
     "ms2": ("comment[ms2 min mz]", "comment[ms2 max mz]"),
 }
 
+# DIA method m/z range (dia-acquisition template, MS:1000501): the precursor range covered by the isolation
+# windows. Values are bare numbers per the template ("400"); "400 m/z" is accepted as well.
+_DIA_SCAN_WINDOW_COLS = ("comment[scan window lower limit]", "comment[scan window upper limit]")
+_MZ_NUMBER_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)(?:\s*m/z)?$", re.IGNORECASE)
+
 
 class DiaNN(BaseConverter):
     """Converts SDRF files to DIA-NN configuration format."""
@@ -219,9 +224,10 @@ class DiaNN(BaseConverter):
                     row, "comment[fragment mass tolerance]"
                 )
 
-            # Scan ranges (first row wins)
+            # Scan ranges (first row wins). MS1MinMz/MS1MaxMz become DIA-NN's precursor m/z limits, so the DIA
+            # scan window (when annotated) takes precedence over the MS1 acquisition range.
             if fd["ms1_min_mz"] is None:
-                ms1_min, ms1_max = self._extract_scan_range(row, "ms1")
+                ms1_min, ms1_max = self._extract_precursor_range(row)
                 fd["ms1_min_mz"] = ms1_min
                 fd["ms1_max_mz"] = ms1_max
             if fd["ms2_min_mz"] is None:
@@ -311,7 +317,8 @@ class DiaNN(BaseConverter):
         """Compute global min and max m/z scan ranges across all runs.
 
         For the in-silico library generation step, DIA-NN needs:
-        - --min-pr-mz / --max-pr-mz: global min/max of MS1 scan ranges
+        - --min-pr-mz / --max-pr-mz: global min/max of the precursor ranges (DIA scan window if annotated,
+          otherwise the MS1 scan range)
         - --min-fr-mz / --max-fr-mz: global min/max of MS2 scan ranges
 
         The global minimum is the smallest lower bound across all runs,
@@ -405,6 +412,56 @@ class DiaNN(BaseConverter):
         if not tol_str or tol_str.lower() in ("nan", "not available"):
             return None, None
         return parse_tolerance(tol_str)
+
+    def _extract_dia_scan_window(self, row: pd.Series) -> tuple[float | None, float | None]:
+        """Extract the DIA method m/z range from comment[scan window lower/upper limit].
+
+        Returns (None, None) when the columns are absent or not available. A value that cannot be parsed, or only
+        one of the two limits, is reported as a warning and ignored; an inverted range raises ValueError.
+        """
+        vals: list[float | None] = []
+        for col in _DIA_SCAN_WINDOW_COLS:
+            val = str(row[col]).strip() if col in row.index else ""
+            if not val or val.lower() in ("nan", "not available", "not applicable"):
+                vals.append(None)
+                continue
+            match = _MZ_NUMBER_PATTERN.match(val)
+            if not match:
+                self.add_warning(f"Could not parse {col} value: '{val}'. Expected a number, e.g. '400'")
+                vals.append(None)
+                continue
+            vals.append(float(match.group(1)))
+        low, high = vals
+        if low is None and high is None:
+            return None, None
+        if low is None or high is None:
+            self.add_warning(
+                "Only one of comment[scan window lower limit] / comment[scan window upper limit] is set; "
+                "the DIA scan window is ignored"
+            )
+            return None, None
+        if low >= high:
+            raise ValueError(f"Inverted DIA scan window: lower ({low}) >= upper ({high}). Check your SDRF annotation.")
+        return low, high
+
+    def _extract_precursor_range(self, row: pd.Series) -> tuple[float | None, float | None]:
+        """Precursor m/z range for DIA-NN (--min-pr-mz / --max-pr-mz).
+
+        The DIA scan window (dia-acquisition template) describes the precursor range the isolation windows cover,
+        which is what DIA-NN's precursor limits mean. It takes precedence over the MS1 acquisition range
+        (comment[ms1 scan range] or comment[ms min mz] / comment[ms max mz]), which is used when no scan window is
+        annotated. A warning is emitted when both are present and differ.
+        """
+        window = self._extract_dia_scan_window(row)
+        ms1 = self._extract_scan_range(row, "ms1")
+        if window[0] is None:
+            return ms1
+        if ms1[0] is not None and ms1 != window:
+            self.add_warning(
+                f"Both a DIA scan window ({window[0]:g}-{window[1]:g}) and an MS1 scan range "
+                f"({ms1[0]:g}-{ms1[1]:g}) are annotated; using the DIA scan window for the precursor m/z range"
+            )
+        return window
 
     def _extract_scan_range(self, row: pd.Series, ms_level: str) -> tuple[float | None, float | None]:
         """Extract scan range (min/max m/z) for a given MS level.
