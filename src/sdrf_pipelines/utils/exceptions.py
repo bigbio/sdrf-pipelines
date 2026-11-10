@@ -126,6 +126,10 @@ class LogicError(ValidationWarning):
     def error_type(self):
         return self._error_type
 
+    @error_type.setter
+    def error_type(self, value) -> None:
+        self._error_type = value
+
     @property
     def severity(self) -> str:
         """Return severity as a string (error, warning, info)."""
