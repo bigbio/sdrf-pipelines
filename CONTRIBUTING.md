@@ -8,8 +8,9 @@ We use [uv](https://docs.astral.sh/uv/) as our package manager for fast, reliabl
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Clone the repository
-git clone https://github.com/bigbio/sdrf-pipelines.git
+# Clone the repository, including the sdrf-templates submodule
+# (for an existing clone: git submodule update --init)
+git clone --recurse-submodules https://github.com/bigbio/sdrf-pipelines.git
 cd sdrf-pipelines
 
 # Create virtual environment and install all dependencies (including dev)
