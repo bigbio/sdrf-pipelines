@@ -10,7 +10,7 @@ from sdrf_pipelines.sdrf.schemas.models import (
     SchemaDefinition,
     ValidatorConfig,
 )
-from sdrf_pipelines.sdrf.schemas.registry import SchemaRegistry
+from sdrf_pipelines.sdrf.schemas.registry import SchemaRegistry, TemplatesNotFoundError
 from sdrf_pipelines.sdrf.schemas.utils import (
     load_and_validate_sdrf,
     merge_column_defs,
@@ -27,6 +27,7 @@ __all__ = [
     "ValidatorConfig",
     # Registry
     "SchemaRegistry",
+    "TemplatesNotFoundError",
     # Validator
     "SchemaValidator",
     # Utils
