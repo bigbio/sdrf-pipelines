@@ -103,6 +103,25 @@ def resolve_version_constraint(constraint: str, available_versions: list[str]) -
         return None
 
 
+def default_schema_dir() -> str:
+    """Return the location of the bundled templates (the sdrf-templates submodule)."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level from schemas/ to sdrf/, then into sdrf-templates
+    return os.path.join(os.path.dirname(current_dir), "sdrf-templates")
+
+
+class TemplatesNotFoundError(FileNotFoundError):
+    """Raised when the bundled SDRF templates (sdrf-templates submodule) are missing or empty."""
+
+
+def _templates_not_found_message(schema_dir: str) -> str:
+    return (
+        f"No SDRF templates found in {schema_dir}. The templates are provided by the sdrf-templates "
+        "git submodule; if you are working from a git checkout, clone it with "
+        "'git clone --recurse-submodules' or run 'git submodule update --init' and reinstall the package."
+    )
+
+
 class SchemaRegistry:
     """Registry for SDRF schema definitions.
 
@@ -131,10 +150,9 @@ class SchemaRegistry:
         self.manifest: dict[str, Any] = {}
         self._available_versions: dict[str, list[str]] = {}
 
+        self._uses_default_dir = schema_dir is None
         if schema_dir is None:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            # Go up one level from schemas/ to sdrf/, then into sdrf-templates
-            schema_dir = os.path.join(os.path.dirname(current_dir), "sdrf-templates")
+            schema_dir = default_schema_dir()
             if not use_versioned:
                 logging.warning(
                     "use_versioned=False is deprecated. "
@@ -246,12 +264,19 @@ class SchemaRegistry:
     def load_schemas(self):
         """Load all schemas from the schema directory."""
         if not os.path.exists(self.schema_dir):
+            if self._uses_default_dir:
+                raise TemplatesNotFoundError(_templates_not_found_message(self.schema_dir))
             raise FileNotFoundError(f"Schema directory not found: {self.schema_dir}")
 
         if self.use_versioned:
             self._load_versioned_schemas()
         else:
             self._load_flat_schemas()
+
+        # A custom schema_dir may legitimately be empty (schemas can be added with add_schema), but the
+        # bundled templates directory is only empty when the git submodule was not checked out.
+        if self._uses_default_dir and not self.raw_schema_data:
+            raise TemplatesNotFoundError(_templates_not_found_message(self.schema_dir))
 
         for schema_name, raw_data in self.raw_schema_data.items():
             processed_schema = self._process_schema_inheritance(schema_name, raw_data)

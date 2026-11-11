@@ -21,6 +21,7 @@
 - `validate-sdrf` reuses its schema registry for the validation proof instead of loading all templates a second time
 
 ### Bug Fixes (from v0.0.33)
+- `SchemaRegistry` raises a `TemplatesNotFoundError` (a `FileNotFoundError`) that points to `git clone --recurse-submodules` / `git submodule update --init` when the bundled sdrf-templates directory is missing or empty, instead of loading no templates and failing later with `Schema 'ms-proteomics' not found in registry`. A custom `schema_dir` is not affected (#372)
 - DIA-NN converter: `comment[scan window lower limit]` / `comment[scan window upper limit]` (the DIA m/z range of the dia-acquisition template) were ignored, so DIA SDRFs annotated with the template gave DIA-NN no precursor m/z limits. They now set `MS1MinMz`/`MS1MaxMz` and `--min-pr-mz`/`--max-pr-mz`, taking precedence over the MS1 acquisition range, with a warning when both are present and differ (#368)
 - Fixed Unimod modification matching bugs in OpenMS module
 - Added fallback to match modifications by name when accession lookup fails
