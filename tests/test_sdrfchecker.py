@@ -82,6 +82,7 @@ def test_on_reference_sdrf(file_subpath, shared_datadir, on_tmpdir):
         "There were validation errors." in result.output
         or "Everything seems to be fine. Well done." in result.output
         or "Most seems to be fine. There were only warnings." in result.output
+        or "There were only warnings, but" in result.output
     )
 
 

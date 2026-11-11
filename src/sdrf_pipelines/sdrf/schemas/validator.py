@@ -200,6 +200,7 @@ class SchemaValidator:
         schema_name: str,
         use_ols_cache_only: bool = False,
         skip_ontology: bool = False,
+        strict_ontology: bool = False,
     ) -> list[LogicError]:
         """Validate a DataFrame against a schema.
 
@@ -208,6 +209,8 @@ class SchemaValidator:
             schema_name: Name of the schema to validate against
             use_ols_cache_only: If True, use only cached OLS data
             skip_ontology: If True, skip ontology term validation
+            strict_ontology: If True, report every term that is not found in the column's ontologies as an
+                error, also where the template or an offline lookup (use_ols_cache_only) would report a warning
         Returns:
             List of validation errors
         """
@@ -222,6 +225,11 @@ class SchemaValidator:
 
         for column_def in schema.columns:
             errors.extend(self._process_column_validation(df, column_def, use_ols_cache_only, skip_ontology))
+
+        if strict_ontology:
+            for error in errors:
+                if error.error_code == ErrorCode.ONTOLOGY_TERM_NOT_FOUND:
+                    error.error_type = logging.ERROR
 
         return errors
 

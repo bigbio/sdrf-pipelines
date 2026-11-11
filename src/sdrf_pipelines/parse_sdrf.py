@@ -204,6 +204,14 @@ def maxquant_from_sdrf(
     is_flag=True,
 )
 @click.option(
+    "--strict-ontology",
+    help=(
+        "Report terms that are not found in the column's ontologies as errors instead of warnings, "
+        "including with --use_ols_cache_only (a term newer than the bundled snapshot then fails too)"
+    ),
+    is_flag=True,
+)
+@click.option(
     "--out",
     "-o",
     help="Output file to write the validation results to (default: stdout)",
@@ -234,6 +242,7 @@ def validate_sdrf(
     templates: tuple[str, ...],
     use_ols_cache_only: bool,
     skip_ontology: bool,
+    strict_ontology: bool = False,
     out: Optional[str] = None,
     proof_out: Optional[str] = None,
     generate_proof: bool = False,
@@ -251,6 +260,7 @@ def validate_sdrf(
     @param templates: one or more templates to be used for validation
     @param use_ols_cache_only: flag to use the OLS cache for validation of the terms and not OLS internet service
     @param skip_ontology: flag to skip ontology term validation
+    @param strict_ontology: flag to report terms not found in the column's ontologies as errors
     @param out: Output file to write the validation results to (default: stdout)
     """
     # Warn if ontology validation is requested but dependencies are not available
@@ -301,8 +311,20 @@ def validate_sdrf(
     # across templates are removed later via the error DataFrame de-duplication.
     errors: list[LogicError] = []
     for template in templates:
-        errors.extend(validator.validate(sdrf_df, template, use_ols_cache_only, skip_ontology=skip_ontology))
+        errors.extend(
+            validator.validate(
+                sdrf_df,
+                template,
+                use_ols_cache_only,
+                skip_ontology=skip_ontology,
+                strict_ontology=strict_ontology,
+            )
+        )
     errors_not_warnings = [error for error in errors if error.error_type == logging.ERROR]
+    # Warnings for ontology checks that could not be done (no live lookup), counted once per message
+    unverified_warnings = {
+        error.message for error in errors if error.error_type == logging.WARNING and error.context.get("unverified")
+    }
     error_list = []
     for error in errors:
         if error.error_type == logging.ERROR:
@@ -327,6 +349,12 @@ def validate_sdrf(
             click.secho(f"{row['message']}", fg="green")
     if not errors:
         click.secho("Everything seems to be fine. Well done.", fg="green")
+    elif unverified_warnings and not errors_not_warnings:
+        click.secho(
+            f"There were only warnings, but {len(unverified_warnings)} ontology check(s) could not be verified "
+            "without a live ontology lookup (see the warnings above).",
+            fg="yellow",
+        )
     elif error_df[error_df["type"] == "WARNING"].shape[0] > 0 and not errors_not_warnings:
         click.secho("Most seems to be fine. There were only warnings.", fg="yellow")
     else:

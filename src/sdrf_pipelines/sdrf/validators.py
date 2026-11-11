@@ -581,6 +581,7 @@ if OLS_AVAILABLE:
                             row=idx,
                             error_type=logging.WARNING if unverifiable else self.error_level,
                             suggestion=suggestion,
+                            unverified=True if unverifiable else None,
                         )
                     )
 
@@ -635,6 +636,7 @@ if OLS_AVAILABLE:
                             detail="agreement could not be verified (no live ontology lookup)",
                             row=idx,
                             error_type=logging.WARNING,
+                            unverified=True,
                         )
                     )
                 elif label not in acc_labels:
@@ -691,6 +693,7 @@ if OLS_AVAILABLE:
                         row=idx,
                         error_type=logging.WARNING if unverifiable else self.error_level,
                         suggestion=(f"Use an accession that is a descendant of {parent}, with a matching NT= label"),
+                        unverified=True if unverifiable else None,
                     )
                 )
             return errors

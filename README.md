@@ -62,6 +62,10 @@ parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --template human
 
 # Skip ontology validation for quick structural checks
 parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --skip-ontology
+
+# Fail (exit 1) on terms that are not found in the column's ontologies, which are otherwise
+# reported as warnings by some templates and when validating offline with --use_ols_cache_only
+parse_sdrf validate-sdrf --sdrf_file sample.sdrf.tsv --strict-ontology
 ```
 
 ### Converter Examples
